@@ -351,7 +351,7 @@ void go_line()
             switch (sprite_pattern[edit_sprite/8][go_pattern_pos]&15)
             {
                 case GO_BREAK:
-                    strcpy((char *)buffer, "wait or break (if 0)");
+                    strcpy((char *)buffer, "wait or break (if 00)");
                     break;
                 case GO_NOT_MOVE:
                     strcpy((char *)buffer, "if not moving goto");
@@ -803,6 +803,7 @@ void go_controls()
         if (GAMEPAD_PRESS(0, X))
         { 
             // delete / cut
+            game_message[0] = 0;
             go_command_copy = sprite_pattern[edit_sprite/8][go_pattern_pos];
             for (int j=go_pattern_pos; j<31; ++j)
             {

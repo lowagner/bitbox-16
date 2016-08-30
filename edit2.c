@@ -123,7 +123,7 @@ void edit2_line()
             if (previous_visual_mode)
                 font_render_line_doubled((const uint8_t *)"start:back", 16, internal_line, 65535, 257*BG_COLOR);
             else if (edit_sprite_not_tile)
-                font_render_line_doubled((const uint8_t *)"start:edit sprite", 16, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"start:edit pattern", 16, internal_line, 65535, 257*BG_COLOR);
             else
                 font_render_line_doubled((const uint8_t *)"start:edit tile", 16, internal_line, 65535, 257*BG_COLOR);
             break;
@@ -739,6 +739,7 @@ void edit2_controls()
 
     if (GAMEPAD_PRESS(0, X))
     {
+        game_message[0] = 0;
         // copy or uncopy
         if (edit2_copying)
         {

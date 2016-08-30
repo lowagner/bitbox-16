@@ -469,11 +469,13 @@ void anthem_controls()
         int paint_if_moved = 0; 
         if (GAMEPAD_PRESSING(0, Y))
         {
+            game_message[0] = 0;
             anthem_song_paint(0);
             paint_if_moved = 1;
         }
         if (GAMEPAD_PRESSING(0, B))
         {
+            game_message[0] = 0;
             anthem_song_paint(1);
             paint_if_moved = 2;
         }
@@ -484,7 +486,10 @@ void anthem_controls()
         if (GAMEPAD_PRESSING(0, R))
             ++switched;
         if (switched)
+        {
             anthem_color[anthem_last_painted] = (anthem_color[anthem_last_painted]+switched)&15;
+            game_message[0] = 0;
+        }
         
         int moved = 0;
         if (GAMEPAD_PRESSING(0, down))
@@ -531,6 +536,7 @@ void anthem_controls()
         if (GAMEPAD_PRESS(0, A))
         {
             track_pos = 0;
+            game_message[0] = 0;
             if (chip_play)
                 chip_kill();
             else

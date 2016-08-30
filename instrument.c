@@ -939,6 +939,7 @@ void instrument_controls()
 
         if (GAMEPAD_PRESS(0, X))
         {
+            game_message[0] = 0;
             // copy or uncopy
             if (instrument_copying < 16)
                 instrument_copying = 16;
