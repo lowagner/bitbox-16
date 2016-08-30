@@ -45,7 +45,7 @@ extern uint8_t drawing_count; // keep track of how many objects you can see
 extern uint8_t first_drawing_index; 
 extern uint8_t last_drawing_index; 
 
-uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z);
+uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int16_t y, uint8_t z);
 void move_object(uint8_t i, int16_t x, int16_t y);
 void make_unseen_object_viewable(uint8_t i);
 void remove_object(uint8_t index);

@@ -67,7 +67,7 @@ int on_screen(int16_t x, int16_t y)
     return 0;
 }
 
-uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z)
+uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int16_t y, uint8_t z)
 {
     if (first_free_object_index == 255)
         return -1;
@@ -92,6 +92,7 @@ uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z)
         object[i].draw_order_index = -1;
 
     object[i].sprite_index = sprite_index;
+    object[i].sprite_frame = sprite_frame;
     return i;
 }
 

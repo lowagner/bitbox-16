@@ -800,13 +800,12 @@ FileError io_load_map()
         }
         uint8_t sprite = szxy[0]&255;
         uint8_t z = szxy[0]>>8;
-        uint8_t index = create_object(sprite/8, (int16_t)szxy[1], (int16_t)szxy[2], z);
+        uint8_t index = create_object(sprite/8, sprite%8, (int16_t)szxy[1], (int16_t)szxy[2], z);
         if (index == 255)
         {
             f_close(&fat_file);
             return ConstraintError;
         }
-        object[index].sprite_frame = sprite%8;
     } 
     f_close(&fat_file);
     return NoError;

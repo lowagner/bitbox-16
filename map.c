@@ -66,7 +66,7 @@ void map_reset()
     }
    
     for (int k=0; k<MAX_OBJECTS; ++k)
-        create_object(k%16, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), 2+rand()%128);
+        create_object(k%16, rand()%8, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), 2+rand()%128);
 }
 
 void map_line()
@@ -401,7 +401,7 @@ void map_controls()
             map_sprite_under_cursor = 255;
             modified = 1;
         }
-        if (GAMEPAD_PRESS(0, Y))
+        else if (GAMEPAD_PRESS(0, Y))
         {
             game_message[0] = 0;
             // paste sprite in here
@@ -415,14 +415,13 @@ void map_controls()
                 return;
             }
             // no object found under cursor, create one:
-            map_sprite_under_cursor = create_object(map_sprite/8, 16*map_tile_x, 16*map_tile_y, 0);
+            map_sprite_under_cursor = create_object(map_sprite/8, map_sprite%8, 16*map_tile_x, 16*map_tile_y, 1);
             if (map_sprite_under_cursor == 255) // could not create one
             {
                 strcpy((char *)game_message, "too many sprites");
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }
-            object[map_sprite_under_cursor].sprite_frame = map_sprite%8;
             modified = 1;
         }
         if (modified)
