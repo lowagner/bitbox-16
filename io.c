@@ -979,7 +979,7 @@ FileError io_load_verse(unsigned int i)
         for (i=0; i<16; ++i)
         {
             UINT bytes_get; 
-            fat_result = f_read(&fat_file, &chip_track[i], sizeof(chip_track[0]), &bytes_get);
+            fat_result = f_read(&fat_file, chip_track[i], sizeof(chip_track[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -997,7 +997,7 @@ FileError io_load_verse(unsigned int i)
 
     f_lseek(&fat_file, i*sizeof(chip_track[0])); 
     UINT bytes_get; 
-    fat_result = f_read(&fat_file, &chip_track[i], sizeof(chip_track[0]), &bytes_get);
+    fat_result = f_read(&fat_file, chip_track[i], sizeof(chip_track[0]), &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
@@ -1027,7 +1027,7 @@ FileError io_save_verse(unsigned int i)
         for (i=0; i<16; ++i)
         {
             UINT bytes_get; 
-            fat_result = f_write(&fat_file, &chip_track[i], sizeof(chip_track[0]), &bytes_get);
+            fat_result = f_write(&fat_file, chip_track[i], sizeof(chip_track[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -1049,7 +1049,7 @@ FileError io_save_verse(unsigned int i)
 
     f_lseek(&fat_file, i*sizeof(chip_track[0])); 
     UINT bytes_get; 
-    fat_result = f_write(&fat_file, &chip_track[i], sizeof(chip_track[0]), &bytes_get);
+    fat_result = f_write(&fat_file, chip_track[i], sizeof(chip_track[0]), &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
@@ -1150,6 +1150,106 @@ FileError io_save_anthem()
         return MissingDataError;
     }
 
+    f_close(&fat_file);
+    return NoError;
+}
+
+FileError io_save_go(unsigned int i)
+{
+    char filename[13];
+    if (io_set_extension(filename, "E16"))
+        return MountError; 
+
+    if (i >= 16)
+    {
+        fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
+        if (fat_result != FR_OK)
+            return OpenError;
+
+        for (i=0; i<16; ++i)
+        {
+            UINT bytes_get; 
+            fat_result = f_write(&fat_file, sprite_pattern[i], sizeof(sprite_pattern[0]), &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return WriteError;
+            }
+            if (bytes_get != sizeof(sprite_pattern[0]))
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+        }
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    FileError ferr = io_open_or_zero_file(filename, 16*sizeof(sprite_pattern[0]));
+    if (ferr)
+        return ferr;
+
+    f_lseek(&fat_file, i*sizeof(sprite_pattern[0])); 
+    UINT bytes_get; 
+    fat_result = f_write(&fat_file, sprite_pattern[i], sizeof(sprite_pattern[0]), &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != sizeof(sprite_pattern[0]))
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    f_close(&fat_file);
+    return NoError;
+}
+
+FileError io_load_go(unsigned int i)
+{
+    char filename[13];
+    if (io_set_extension(filename, "E16"))
+        return MountError; 
+
+    fat_result = f_open(&fat_file, filename, FA_READ | FA_OPEN_EXISTING);
+    if (fat_result != FR_OK)
+        return OpenError;
+
+    if (i >= 16)
+    {
+        for (i=0; i<16; ++i)
+        {
+            UINT bytes_get; 
+            fat_result = f_read(&fat_file, sprite_pattern[i], sizeof(sprite_pattern[0]), &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return ReadError;
+            }
+            if (bytes_get != sizeof(sprite_pattern[0]))
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+        }
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    f_lseek(&fat_file, i*sizeof(sprite_pattern[0])); 
+    UINT bytes_get; 
+    fat_result = f_read(&fat_file, sprite_pattern[i], sizeof(sprite_pattern[0]), &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return ReadError;
+    }
+    if (bytes_get != sizeof(sprite_pattern[0]))
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
     f_close(&fat_file);
     return NoError;
 }

@@ -726,10 +726,10 @@ void go_controls()
             }
 
             FileError error = BotchedIt;
-            //if (save_or_load == 1)
-            //    error = io_save_go(edit_sprite/8);
-            //else
-            //    error = io_load_go(edit_sprite/8);
+            if (save_or_load == 1)
+                error = io_save_go(edit_sprite/8);
+            else
+                error = io_load_go(edit_sprite/8);
             io_message_from_error(game_message, error, save_or_load);
             return;
         }
