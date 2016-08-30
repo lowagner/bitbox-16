@@ -1,0 +1,84 @@
+16 roadmap
+
+chiptune.c:
+    add more player(s) for sfx.
+
+run.c:
+    tile translation
+    hide sprites which are completely set inside another block with zero velocity.
+        - compute a "hidden" property (set z=0 to hide) when transitioning to run mode
+        - reset when going to map mode (always z=1 or higher)
+    
+    sprites:
+        add velocity to objects
+
+sprite pattern commands:  no loops are possible, march through commands
+
+    end/wait (end if argument is 0, wait quadratically)
+        wait = argument + argument*argument/4 (or something like that)
+
+    if not move goto
+    if not run goto
+    if not air goto
+    if not fire goto
+
+    set state
+        standard states (8 options):
+            stop, turn (90, 180, 270), move, run, jump, air, fire,
+        edge behaviors (8 options) 
+            stop, turn, fall, jump, stop if slow enough or fall, stop if slow enough or jump, etc.
+    
+    randomize next command, argument gives steps:
+        arg possible values
+        0   0-15
+        1   1, 15
+        2   1, 8, 15
+        3   0, 1, 8, 15
+        4   0-7
+        5   4-11
+        6   8-15
+        7   0-3, 12-15
+        8   0-3
+        9   4-7
+        10  8-11
+        11  12-15
+        12  0,4,8,12
+        13  1,5,9,13
+        14  2,6,10,14
+        15  3,7,11,15
+            
+    set speed 
+        if < 8
+            for directional input
+        if >= 8
+            set jump speed
+    set acceleration/deceleration
+    
+    look for closest player, change direction based on argument
+
+    handle player directional input (1 bit player for player 1, 2=left/right, 4=up/down, 8=mirrored), using current speed (as set by the "set speed" command)
+    handle player special input (1 bit for player 1, 2=jump, 4=run, 8=fire)
+    spawn other sprite (projectile) directly in front of player,
+        set velocity using next 8 bits??
+        
+    spawn tile directly in front of player (at nearest grid point)
+
+    set shake screen
+        2 bits intensity, 2 bits duration
+    make noise
+        4 bits for instrument, then play random note in the instrument octave
+    
+
+unlock pattern commands:
+    wait
+    set spawn location x, y (needs 14 bits total for both x,y)
+    spawn sprite
+    spawn tile (this can also destroy a tile if you spawn an "air" tile)
+    randomize command
+    set spawn location to player location (2 bits for offset in each direction)
+    set spawn location delta x, y
+    shake screen
+    make noise
+
+game editor
+    BG_COLOR 141
