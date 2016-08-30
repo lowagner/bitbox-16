@@ -358,7 +358,14 @@ void draw_parade(int line, uint8_t bg_color)
 
 void game_switch(VisualMode new_visual_mode)
 {
+    if (new_visual_mode == visual_mode)
+        return;
+
     chip_kill();
+    
+    if (visual_mode == GameOn) 
+        // we are switching away from game mode, reload map data
+        io_message_from_error(game_message, io_load_map(), 2);
 
     switch (new_visual_mode)
     {
@@ -371,5 +378,6 @@ void game_switch(VisualMode new_visual_mode)
     default:
         break;
     }
+    
     visual_mode = new_visual_mode;
 }

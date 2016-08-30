@@ -14,4 +14,7 @@ void tiles_init();
 void tiles_line();
 void tiles_reset();
 
+int tile_is_block(uint8_t t);
+int tile_yx_is_block(int16_t y, int16_t x);
+
 #endif

@@ -1,5 +1,15 @@
 16 roadmap
 
+game.c
+    game edit menu, also set to play
+    goes before map edit in SELECT route.  
+    press START to play
+        warn if map is not saved
+
+map.c:
+    force save before allowing to PLAY with 0, A
+    maybe take out SAVE with 0, X
+
 chiptune.c:
     add more player(s) for sfx.
 
@@ -10,7 +20,7 @@ run.c:
         - reset when going to map mode (always z=1 or higher)
     
     sprites:
-        add velocity to objects
+        run sprite commands
 
 sprite pattern commands:  no loops are possible, march through commands
 

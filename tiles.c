@@ -54,6 +54,27 @@ void tiles_init()
         tile_translator[j] = j; 
 }
 
+int tile_is_block(uint8_t t)
+{
+    // run through the translator
+    t = tile_translator[t];
+    return (tile_info[t] & 8);
+}
+
+int tile_yx_is_block(int16_t y, int16_t x)
+{
+    uint8_t index = y*tile_map_width + x;
+    uint8_t t = tile_map[index/2];
+    if (index % 2)
+        t >>= 4;
+    else
+        t %= 16;
+        
+    // run through the translator
+    t = tile_translator[t];
+    return (tile_info[t] & 8);
+}
+
 uint32_t pack_tile_info(uint8_t translation, uint8_t timing, uint8_t vulnerability, const SideType *sides)
 {
     return (8)|((translation&15)<<4)|((timing&15)<<8)|((vulnerability&15)<<12)|

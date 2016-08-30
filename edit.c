@@ -168,7 +168,7 @@ void edit_line()
             {
                 uint8_t text[] = { 
                     't', 'i', 'l', 'e', ' ', hex[edit_tile], 
-                    ' ', ' ', ' ', 's', 't', 'a', 'r', 't', ':', 'b', 'a', 'c', 'k',
+                    ' ', ' ', ' ', 's', 'e', 'l', 'e', 'c', 't', ':', 'b', 'a', 'c', 'k',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
             }
@@ -752,8 +752,12 @@ void edit_controls()
     {
         game_message[0] = 0;
         fill_stop();
-        previous_visual_mode = None;
-        if (edit_sprite_not_tile)
+        if (previous_visual_mode)
+        {
+            game_switch(previous_visual_mode);
+            previous_visual_mode = None;
+        }
+        else if (edit_sprite_not_tile)
         {
             game_switch(EditAnthem);
             edit_sprite_not_tile = 0;
@@ -768,12 +772,7 @@ void edit_controls()
     {
         game_message[0] = 0;
         fill_stop();
-        if (previous_visual_mode)
-        {
-            game_switch(previous_visual_mode);
-            previous_visual_mode = None;
-        }
-        else
-            game_switch(EditTileOrSpriteProperties);
+        previous_visual_mode = None;
+        game_switch(EditTileOrSpriteProperties);
     }
 }

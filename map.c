@@ -47,6 +47,12 @@ void map_switch()
         tile_map_y = map_tile_y*16 - SCREEN_H + MAP_HEADER + 16;
     else if (tile_map_y % 16)
         tile_map_y =16*(tile_map_y/16);
+
+    // raise all sprites to z > 0
+    for (int i=0; i<MAX_OBJECTS; ++i)
+    {
+        object[i].z = 1;
+    }
    
     update_objects(); 
 }

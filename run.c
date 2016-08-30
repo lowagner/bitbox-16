@@ -33,6 +33,24 @@ void run_switch()
     else if (tile_map_y + SCREEN_H + 16 >= tile_map_height*16)
         tile_map_y = tile_map_height*16 - SCREEN_H - 16;
     
+    // hide any sprites in objects by setting z = 0
+    for (int i=0; i<MAX_OBJECTS; ++i)
+    {
+        int y = object[i].y/16;
+        int x = object[i].x/16;
+        if (x < 0 || x >= tile_map_width ||
+            y < 0 || y >= tile_map_height)
+        {
+            message("weird, out of bounds sprite\n");
+            continue;
+        }
+        message("checking block type for object %d\n", i);
+        if (tile_yx_is_block(y, x))
+            object[i].z = 0;
+        else
+            object[i].z = 1;
+    }
+    
     update_objects(); 
     chip_play_init(0);
 }
