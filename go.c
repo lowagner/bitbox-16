@@ -12,10 +12,7 @@
 #include <stdlib.h> // rand
 #include <string.h> // memset
 
-#define BG_COLOR 132
-#define PLAY_COLOR (RGB(200, 100, 0)|(RGB(200, 100, 0)<<16))
-#define BOX_COLOR (RGB(200, 200, 230)|(RGB(200, 200, 230)<<16))
-#define MATRIX_WING_COLOR (RGB(30, 90, 90) | (RGB(30, 90, 90)<<16))
+#define BG_COLOR 168
 #define NUMBER_LINES 20
 
 uint8_t go_pattern_pos CCM_MEMORY;
@@ -183,7 +180,6 @@ void go_render_command(int j, int y)
             break;
         case GO_EXECUTE:
             cmd = 'E';
-            // TODO: need something fancier for all these params
             param = hex[param];
             break;
         case GO_LOOK:
@@ -207,12 +203,28 @@ void go_render_command(int j, int y)
             param = hex[param];
             break;
         case GO_ACCELERATION:
-            cmd = 'T';
-            param = hex[param];
+            if (param < 8)
+            {
+                cmd = '/';
+                param = '0' + param;
+            }
+            else
+            {
+                cmd = '\\';
+                param = '0' + param - 8;
+            }
             break;
         case GO_SPEED:
-            cmd = 'S'; 
-            param = hex[param];
+            if (param < 8)
+            {
+                cmd = '+';
+                param = '0' + param;
+            }
+            else
+            {
+                cmd = '^';
+                param = '0' + param - 8;
+            }
             break;
         case GO_NOISE:
             cmd = 'N';
@@ -224,7 +236,7 @@ void go_render_command(int j, int y)
             break;
         case GO_QUAKE:
             cmd = 'Q';
-            param = hex[2*param];
+            param = hex[param];
             break;
     }
     
@@ -282,6 +294,21 @@ void go_line()
             memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
             return;
         }
+        else if (vga_line >= 8)
+        {
+            uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 8 - 16*2)/2 - 1;
+            uint8_t *tile_color = &sprite_draw[edit_sprite/8][(vga_frame/64)%8][(vga_line-8)/2][0] - 1;
+            for (int l=0; l<8; ++l) 
+            {
+                uint32_t color = palette[(*(++tile_color))&15];
+                color |= color << 16;
+                *(++dst) = color;
+                
+                color = palette[(*tile_color)>>4];
+                color |= color << 16;
+                *(++dst) = color;
+            }
+        }
         return;
     }
     else if (vga_line >= 16 + NUMBER_LINES*10)
@@ -295,7 +322,7 @@ void go_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
-        return;
+        goto maybe_draw_sprite;
     }
     --internal_line;
     uint8_t buffer[24];
@@ -304,7 +331,7 @@ void go_line()
         case 0:
         {
             // edit track
-            uint8_t msg[] = { 'g', 'o', ' ', 's', 'p', 'r', 'i', 't', 'e', ' ', hex[edit_sprite/8], 
+            uint8_t msg[] = { 'g', 'o', ' ', 's', 'p', 'r', 'i', 't', 'e', ' ', hex[edit_sprite/8], '!',
             0 };
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -339,16 +366,16 @@ void go_line()
                     strcpy((char *)buffer, "if not firing goto");
                     break;
                 case GO_EXECUTE:
-                    strcpy((char *)buffer, "execute");
+                    strcpy((char *)buffer, "execute:");
                     break;
                 case GO_LOOK:
                     strcpy((char *)buffer, "look for player");
                     break;
                 case GO_DIRECTION:
-                    strcpy((char *)buffer, "handle directions");
+                    strcpy((char *)buffer, "handle directions:");
                     break;
                 case GO_SPECIAL_INPUT:
-                    strcpy((char *)buffer, "handle special input");
+                    strcpy((char *)buffer, "handle special input:");
                     break;
                 case GO_SPAWN_TILE:
                     strcpy((char *)buffer, "spawn a tile");
@@ -357,10 +384,10 @@ void go_line()
                     strcpy((char *)buffer, "spawn a sprite");
                     break;
                 case GO_ACCELERATION:
-                    strcpy((char *)buffer, "set acceleration");
+                    strcpy((char *)buffer, "set acc/deceleration");
                     break;
                 case GO_SPEED:
-                    strcpy((char *)buffer, "set speed");
+                    strcpy((char *)buffer, "set move/jump speed");
                     break;
                 case GO_NOISE:
                     strcpy((char *)buffer, "make noise w/ inst.");
@@ -375,15 +402,119 @@ void go_line()
             font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
         case 4:
-            // TODO:  add more explanation for weird commands
-            //switch (sprite_pattern[edit_sprite/8][go_pattern_pos]&15)
-            //{
-            //}
-            goto maybe_show_go;
-        case 5:
-            font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*go_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
+            switch (sprite_pattern[edit_sprite/8][go_pattern_pos]&15)
+            {
+                case GO_EXECUTE:
+                    switch (sprite_pattern[edit_sprite/8][go_pattern_pos]>>4)
+                    {
+                        case 0:
+                            strcpy((char *)buffer, "stop");
+                            break;
+                        case 1:
+                            strcpy((char *)buffer, "turn CCW");
+                            break;
+                        case 2:
+                            strcpy((char *)buffer, "turn 180");
+                            break;
+                        case 3:
+                            strcpy((char *)buffer, "turn CW");
+                            break;
+                        case 4:
+                            strcpy((char *)buffer, "walk");
+                            break;
+                        case 5:
+                            strcpy((char *)buffer, "toggle run");
+                            break;
+                        case 6:
+                            strcpy((char *)buffer, "do a jump");
+                            break;
+                        case 7:
+                            strcpy((char *)buffer, "toggle ghost");
+                            break;
+                        case 8:
+                            strcpy((char *)buffer, "fall off edges");
+                            break;
+                        case 9:
+                            strcpy((char *)buffer, "turn CCW at edges");
+                            break;
+                        case 10:
+                            strcpy((char *)buffer, "turn 180 at edges");
+                            break;
+                        case 11:
+                            strcpy((char *)buffer, "turn CW at edges");
+                            break;
+                        case 12:
+                            strcpy((char *)buffer, "jump at edges");
+                            break;
+                        case 13:
+                            strcpy((char *)buffer, "turn or fall");
+                            break;
+                        case 14:
+                            strcpy((char *)buffer, "stop or fall");
+                            break;
+                        case 15:
+                            strcpy((char *)buffer, "stop at edges");
+                            break;
+                    }
+                    break;
+                //case GO_LOOK:
+                //    break;
+                case GO_DIRECTION:
+                {
+                    char *b = (char *)buffer;
+                    uint8_t param = (sprite_pattern[edit_sprite/8][go_pattern_pos]>>4);
+                    if (param & 8)
+                        strcpy(b, "P2: ");
+                    else
+                        strcpy(b, "P1: ");
+                    b += 4;
+                    if (param & 7)
+                    {
+                        if (param & 3)
+                        {
+                            if (param & 1)
+                            {
+                                strcpy(b, "L/R ");
+                                b += 4;
+                            }
+                            if (param & 2)
+                            {
+                                strcpy(b, "U/D ");
+                                b += 4;
+                            }
+                            if (param & 4)
+                                strcpy(b, "mirrored ");
+                        }
+                        else
+                            strcpy(b, "not looking ");
+                    }
+                    else
+                        strcpy(b, "no input");
+                    break;
+                }
+                //case GO_SPECIAL_INPUT:
+                //    break;
+                case GO_ACCELERATION:
+                    if ((sprite_pattern[edit_sprite/8][go_pattern_pos]>>4) < 8)
+                        strcpy((char *)buffer, "acceleration");
+                    else
+                        strcpy((char *)buffer, "deceleration");
+                    break;
+                case GO_SPEED:
+                    if ((sprite_pattern[edit_sprite/8][go_pattern_pos]>>4) < 8)
+                        strcpy((char *)buffer, "move speed");
+                    else
+                        strcpy((char *)buffer, "jump speed");
+                    break;
+                default:
+                    buffer[0] = 0;
+            }
+            font_render_line_doubled(buffer, 106, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
         case 6:
+            font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*go_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
+            goto maybe_show_go;
+        case 7:
             if (go_menu_not_edit)
             {
                 font_render_line_doubled((uint8_t *)"L:prev sprite", 112, internal_line, 65535, BG_COLOR*257);
@@ -395,7 +526,7 @@ void go_line()
                 font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
             }
             goto maybe_show_go;
-        case 7:
+        case 8:
             if (go_menu_not_edit)
             {
                 font_render_line_doubled((uint8_t *)"R:next sprite", 112, internal_line, 65535, BG_COLOR*257);
@@ -407,16 +538,11 @@ void go_line()
                 font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
             }
             goto maybe_show_go;
-        case 8:
-            font_render_line_doubled((uint8_t *)"dpad:", 102 - 6*go_menu_not_edit, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
         case 9:
-            if (go_menu_not_edit)
-                {} //font_render_line_doubled((uint8_t *)"switch player", 112, internal_line, 65535, BG_COLOR*257);
-            else
-                font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
+            if (!go_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"dpad:", 102 - 6*go_menu_not_edit, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
-        case 11:
+        case 10:
             if (go_menu_not_edit)
             {
                 if (go_copying < 16)
@@ -425,9 +551,9 @@ void go_line()
                     font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
             }
             else
-                {}//font_render_line_doubled((uint8_t *)"A:play track", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
-        case 12:
+        case 11:
             if (go_menu_not_edit)
             {
                 if (go_copying < 16)
@@ -439,7 +565,7 @@ void go_line()
             else
                 {} //font_render_line_doubled((uint8_t *)"B:edit instrument", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
-        case 13:
+        case 12:
             if (go_menu_not_edit)
             {
                 if (go_copying < 16)
@@ -453,7 +579,7 @@ void go_line()
                 font_render_line_doubled((uint8_t *)"X:cut cmd", 96, internal_line, 65535, BG_COLOR*257);
             }
             goto maybe_show_go;
-        case 14:
+        case 13:
             if (go_menu_not_edit)
             {
                 if (go_copying < 16)
@@ -465,13 +591,13 @@ void go_line()
             else
                 font_render_line_doubled((uint8_t *)"Y:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
-        case 16:
+        case 15:
             if (go_menu_not_edit)
                 font_render_line_doubled((uint8_t *)"start:edit pattern", 96, internal_line, 65535, BG_COLOR*257);
             else
                 font_render_line_doubled((uint8_t *)"start:pattern menu", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
-        case 17:
+        case 16:
             font_render_line_doubled((uint8_t *)"select:edit sprite view", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
         case 18:
@@ -484,6 +610,27 @@ void go_line()
             if (go_show_track)
                 go_render_command(go_pattern_offset+line-2, internal_line);
             break; 
+    }
+    maybe_draw_sprite:
+    if (vga_line < 8 + 2*16)
+    {
+        uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 8 - 16*2)/2 - 1;
+        internal_line = (vga_line - 8)/2;
+        uint8_t *tile_color = &sprite_draw[edit_sprite/8][(vga_frame/64)%8][internal_line][0] - 1;
+        for (int l=0; l<8; ++l) 
+        {
+            uint32_t color = palette[(*(++tile_color))&15];
+            color |= color << 16;
+            *(++dst) = color;
+            
+            color = palette[(*tile_color)>>4];
+            color |= color << 16;
+            *(++dst) = color;
+        }
+    }
+    else if (vga_line/2 == (8 + 2*16)/2)
+    {
+        memset(draw_buffer + SCREEN_W - 8 - 16*2, BG_COLOR, 16*4);
     }
 }
 
