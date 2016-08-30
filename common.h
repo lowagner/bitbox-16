@@ -38,6 +38,7 @@ typedef enum {
     EditMap,
     EditTileOrSprite,
     EditTileOrSpriteProperties,
+    EditGoPattern,
     EditPalette,
     EditAnthem,
     EditVerse,

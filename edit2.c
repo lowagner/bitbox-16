@@ -844,6 +844,10 @@ void edit2_controls()
             game_switch(previous_visual_mode);
             previous_visual_mode = None;
         }
+        else if (edit_sprite_not_tile)
+        {
+            game_switch(EditGoPattern);
+        }
         else
         {
             game_switch(EditTileOrSprite);

@@ -14,6 +14,7 @@
 #include "font.h"
 #include "run.h"
 #include "io.h"
+#include "go.h"
 
 #include "string.h" // memcpy
 
@@ -121,6 +122,9 @@ void game_frame()
     case EditTileOrSpriteProperties:
         edit2_controls();
         break;
+    case EditGoPattern:
+        go_controls();
+        break;
     case EditPalette:
         palette_controls();
         break;
@@ -185,6 +189,9 @@ void graph_line()
             break;
         case EditTileOrSpriteProperties:
             edit2_line();
+            break;
+        case EditGoPattern:
+            go_line();
             break;
         case SaveLoadScreen:
             save_line();
