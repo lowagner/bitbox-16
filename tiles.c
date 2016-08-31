@@ -75,7 +75,7 @@ int tile_yx_is_block(int16_t y, int16_t x)
     return (tile_info[t] & 8);
 }
 
-uint32_t pack_tile_info(uint8_t translation, uint8_t timing, uint8_t vulnerability, const SideType *sides)
+uint32_t pack_block_info(uint8_t translation, uint8_t timing, uint8_t vulnerability, const SideType *sides)
 {
     return (8)|((translation&15)<<4)|((timing&15)<<8)|((vulnerability&15)<<12)|
         (sides[0]<<16)|(sides[1]<<20)|(sides[2]<<24)|(sides[3]<<28);
@@ -440,5 +440,5 @@ void tiles_reset()
     tile_info[0] = 0; // pack_fluid_info(0, 0, 0, 0, 0, 0, 0, 0);
     SideType sides[4] = { Normal, Normal, Normal, Normal };
     for (int i=1; i<16; ++i)
-        tile_info[i] = pack_tile_info(i, 0, 0, sides);
+        tile_info[i] = pack_block_info(i, 0, 0, sides);
 }

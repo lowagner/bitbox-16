@@ -152,33 +152,41 @@ void edit_line()
         else // goes from 22 to 30
         {
             int line = vga_line - 22;
+            uint8_t text[32];
+            char *b = (char *)text;
+
             if (edit_sprite_not_tile)
             {
-                uint8_t text[] = {  
-                    's', 'p', 'r', 'i', 't', 'e', ' ',
-                    hex[edit_sprite/8], '.', direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2],
-                    ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
-                    0 };
-                font_render_line_doubled(text, 16, line, 65535, 0);
-                uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
-                if (invisible < 16)
-                    font_render_line_doubled((uint8_t *)"invisible", 222, line, palette[invisible], ~palette[invisible]);
-            }
-            else if (previous_visual_mode)
-            {
-                uint8_t text[] = { 
-                    't', 'i', 'l', 'e', ' ', hex[edit_tile], 
-                    ' ', ' ', ' ', 's', 'e', 'l', 'e', 'c', 't', ':', 'b', 'a', 'c', 'k',
-                    0 };
-                font_render_line_doubled(text, 16, line, 65535, 0);
+                strcpy(b, "sprite ");
+                b += 6;
+                *(++b) = hex[edit_sprite/8];
+                *(++b) = '.';
+                *(++b) = direction[(edit_sprite%8)/2];
+                *(++b) = hex[(edit_sprite%8)%2];
+                *(++b) = ' ';
             }
             else
             {
-                uint8_t text[] = { 
-                    't', 'i', 'l', 'e', ' ', hex[edit_tile], 
-                    ' ', ' ', ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
-                    0 };
-                font_render_line_doubled(text, 16, line, 65535, 0);
+                strcpy(b, "tile ");
+                b += 4;
+                *(++b) = hex[edit_tile];
+                *(++b) = ' ';
+                *(++b) = ' ';
+                *(++b) = ' ';
+            }
+            
+            if (previous_visual_mode)
+                strcpy(++b, "select:back");
+            else
+                strcpy(++b, "start:menu");
+            
+            font_render_line_doubled(text, 16, line, 65535, 0);
+
+            if (edit_sprite_not_tile)
+            {
+                uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
+                if (invisible < 16)
+                    font_render_line_doubled((uint8_t *)"invisible", 222, line, palette[invisible], ~palette[invisible]);
             }
         }
         return;

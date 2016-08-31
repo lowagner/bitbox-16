@@ -41,10 +41,9 @@ void run_switch()
         if (x < 0 || x >= tile_map_width ||
             y < 0 || y >= tile_map_height)
         {
-            message("weird, out of bounds sprite\n");
+            message("weird, sprite object %d is out of bounds\n", i);
             continue;
         }
-        message("checking block type for object %d\n", i);
         if (tile_yx_is_block(y, x))
             object[i].z = 0;
         else

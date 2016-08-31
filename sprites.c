@@ -83,6 +83,8 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
     first_used_object_index = i;
 
     // add in object properties
+    object[i].sprite_index = sprite_index;
+    object[i].sprite_frame = sprite_frame;
     object[i].y = y;
     object[i].x = x;
     object[i].z = z;
@@ -90,9 +92,6 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
         make_unseen_object_viewable(i);
     else
         object[i].draw_order_index = -1;
-
-    object[i].sprite_index = sprite_index;
-    object[i].sprite_frame = sprite_frame;
     return i;
 }
 

@@ -597,7 +597,7 @@ FileError io_save_map()
     if (tile_map_height <= 0 || tile_map_width <= 0 || 
         ((tile_map_width*tile_map_height+1)/2 > TILE_MAP_MEMORY))
         return ConstraintError;
-
+    
     char filename[13];
     if (io_set_extension(filename, "M16"))
         return MountError;
@@ -702,11 +702,15 @@ FileError io_save_map()
     } 
     
     f_close(&fat_file);
+    
+    map_modified = 0;
+
     return NoError;
 }
 
 FileError io_load_map()
 {
+    map_modified = 0;
     sprites_init(); // destroy all sprites
 
     char filename[13];

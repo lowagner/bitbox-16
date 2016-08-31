@@ -17,6 +17,7 @@ uint8_t map_menu_not_edit CCM_MEMORY;
 uint8_t map_Y_not_X CCM_MEMORY;
 uint8_t map_sprite CCM_MEMORY;
 uint8_t map_sprite_under_cursor CCM_MEMORY;
+uint8_t map_modified CCM_MEMORY;
 
 #define MAP_HEADER 32 // and footer.  make it a multiple of 16
 
@@ -87,17 +88,31 @@ void map_line()
         else if (vga_line >= MAP_HEADER - 4 - 8)
         {
             if (game_message[0])
+            {
                 font_render_line_doubled(game_message,
                     16, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
+                return;
+            }
             else if (!map_menu_not_edit)
+            {
                 font_render_line_doubled((const uint8_t *)"start:menu A:fill X:edit tile",
-                    28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
-            else if (map_sprite_under_cursor < 255)
-                font_render_line_doubled((const uint8_t *)"start:edit A:play X:cut sprite",
-                    28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
+                    16, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
+                return;
+            }
+            uint8_t buffer[32];
+            char *b = (char *)buffer;
+            strcpy(b, "start:edit A:");
+            b += 13;
+            if (map_modified)
+                strcpy(b, "save X:");
             else
-                font_render_line_doubled((const uint8_t *)"start:edit A:play X:save map",
-                    28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
+                strcpy(b, "play X:");
+            b += 7;
+            if (map_sprite_under_cursor < 255)
+                strcpy(b, "cut sprite");
+            else
+                strcpy(b, "edit sprite");
+            font_render_line_doubled(buffer, 16, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
         }
         else
         {
@@ -110,7 +125,7 @@ void map_line()
                     ' ', ' ',
                     'Y', hex[map_tile_y/100], '0' + (map_tile_y/10)%10, '0' + (map_tile_y%10), 
                 0 };
-                font_render_line_doubled(msg, 28, vga_line - (MAP_HEADER - 4 - 10 - 8), RGB(100,100,100), 0);
+                font_render_line_doubled(msg, 16, vga_line - (MAP_HEADER - 4 - 10 - 8), RGB(100,100,100), 0);
             }
         }
         return;
@@ -289,6 +304,7 @@ void map_line()
 void map_spot_paint(uint8_t p)
 {
     map_last_painted = p;
+    map_modified = 1;
 
     int index = map_tile_y * tile_map_width + map_tile_x;
     uint8_t *memory = &tile_map[index/2];
@@ -313,6 +329,7 @@ int map_spot_color()
 void map_spot_fill(uint8_t p)
 {
     map_last_painted = p;
+    map_modified = 1;
 
     if (!fill_can_start())
         fill_stop();
@@ -392,20 +409,24 @@ void map_controls()
         int modified = 0;
         if (GAMEPAD_PRESS(0, X))
         {
-            // cut sprite under cursor, if there is one, otherwise save map
+            // cut sprite under cursor, if there is one, or edit current sprite
+            game_message[0] = 0;
             if (map_sprite_under_cursor == 255)
             {
-                // save
-                io_message_from_error(game_message, io_save_map(), 1);
-                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+                previous_visual_mode = EditMap;
+                game_switch(EditTileOrSprite);
+                edit_sprite_not_tile = 1;
+                edit_tile = map_sprite;
                 return;
             }
-            game_message[0] = 0;
-            // copy the sprite property into map_sprite:
-            map_sprite = 8*object[map_sprite_under_cursor].sprite_index + object[map_sprite_under_cursor].sprite_frame;
-            remove_object(map_sprite_under_cursor);
-            map_sprite_under_cursor = 255;
-            modified = 1;
+            else
+            {
+                // copy the sprite property into map_sprite:
+                map_sprite = 8*object[map_sprite_under_cursor].sprite_index + object[map_sprite_under_cursor].sprite_frame;
+                remove_object(map_sprite_under_cursor);
+                map_sprite_under_cursor = 255;
+                modified = 1;
+            }
         }
         else if (GAMEPAD_PRESS(0, Y))
         {
@@ -432,6 +453,7 @@ void map_controls()
         }
         if (modified)
         {
+            map_modified = 1;
             update_objects(); 
             return;
         }
@@ -477,10 +499,19 @@ void map_controls()
             return;
         }
         
-        if (GAMEPAD_PRESSING(0, A))
+        if (GAMEPAD_PRESS(0, A))
         {
-            previous_visual_mode = None;
-            game_switch(GameOn);
+            if (map_modified)
+            {
+                // save
+                io_message_from_error(game_message, io_save_map(), 1);
+                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            }
+            else
+            {
+                previous_visual_mode = None;
+                game_switch(GameOn);
+            }
             return;
         }
     }
@@ -513,7 +544,6 @@ void map_controls()
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             previous_visual_mode = EditMap;
             game_switch(EditTileOrSprite);
-            // TODO:  maybe go to sprite if a sprite was selected.
             edit_sprite_not_tile = 0;
             edit_tile = map_color[map_last_painted];
             return;
