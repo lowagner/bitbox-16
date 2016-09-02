@@ -148,7 +148,10 @@ void verse_render_command(int j, int y)
         if (param == 0)
         {
             if (y == 7)
-                verse_show_track = 0;
+            {
+                if (j == 0 || (chip_track[verse_track][verse_player][j-1]&15) != TRACK_RANDOMIZE)
+                    verse_show_track = 0;
+            }
             cmd = '0';
             param = '0';
         }
@@ -391,16 +394,20 @@ int _check_verse()
                     found_wait = 1;
                     ++j;
                     break;
+                case TRACK_BREAK:
+                    // check for a randomizer behind
+                    if (j > 0 && (chip_track[verse_track][verse_player][j-1]&15) == TRACK_RANDOMIZE)
+                    {}
+                    else if ((chip_track[verse_track][verse_player][j]>>4) == 0)
+                        return 0;
+                    // fall through to ++j
                 default:
                     ++j;
             }
         }
-        else
+        else switch (chip_track[verse_track][verse_player][j]&15)
         {
-            if ((chip_track[verse_track][verse_player][j]&15) != TRACK_JUMP)
-                ++j;
-            else
-            {
+            case TRACK_JUMP:
                 j_last_jump = j;
                 j = 2*(chip_track[verse_track][verse_player][j]>>4);
                 if (j > j_last_jump)
@@ -415,7 +422,16 @@ int _check_verse()
                 }
                 else
                     found_wait = 0;
-            }
+                break;
+            case TRACK_BREAK:
+                // check for a randomizer behind
+                if (j > 0 && (chip_track[verse_track][verse_player][j-1]&15) == TRACK_RANDOMIZE)
+                {}
+                else if ((chip_track[verse_track][verse_player][j]>>4) == 0)
+                    return 0;
+                // fall through to ++j
+            default:
+                ++j;
         }
     }
     message("couldn't finish after 32 iterations. congratulations.\nprobably looping back on self, but with waits.");

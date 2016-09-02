@@ -256,7 +256,10 @@ void instrument_render_command(int j, int y)
         if (param == 0)
         {
             if (y == 7)
-                show_instrument = 0;
+            {
+                if (j == 0 || (instrument[instrument_i].cmd[j-1]&15) != RANDOMIZE)
+                    show_instrument = 0;
+            }
             cmd = '6';
             param = '4';
         }
@@ -575,16 +578,20 @@ int __check_instrument(uint8_t j, uint8_t j_max)
                     found_wait = 1;
                     ++j;
                     break;
+                case BREAK:
+                    // check for a randomizer behind
+                    if (j > 0 && (instrument[instrument_i].cmd[j-1]&15) == RANDOMIZE)
+                    {}
+                    else if ((instrument[instrument_i].cmd[j]>>4) == 0)
+                        return 0;
+                    // fall through to ++j
                 default:
                     ++j;
             }
         }
-        else
+        else switch (instrument[instrument_i].cmd[j]&15)
         {
-            if ((instrument[instrument_i].cmd[j]&15) != JUMP)
-                ++j;
-            else
-            {
+            case JUMP:
                 j_last_jump = j;
                 j = instrument[instrument_i].cmd[j]>>4;
                 if (j > j_last_jump)
@@ -599,7 +606,16 @@ int __check_instrument(uint8_t j, uint8_t j_max)
                 }
                 else
                     found_wait = 0;
-            }
+                break;
+            case BREAK:
+                // check for a randomizer behind
+                if (j > 0 && (instrument[instrument_i].cmd[j-1]&15) == RANDOMIZE)
+                {}
+                else if ((instrument[instrument_i].cmd[j]>>4) == 0)
+                    return 0;
+                // fall through to ++j
+            default:
+                ++j;
         }
     }
     message("couldn't finish after iterations. congratulations.\nprobably looping back on self, but with waits.");
