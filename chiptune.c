@@ -615,6 +615,7 @@ static void chip_track_update()
         {
             chip_player[i].track_cmd_index = 0;
             chip_player[i].track_index = chip_player[i].next_track_index;
+            chip_player[i].track_wait = 0;
         }
         track_pos = 0;
     }
