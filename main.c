@@ -7,7 +7,7 @@
 #include "anthem.h"
 #include "tiles.h"
 #include "edit.h"
-#include "edit2.h"
+#include "edit-properties.h"
 #include "name.h"
 #include "save.h"
 #include "fill.h"
