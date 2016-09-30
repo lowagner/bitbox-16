@@ -7,7 +7,7 @@
 #include "name.h"
 #include "font.h"
 #include "io.h"
-#include "go.h"
+#include "go-sprite.h"
 
 #include <stdlib.h> // rand
 #include <string.h> // memset

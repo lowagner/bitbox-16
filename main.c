@@ -14,7 +14,7 @@
 #include "font.h"
 #include "run.h"
 #include "io.h"
-#include "go.h"
+#include "go-sprite.h"
 
 #include "string.h" // memcpy
 
