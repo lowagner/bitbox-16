@@ -102,7 +102,7 @@ void game_init()
     // init game mode
     old_visual_mode = None;
     previous_visual_mode = None;
-    game_switch(GameOn);
+    game_switch(SaveLoadScreen);
 }
 
 void game_frame()

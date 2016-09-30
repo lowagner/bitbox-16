@@ -82,7 +82,7 @@ void run_controls()
     {
         game_message[0] = 0;
         previous_visual_mode = None;
-        game_switch(EditMap);
+        game_switch(SaveLoadScreen);
         return;
     }
 
