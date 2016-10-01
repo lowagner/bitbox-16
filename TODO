@@ -39,6 +39,13 @@ sprite pattern commands:  no loops are possible, march through commands
         4 bits for instrument, then play random note in the instrument octave
     
 
+allow for more than 4 unlock commands, 
+    4 tied to tiles, 
+    one for startup / level initialization, 
+    one for win,
+    one for dead,
+    ...
+
 unlock pattern commands:
     wait
     set spawn location x, y (needs 14 bits total for both x,y)
@@ -49,6 +56,8 @@ unlock pattern commands:
     set spawn location delta x, y
     shake screen
     make noise
+    set game-type (platformer, top-down adventure, shmup)
+        for platformers, set strength of gravity 
 
 game editor
     BG_COLOR 141
