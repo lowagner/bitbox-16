@@ -847,7 +847,7 @@ void edit2_controls()
         }
         else if (edit_sprite_not_tile)
         {
-            game_switch(EditGoPattern);
+            game_switch(EditSpritePattern);
         }
         else
         {

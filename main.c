@@ -122,7 +122,7 @@ void game_frame()
     case EditTileOrSpriteProperties:
         edit2_controls();
         break;
-    case EditGoPattern:
+    case EditSpritePattern:
         go_controls();
         break;
     case EditPalette:
@@ -190,7 +190,7 @@ void graph_line()
         case EditTileOrSpriteProperties:
             edit2_line();
             break;
-        case EditGoPattern:
+        case EditSpritePattern:
             go_line();
             break;
         case SaveLoadScreen:

@@ -3,12 +3,14 @@
 #include "font.h"
 #include "name.h"
 #include "io.h"
+#include "edit.h"
 
 #include <string.h> // memset
 
 #define BG_COLOR 192 // a uint8_t, uint16_t color is (BG_COLOR)|(BG_COLOR<<8)
 
 uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - tiles, 2 - sprites, 3 - map, 4 - palette
+                              // 5 - music, 6 - patterns, 7 - unlock
 
 #define NUMBER_LINES 17
    
@@ -70,10 +72,16 @@ void save_line()
                 break;
             case 4:
                 font_render_line_doubled((const uint8_t *)"palette", 16+24*9, internal_line, 65535, BG_COLOR*257);
-                break;        
+                break;
             case 5:
                 font_render_line_doubled((const uint8_t *)"music", 16+24*9, internal_line, 65535, BG_COLOR*257);
-                break;        
+                break;
+            case 6:
+                font_render_line_doubled((const uint8_t *)"patterns", 16+24*9, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 7:
+                font_render_line_doubled((const uint8_t *)"unlocks", 16+24*9, internal_line, 65535, BG_COLOR*257);
+                break;
             }
             break;
         case 3:
@@ -87,7 +95,33 @@ void save_line()
             break;
             //font_render_line_doubled((const uint8_t *)"X:delete  Y:overwrite", 16, internal_line, 65535, BG_COLOR*257);
         case 7:
-            font_render_line_doubled((const uint8_t *)"start:play game", 16, internal_line, 65535, BG_COLOR*257);
+            switch (save_only)
+            {
+            case 0:
+                font_render_line_doubled((const uint8_t *)"start:play game", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 1:
+                font_render_line_doubled((const uint8_t *)"start:edit tiles", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 2:
+                font_render_line_doubled((const uint8_t *)"start:edit sprites", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 3:
+                font_render_line_doubled((const uint8_t *)"start:edit map", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 4:
+                font_render_line_doubled((const uint8_t *)"start:edit palette", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 5:
+                font_render_line_doubled((const uint8_t *)"start:edit music", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 6:
+                font_render_line_doubled((const uint8_t *)"start:edit patterns", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            case 7:
+                font_render_line_doubled((const uint8_t *)"start:edit unlocks", 16, internal_line, 65535, BG_COLOR*257);
+                break;
+            }
             break;
         case (NUMBER_LINES-2):
             if (game_message[0])
@@ -260,19 +294,13 @@ void save_controls()
     if (GAMEPAD_PRESS(0, L))
     {
         game_message[0] = 0;
-        if (save_only)
-            --save_only;
-        else
-            save_only = 5;
+        save_only = (save_only - 1)&7;
         return;
     } 
     if (GAMEPAD_PRESS(0, R))
     {
         game_message[0] = 0;
-        if (save_only < 5)
-            ++save_only; 
-        else
-            save_only = 0;
+        save_only = (save_only + 1)&7;
         return;
     }
     if (GAMEPAD_PRESS(0, select))
@@ -288,9 +316,36 @@ void save_controls()
     {
         game_message[0] = 0;
         // go to palette picker
-        game_switch(GameOn);
-        previous_visual_mode = None; // don't require getting back here
-        //previous_visual_mode = SaveLoadScreen;
+        switch (save_only)
+        {
+        case 0:
+            game_switch(GameOn);
+            break;
+        case 1:
+            game_switch(EditTileOrSprite);
+            edit_sprite_not_tile = 0;
+            break;
+        case 2:
+            game_switch(EditTileOrSprite);
+            edit_sprite_not_tile = 1;
+            break;
+        case 3:
+            game_switch(EditMap);
+            break;
+        case 4:
+            game_switch(EditPalette);
+            break;
+        case 5:
+            game_switch(EditAnthem);
+            break;
+        case 6:
+            game_switch(EditSpritePattern);
+            break;
+        case 7:
+            game_switch(EditUnlocks);
+            break;
+        }
+        previous_visual_mode = SaveLoadScreen;
         return;
     }
 }

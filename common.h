@@ -38,13 +38,14 @@ typedef enum {
     EditMap,
     EditTileOrSprite,
     EditTileOrSpriteProperties,
-    EditGoPattern,
+    EditSpritePattern,
     EditPalette,
     EditAnthem,
     EditVerse,
     EditInstrument,
     SaveLoadScreen,
-    ChooseFilename
+    ChooseFilename,
+    EditUnlocks
 } VisualMode;
 
 extern VisualMode visual_mode;
