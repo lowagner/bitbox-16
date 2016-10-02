@@ -19,7 +19,7 @@ struct object {
     uint8_t draw_order_index;
     uint8_t z; // z = 0 is a hidden object.
     uint8_t health;
-    uint8_t reload;
+    uint8_t wait;
     // fifth
     uint8_t cmd_index;
     uint8_t running;

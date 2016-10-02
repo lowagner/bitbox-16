@@ -1,5 +1,6 @@
 #include "bitbox.h"
 #include "sprites.h"
+#include "go-sprite.h"
 #include "tiles.h"
 
 #include <stdlib.h> // rand
@@ -95,6 +96,86 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
     return i;
 }
 
+void object_run_commands(uint8_t i) 
+{
+    if (object[i].wait)
+    {
+        --object[i].wait;
+        return;
+    }
+    while (object[i].cmd_index < 32)
+    {
+        uint8_t cmd = sprite_pattern[object[i].sprite_index][object[i].cmd_index++];
+        uint8_t param = cmd >> 4;
+        switch (cmd & 15)
+        {
+        case GO_BREAK:
+            if (param)
+                object[i].wait = param + param*param/2; // tweak as necessary
+            else
+                object[i].cmd_index = 0;
+            return;
+        case GO_NOT_MOVE:
+            if (object[i].vx || object[i].vy)
+            {
+                if (!param)
+                    param = 16;
+                object[i].cmd_index += param;
+            }
+            break;
+        case GO_NOT_RUN:
+            if (!object[i].running)
+            {
+                if (!param)
+                    param = 16;
+                object[i].cmd_index += param;
+            }
+            break;
+        case GO_NOT_AIR:
+            if (!object[i].in_air)
+            {
+                if (!param)
+                    param = 16;
+                object[i].cmd_index += param;
+            }
+            break;
+        case GO_NOT_FIRE:
+            if (!object[i].firing)
+            {
+                if (!param)
+                    param = 16;
+                object[i].cmd_index += param;
+            }
+            break;
+        case GO_EXECUTE:
+            // needs help here.
+            break;
+        case GO_LOOK:
+            break;
+        case GO_DIRECTION:
+            break;
+        case GO_SPECIAL_INPUT:
+            break;
+        case GO_SPAWN_TILE:
+            break;
+        case GO_SPAWN_SPRITE:
+            break;
+        case GO_ACCELERATION:
+            break;
+        case GO_SPEED:
+            break;
+        case GO_NOISE:
+            break;
+        case GO_RANDOMIZE:
+            break;
+        case GO_QUAKE:
+            break;
+        }
+    }
+    // only way to get here is to get to object[i].cmd_index >= 32
+    object[i].cmd_index = 0;
+}
+
 void move_object(uint8_t i, int16_t x, int16_t y)
 {
     if (object[i].draw_order_index < 255) // object was visible...
@@ -104,6 +185,7 @@ void move_object(uint8_t i, int16_t x, int16_t y)
             // object is still visible, need to sort draw_order.. but do it later!
             object[i].iy = y - tile_map_y;
             object[i].ix = x - tile_map_x;
+            object_run_commands(i);
         }
         else // object is no longer visible, but still exists
         {
@@ -116,6 +198,7 @@ void move_object(uint8_t i, int16_t x, int16_t y)
         {
             // object has become visible
             make_unseen_object_viewable(i);
+            object_run_commands(i);
         }
         else // object is still not visible
         {
