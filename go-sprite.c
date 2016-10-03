@@ -598,7 +598,10 @@ void go_line()
                 font_render_line_doubled((uint8_t *)"start:pattern menu", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
         case 16:
-            font_render_line_doubled((uint8_t *)"select:edit sprite view", 96, internal_line, 65535, BG_COLOR*257);
+            if (previous_visual_mode)
+                font_render_line_doubled((uint8_t *)"select:return", 96, internal_line, 65535, BG_COLOR*257);
+            else
+                font_render_line_doubled((uint8_t *)"select:edit sprite view", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
         case 18:
             break;

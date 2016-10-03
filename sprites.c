@@ -3,7 +3,13 @@
 #include "go-sprite.h"
 #include "tiles.h"
 
+#define SPEED_MULTIPLIER 0.25f
+#define JUMP_MULTIPLIER 1.0f
+#define MAX_VY 10.0f
+
 #include <stdlib.h> // rand
+
+float gravity CCM_MEMORY;
 
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
@@ -45,6 +51,8 @@ void sprites_init()
     object[MAX_OBJECTS-1].next_object_index = 255;
     first_free_object_index = 0;
     first_used_object_index = 255;
+
+    gravity = 0.0f;
     
     drawing_count = 0;
 }
@@ -98,6 +106,14 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
 
 void object_run_commands(uint8_t i) 
 {
+    // update position here, too
+    // TODO:  run collisions against tileset before updating position
+    object[i].y += object[i].vy;
+    object[i].x += object[i].vx;
+    object[i].vy += gravity;
+    if (object[i].vy > MAX_VY)
+        object[i].vy = MAX_VY;
+    // if colliding against ground, set vy = 0
     if (object[i].wait)
     {
         --object[i].wait;
@@ -124,20 +140,18 @@ void object_run_commands(uint8_t i)
             }
             break;
         case GO_NOT_RUN:
-            if (!object[i].running)
-            {
-                if (!param)
-                    param = 16;
-                object[i].cmd_index += param;
-            }
+            if (object[i].properties & RUNNING)
+                break;
+            if (!param)
+                param = 16;
+            object[i].cmd_index += param;
             break;
         case GO_NOT_AIR:
-            if (!object[i].in_air)
-            {
-                if (!param)
-                    param = 16;
-                object[i].cmd_index += param;
-            }
+            if (object[i].properties & IN_AIR)
+                break;
+            if (!param)
+                param = 16;
+            object[i].cmd_index += param;
             break;
         case GO_NOT_FIRE:
             if (!object[i].firing)
@@ -148,7 +162,73 @@ void object_run_commands(uint8_t i)
             }
             break;
         case GO_EXECUTE:
-            // needs help here.
+            switch (param)
+            {
+            case 0: // stop
+                object[i].vx = object[i].vy = 0;
+                break;
+            case 1: // turn CCW
+            {
+                object[i].sprite_frame = (object[i].sprite_frame + 2)%8;
+                float vx = object[i].vx;
+                object[i].vx = object[i].vy;
+                object[i].vy = -vx;
+                break;
+            }
+            case 2: // turn 180
+                object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                object[i].vx = -object[i].vx;
+                object[i].vy = -object[i].vy;
+                break;
+            case 3: // turn 270 = CW
+            {
+                object[i].sprite_frame = (object[i].sprite_frame + 6)%8;
+                float vx = object[i].vx;
+                object[i].vx = -object[i].vy;
+                object[i].vy = vx;
+                break;
+            }
+            case 4: // walk
+                switch (object[i].sprite_frame/2)
+                {
+                case RIGHT:
+                    object[i].vy = 0;
+                    object[i].vx = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    break;
+                case UP:
+                    object[i].vy = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vx = 0;
+                    break;
+                case LEFT:
+                    object[i].vy = 0;
+                    object[i].vx = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    break;
+                case DOWN:
+                    object[i].vy = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vx = 0;
+                    break;
+                }
+                break;
+            case 5: // toggle run
+                if (object[i].properties & RUNNING)
+                    object[i].properties &= ~RUNNING;
+                else
+                    object[i].properties |= RUNNING;
+                break;
+            case 6: // do a jump
+                object[i].vy = -(object[i].speed_jump >> 4);
+                break;
+            case 7: // toggle ghost
+                if (object[i].properties & GHOSTING)
+                    object[i].properties &= ~GHOSTING;
+                else
+                    object[i].properties |= GHOSTING;
+                break;
+            default:
+                // the rest are edge behaviors
+                object[i].edge_accel &= 240;
+                object[i].edge_accel |= param;
+            }
             break;
         case GO_LOOK:
             break;
@@ -161,8 +241,20 @@ void object_run_commands(uint8_t i)
         case GO_SPAWN_SPRITE:
             break;
         case GO_ACCELERATION:
+            object[i].edge_accel &= 15; // keep edge behavior
+            object[i].edge_accel |= param << 4;
             break;
         case GO_SPEED:
+            if (param & 8) // jump speed
+            {
+                object[i].speed_jump &= 15; // keep run speed
+                object[i].speed_jump |= (param-7) << 4;
+            }
+            else // run speed
+            {
+                object[i].speed_jump &= 240;
+                object[i].speed_jump |= 1 + param;
+            }
             break;
         case GO_NOISE:
             break;
@@ -176,15 +268,16 @@ void object_run_commands(uint8_t i)
     object[i].cmd_index = 0;
 }
 
-void move_object(uint8_t i, int16_t x, int16_t y)
+void update_object(uint8_t i)
+//int16_t x, int16_t y), object[index].x, object[index].y
 {
     if (object[i].draw_order_index < 255) // object was visible...
     {
-        if (on_screen(x, y))
+        if (on_screen(object[i].x, object[i].y))
         {
             // object is still visible, need to sort draw_order.. but do it later!
-            object[i].iy = y - tile_map_y;
-            object[i].ix = x - tile_map_x;
+            object[i].iy = object[i].y - tile_map_y;
+            object[i].ix = object[i].x - tile_map_x;
             object_run_commands(i);
         }
         else // object is no longer visible, but still exists
@@ -194,7 +287,7 @@ void move_object(uint8_t i, int16_t x, int16_t y)
     }
     else // wasn't visible
     {
-        if (on_screen(x, y))
+        if (on_screen(object[i].x, object[i].y))
         {
             // object has become visible
             make_unseen_object_viewable(i);
@@ -205,8 +298,6 @@ void move_object(uint8_t i, int16_t x, int16_t y)
             // do nothing!
         }
     }
-    object[i].y = y;
-    object[i].x = x;
 }
 
 void remove_object(uint8_t index)
@@ -253,7 +344,7 @@ void update_objects()
     uint8_t index = first_used_object_index;
     while (index < 255)
     {
-        move_object(index, object[index].x, object[index].y);
+        update_object(index);
         index = object[index].next_object_index;
     }
 }

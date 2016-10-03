@@ -51,10 +51,16 @@ typedef enum {
 extern VisualMode visual_mode;
 extern VisualMode previous_visual_mode;
 
+// some sprite definitions
 #define RIGHT 0
 #define UP 1
 #define LEFT 2
 #define DOWN 3
+
+// the next are bit-masks for sprite/object properties
+#define RUNNING 1
+#define IN_AIR 2
+#define GHOSTING 4
 
 #define GAMEPAD_PRESS(id, key) ((gamepad_buttons[id]) & (~old_gamepad[id]) & (gamepad_##key))
 #define GAMEPAD_PRESSING(id, key) ((gamepad_buttons[id]) & (gamepad_##key) & (~old_gamepad[id] | ((gamepad_press_wait == 0)*gamepad_##key)))
@@ -67,6 +73,8 @@ extern const uint8_t direction[4];
 
 void draw_parade(int line, uint8_t bg_color);
 void game_switch(VisualMode new_visual_mode);
+
+extern float gravity;
 
 uint8_t randomize(uint8_t arg);
 #endif

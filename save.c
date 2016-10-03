@@ -217,6 +217,13 @@ void save_controls()
                 offset = 7;
                 break;
             }
+            error = (save_or_load == 1) ? io_save_go(16) : io_load_go(16);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "pattn. ");
+                offset = 7;
+                break;
+            }
             break;
         case 1:
             error = (save_or_load == 1) ? io_save_tile(16) : io_load_tile(16);
@@ -272,8 +279,16 @@ void save_controls()
                 offset = 7;
                 break;
             }
+            break;
+        case 6:
+            error = (save_or_load == 1) ? io_save_go(16) : io_load_go(16);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "pattn. ");
+                offset = 7;
+            }
+            break;
         }
-      
         io_message_from_error(game_message+offset, error, save_or_load);
         return;
     }

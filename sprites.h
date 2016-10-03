@@ -10,24 +10,24 @@ extern uint8_t sprite_pattern[16][32];
 
 struct object {
     // first 32 bits:
-    int16_t y, x;
-    // second
     int16_t iy, ix;
-    // third 
-    int16_t vy, vx;
-    // fourth
+    // second 32 bits:
     uint8_t draw_order_index;
     uint8_t z; // z = 0 is a hidden object.
-    uint8_t health;
-    uint8_t wait;
-    // fifth
-    uint8_t cmd_index;
-    uint8_t running;
-    uint8_t in_air;
-    uint8_t firing;
-    // sixth
     uint8_t sprite_index;
     uint8_t sprite_frame;
+    // third and fourth 32 bits:
+    float y, x;
+    // fifth and sixth 
+    float vy, vx;
+    // seventh 
+    uint8_t cmd_index;
+    uint8_t wait;
+    uint8_t edge_accel; // first four bits: edge behavior, second four bits: acceleration
+    uint8_t speed_jump; // first four bits: speed, second four bits: jump speed
+    // eighth
+    uint8_t properties; // use bit-masking for RUNNING, IN_AIR, GHOSTING
+    uint8_t firing;
     uint8_t next_object_index; 
     uint8_t previous_object_index;
 };

@@ -55,6 +55,7 @@ void game_init()
         base_filename[3] = 0;
 
         // need to reset everything
+        go_reset();
         palette_reset();
         tiles_reset();
         map_reset();
@@ -96,6 +97,10 @@ void game_init()
         if (io_load_instrument(16))
         {
             instrument_reset();
+        }
+        if (io_load_go(16))
+        {
+            go_reset();
         }
     }
 
