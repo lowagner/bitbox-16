@@ -75,6 +75,7 @@ void run_controls()
     if (GAMEPAD_PRESS(0, start))
     {
         // pause mode
+        game_message[0] = 0;
         run_paused = 1 - run_paused;
         return;
     }

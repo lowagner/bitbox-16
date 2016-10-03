@@ -598,10 +598,7 @@ void go_line()
                 font_render_line_doubled((uint8_t *)"start:pattern menu", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
         case 16:
-            if (previous_visual_mode)
-                font_render_line_doubled((uint8_t *)"select:return", 96, internal_line, 65535, BG_COLOR*257);
-            else
-                font_render_line_doubled((uint8_t *)"select:edit sprite view", 96, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled((uint8_t *)"select:return", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_go;
         case 18:
             break;
@@ -858,10 +855,8 @@ void go_controls()
     {
         go_copying = 16;
         game_message[0] = 0;
-        if (previous_visual_mode)
-            game_switch(previous_visual_mode);
-        else
-            game_switch(EditTileOrSprite);
+        previous_visual_mode = None;
+        game_switch(SaveLoadScreen);
         return;
     } 
 }
