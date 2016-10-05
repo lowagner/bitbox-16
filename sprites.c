@@ -52,7 +52,7 @@ void sprites_init()
     first_free_object_index = 0;
     first_used_object_index = 255;
 
-    gravity = 0.0f;
+    gravity = 1.0f;
     
     drawing_count = 0;
 }
@@ -70,10 +70,14 @@ void make_unseen_object_viewable(uint8_t i)
 
 int on_screen(int16_t x, int16_t y)
 {
-    if (x > tile_map_x-16 && x < tile_map_x + SCREEN_W &&
-        y > tile_map_y-16 && y < tile_map_y + SCREEN_H)
-        return 1;
-    return 0;
+    if (x <= tile_map_x-16 || x >= tile_map_x + SCREEN_W)
+        return 0;
+    if (y >= tile_map_y + SCREEN_H || (tile_map_y != 0 && y <= tile_map_y-16))
+        // keep things "on screen" (with physics) if they are above the screen
+        // and the top of the screen is at the max.
+        // TODO:  maybe change this for non-platformers.
+        return 0;
+    return 1;
 }
 
 uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int16_t y, uint8_t z)
@@ -97,6 +101,12 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
     object[i].y = y;
     object[i].x = x;
     object[i].z = z;
+    object[i].cmd_index = 0;
+    object[i].wait = 0;
+    object[i].edge_accel = 8 | (5<<4);
+    object[i].speed_jump = 4 | (5<<4);
+    object[i].properties = 0;
+    object[i].firing = 0;
     if (on_screen(object[i].x, object[i].y))
         make_unseen_object_viewable(i);
     else
@@ -107,13 +117,36 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
 void object_run_commands(uint8_t i) 
 {
     // update position here, too
-    // TODO:  run collisions against tileset before updating position
-    object[i].y += object[i].vy;
-    object[i].x += object[i].vx;
+    if (object[i].properties & GHOSTING)
+    {
+        object[i].y += object[i].vy;
+        object[i].x += object[i].vx;
+        goto object_execute_commands;
+    }
+    // run physics and hit tests
+    //   e.g. if colliding against ground, set vy = 0
     object[i].vy += gravity;
     if (object[i].vy > MAX_VY)
         object[i].vy = MAX_VY;
-    // if colliding against ground, set vy = 0
+    object[i].y += object[i].vy;
+    if (object[i].y > tile_map_height*16 - 32)
+    {
+        object[i].y = tile_map_height*16 - 32;
+        object[i].vy = 0;
+        // TODO: maybe test object right below player here.
+    }
+    object[i].x += object[i].vx;
+    if (object[i].x < 16)
+    {
+        object[i].x = 16;
+        object[i].vx = 0;
+    }
+    else if (object[i].x > tile_map_width*16-32)
+    {
+        object[i].x = tile_map_width*16-32;
+        object[i].vx = 0;
+    }
+    object_execute_commands:
     if (object[i].wait)
     {
         --object[i].wait;
@@ -216,7 +249,7 @@ void object_run_commands(uint8_t i)
                     object[i].properties |= RUNNING;
                 break;
             case 6: // do a jump
-                object[i].vy = -(object[i].speed_jump >> 4);
+                object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
                 break;
             case 7: // toggle ghost
                 if (object[i].properties & GHOSTING)

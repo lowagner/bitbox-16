@@ -20,7 +20,6 @@ uint8_t go_pattern_offset CCM_MEMORY;
 uint8_t go_menu_not_edit CCM_MEMORY;
 uint8_t go_command_copy CCM_MEMORY;
 uint8_t go_copying CCM_MEMORY;
-uint8_t go_show_track CCM_MEMORY;
 
 void go_init()
 {
@@ -143,8 +142,6 @@ void go_render_command(int j, int y)
         case GO_BREAK:
             if (param == 0)
             {
-                if (y == 7)
-                    go_show_track = 0;
                 cmd = '0';
                 param = '0';
             }
@@ -340,7 +337,6 @@ void go_line()
             break;
         case 2:
         {
-            go_show_track = 1; 
             go_render_command(go_pattern_offset+line-2, internal_line);
             // command
             uint8_t msg[] = { 'c', 'o', 'm', 'm', 'a', 'n', 'd', ' ', hex[go_pattern_pos], ':', 0 };
@@ -400,7 +396,7 @@ void go_line()
                     break;
             }
             font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 4:
             switch (sprite_pattern[edit_sprite/8][go_pattern_pos]&15)
             {
@@ -510,10 +506,10 @@ void go_line()
                     buffer[0] = 0;
             }
             font_render_line_doubled(buffer, 106, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 6:
             font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*go_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 7:
             if (go_menu_not_edit)
             {
@@ -525,7 +521,7 @@ void go_line()
                 go_short_command_message(buffer+2, sprite_pattern[edit_sprite/8][go_pattern_pos]-1);
                 font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
             }
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 8:
             if (go_menu_not_edit)
             {
@@ -537,11 +533,11 @@ void go_line()
                 go_short_command_message(buffer+2, sprite_pattern[edit_sprite/8][go_pattern_pos]+1);
                 font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
             }
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 9:
             if (!go_menu_not_edit)
                 font_render_line_doubled((uint8_t *)"dpad:", 102 - 6*go_menu_not_edit, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 10:
             if (go_menu_not_edit)
             {
@@ -552,7 +548,7 @@ void go_line()
             }
             else
                 font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 11:
             if (go_menu_not_edit)
             {
@@ -564,7 +560,7 @@ void go_line()
             }
             else
                 {} //font_render_line_doubled((uint8_t *)"B:edit instrument", 96, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 12:
             if (go_menu_not_edit)
             {
@@ -578,37 +574,36 @@ void go_line()
             {
                 font_render_line_doubled((uint8_t *)"X:cut cmd", 96, internal_line, 65535, BG_COLOR*257);
             }
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 13:
             if (go_menu_not_edit)
             {
                 if (go_copying < 16)
-                    goto maybe_show_go;
+                    goto definitely_show_go;
                 strcpy((char *)buffer, "Y:file ");
                 strcpy((char *)(buffer+7), base_filename);
                 font_render_line_doubled(buffer, 96, internal_line, 65535, BG_COLOR*257);
             }
             else
                 font_render_line_doubled((uint8_t *)"Y:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 15:
             if (go_menu_not_edit)
                 font_render_line_doubled((uint8_t *)"start:edit pattern", 96, internal_line, 65535, BG_COLOR*257);
             else
                 font_render_line_doubled((uint8_t *)"start:pattern menu", 96, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 16:
             font_render_line_doubled((uint8_t *)"select:return", 96, internal_line, 65535, BG_COLOR*257);
-            goto maybe_show_go;
+            goto definitely_show_go;
         case 18:
             break;
         case 19:
             font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
             break;
         default:
-          maybe_show_go:
-            if (go_show_track)
-                go_render_command(go_pattern_offset+line-2, internal_line);
+          definitely_show_go:
+            go_render_command(go_pattern_offset+line-2, internal_line);
             break; 
     }
     maybe_draw_sprite:
@@ -749,8 +744,7 @@ void go_controls()
         }
         if (GAMEPAD_PRESSING(0, down))
         {
-            if (go_pattern_pos < 31 &&
-                sprite_pattern[edit_sprite/8][go_pattern_pos])
+            if (go_pattern_pos < 31)
             {
                 ++go_pattern_pos;
                 if (go_pattern_pos > go_pattern_offset + 15)
@@ -773,14 +767,8 @@ void go_controls()
             }
             else
             {
-                go_pattern_pos = 0;
-                while (go_pattern_pos < 31 && 
-                    sprite_pattern[edit_sprite/8][go_pattern_pos] != GO_BREAK)
-                {
-                    ++go_pattern_pos;
-                }
-                if (go_pattern_pos > go_pattern_offset + 15)
-                    go_pattern_offset = go_pattern_pos - 15;
+                go_pattern_pos = 31;
+                go_pattern_offset = 31 - 15;
             }
             movement = 1;
         }
