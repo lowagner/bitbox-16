@@ -42,12 +42,14 @@ sprite pattern commands:  no loops are possible, march through commands
 allow for more than 4 unlock commands, 
     4 tied to tiles, 
     one for startup / level initialization, 
+    one for game loop, (constantly running)
     one for win,
     one for dead,
-    ...
 
 unlock pattern commands:
     wait
+    set letter box -- add black lines above/below the play field
+    set letter box delta
     set spawn location x, y (needs 14 bits total for both x,y)
     spawn sprite
     spawn tile (this can also destroy a tile if you spawn an "air" tile)
