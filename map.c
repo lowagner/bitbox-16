@@ -55,7 +55,7 @@ void map_switch()
         object[i].z = 1;
     }
    
-    update_objects(); 
+    update_object_images(); 
 }
 
 void map_reset()
@@ -454,7 +454,7 @@ void map_controls()
         if (modified)
         {
             map_modified = 1;
-            update_objects(); 
+            update_object_images(); 
             return;
         }
         
@@ -645,7 +645,7 @@ void map_controls()
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             if (paint_if_moved)
                 map_spot_paint(paint_if_moved-1);
-            update_objects(); 
+            update_object_images(); 
             return;
         }
         else if (paint_if_moved || make_wait)

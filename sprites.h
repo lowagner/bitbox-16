@@ -58,4 +58,6 @@ void sprites_line();
 void sprites_frame();
 void sprites_reset();
 
+void update_object_images();
+
 #endif

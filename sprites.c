@@ -267,11 +267,11 @@ void object_run_commands(uint8_t i)
     }
     else // vx < 0
     {
-        int x_tile = object[i].x/16 - 1;
+        int x_tile = object[i].x/16;
         int y_tile = object[i].y/16;
         if (16.0f * y_tile == object[i].y)
         {
-            switch (test_tile(x_tile, y_tile, LEFT))
+            switch (test_tile(x_tile, y_tile, RIGHT))
             {
             case 0:
                 break;
@@ -285,7 +285,7 @@ void object_run_commands(uint8_t i)
         }
         else
         {
-            switch (test_tile(x_tile, y_tile, LEFT))
+            switch (test_tile(x_tile, y_tile, RIGHT))
             {
             case 0:
                 break;
@@ -296,7 +296,7 @@ void object_run_commands(uint8_t i)
                 object[i].x = 16*(x_tile+1);
                 break;
             }
-            switch (test_tile(x_tile, ++y_tile, LEFT))
+            switch (test_tile(x_tile, ++y_tile, RIGHT))
             {
             case 0:
                 break;
@@ -490,6 +490,36 @@ void update_object(uint8_t i)
             make_unseen_object_viewable(i);
             if (object[i].z)
                 object_run_commands(i);
+        }
+        else // object is still not visible
+        {
+            // do nothing!
+        }
+    }
+}
+
+void update_object_image(uint8_t i)
+//int16_t x, int16_t y), object[index].x, object[index].y
+{
+    if (object[i].draw_order_index < 255) // object was visible...
+    {
+        if (on_screen(object[i].x, object[i].y))
+        {
+            // object is still visible, need to sort draw_order.. but do it later!
+            object[i].iy = object[i].y - tile_map_y;
+            object[i].ix = object[i].x - tile_map_x;
+        }
+        else // object is no longer visible, but still exists
+        {
+            remove_object_from_view(i);
+        }
+    }
+    else // wasn't visible
+    {
+        if (on_screen(object[i].x, object[i].y))
+        {
+            // object has become visible
+            make_unseen_object_viewable(i);
         }
         else // object is still not visible
         {
@@ -726,5 +756,15 @@ void sprites_reset()
         sprite_info[15][l] = 0; // with black as invisible for all frames
         for (int k=0; k<256/2; ++k)
             *sc++ = rand()%256;
+    }
+}
+
+void update_object_images()
+{
+    uint8_t index = first_used_object_index;
+    while (index < 255)
+    {
+        update_object_image(index);
+        index = object[index].next_object_index;
     }
 }
