@@ -114,6 +114,27 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
     return i;
 }
 
+static inline int test_tile(int x, int y, int dir)
+{
+    // return 0 for no hit, 1 for solid, -1 for damage
+    int index = y*tile_map_width + x;
+    uint8_t tile;
+    if (index % 2)
+        tile = tile_map[index/2] >> 4;
+    else
+        tile = tile_map[index/2] & 15;
+    uint32_t info = tile_info[tile_translator[tile]];
+    if (!(info & 8))
+        return 0; // TODO: check for warps
+    SideType side = (info >> (16 + 4*dir))&15;
+    if (side == 0)
+        return 0;
+    if (side/2 == Damaging/2)
+        return -1;
+    // TODO: check for other conditions?
+    return 1;
+}
+
 void object_run_commands(uint8_t i) 
 {
     // update position here, too
@@ -129,11 +150,63 @@ void object_run_commands(uint8_t i)
     if (object[i].vy > MAX_VY)
         object[i].vy = MAX_VY;
     object[i].y += object[i].vy;
-    if (object[i].y > tile_map_height*16 - 32)
+    if (object[i].y < 16) {}
+    else if (object[i].y > tile_map_height*16 - 32)
     {
         object[i].y = tile_map_height*16 - 32;
         object[i].vy = 0;
         // TODO: maybe test object right below player here.
+    }
+    else if (object[i].vy == 0.0f || (16.0f*((int)(object[i].y/16)) == object[i].y)) {}
+    else if (object[i].vy > 0)
+    {
+        // test collision onto some tile's UP side.
+        int y_tile = object[i].y/16;
+        int x_tile = object[i].x/16;
+        if (16.0f * y_tile++ == object[i].y)
+        {
+            switch (test_tile(x_tile, y_tile, UP))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vy = 0;
+                object[i].y = 16*(y_tile-1);
+                break;
+            }
+        }
+        else
+        {
+            // gotta test left and right tiles
+            switch (test_tile(x_tile, y_tile, UP))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vy = 0;
+                object[i].y = 16*(y_tile-1);
+                break;
+            }
+            switch (test_tile(++x_tile, y_tile, UP))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vy = 0;
+                object[i].y = 16*(y_tile-1);
+                break;
+            }
+        }
+    }
+    else // vy < 0
+    {
+        // check bumping head
     }
     object[i].x += object[i].vx;
     if (object[i].x < 16)
@@ -145,6 +218,96 @@ void object_run_commands(uint8_t i)
     {
         object[i].x = tile_map_width*16-32;
         object[i].vx = 0;
+    }
+    else if (object[i].vx == 0.0f || ( ((int)(object[i].x/16)*16.0f) == object[i].x)) {}
+    else if (object[i].vx > 0)
+    {
+        // test colliding into something's LEFT side
+        int x_tile = object[i].x/16 + 1;
+        int y_tile = object[i].y/16;
+        if (16.0f * y_tile == object[i].y)
+        {
+            switch (test_tile(x_tile, y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vx = 0;
+                object[i].x = 16*(x_tile-1);
+                break;
+            }
+        }
+        else
+        {
+            switch (test_tile(x_tile, y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vx = 0;
+                object[i].x = 16*(x_tile-1);
+                break;
+            }
+            switch (test_tile(x_tile, ++y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vx = 0;
+                object[i].x = 16*(x_tile-1);
+                break;
+            }
+        }
+    }
+    else // vx < 0
+    {
+        int x_tile = object[i].x/16 - 1;
+        int y_tile = object[i].y/16;
+        if (16.0f * y_tile == object[i].y)
+        {
+            switch (test_tile(x_tile, y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vx = 0;
+                object[i].x = 16*(x_tile+1);
+                break;
+            }
+        }
+        else
+        {
+            switch (test_tile(x_tile, y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vx = 0;
+                object[i].x = 16*(x_tile+1);
+                break;
+            }
+            switch (test_tile(x_tile, ++y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vx = 0;
+                object[i].x = 16*(x_tile+1);
+                break;
+            }
+        }
     }
     object_execute_commands:
     if (object[i].wait)
@@ -311,7 +474,8 @@ void update_object(uint8_t i)
             // object is still visible, need to sort draw_order.. but do it later!
             object[i].iy = object[i].y - tile_map_y;
             object[i].ix = object[i].x - tile_map_x;
-            object_run_commands(i);
+            if (object[i].z)
+                object_run_commands(i);
         }
         else // object is no longer visible, but still exists
         {
@@ -324,7 +488,8 @@ void update_object(uint8_t i)
         {
             // object has become visible
             make_unseen_object_viewable(i);
-            object_run_commands(i);
+            if (object[i].z)
+                object_run_commands(i);
         }
         else // object is still not visible
         {
