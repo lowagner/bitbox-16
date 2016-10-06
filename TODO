@@ -19,6 +19,7 @@ run.c:
     
     sprites:
         run sprite commands
+        sprite frame animation (when to loop, probably should be based on velocity?)
 
 sprite pattern commands:  no loops are possible, march through commands
 

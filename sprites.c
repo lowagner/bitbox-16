@@ -187,9 +187,9 @@ void object_run_commands(uint8_t i)
     else if (object[i].vy > 0)
     {
         // test collision onto some tile's UP side.
-        int y_tile = object[i].y/16;
+        int y_tile = object[i].y/16 + 1;
         int x_tile = object[i].x/16;
-        if (16.0f * y_tile++ == object[i].y)
+        if (16.0f * x_tile == object[i].x)
         {
             switch (test_tile(x_tile, y_tile, UP))
             {
