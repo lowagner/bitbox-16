@@ -480,8 +480,36 @@ void go_line()
                         strcpy(b, "no input"); // TODO: could make this do something
                     break;
                 }
-                //case GO_SPECIAL_INPUT:
-                //    break;
+                case GO_SPECIAL_INPUT:
+                {
+                    char *b = (char *)buffer;
+                    uint8_t param = (sprite_pattern[edit_sprite/8][go_pattern_pos]>>4);
+                    if (param & 8)
+                        strcpy(b, "P2: ");
+                    else
+                        strcpy(b, "P1: ");
+                    b += 4;
+                    if (!(param & 7))
+                    {
+                        strcpy(b, "no input"); // TODO: could make this do something
+                        break;
+                    }
+                    if (param & 1)
+                    {
+                        strcpy(b, "run ");
+                        b += 4;
+                    }
+                    if (param & 2)
+                    {
+                        strcpy(b, "jump ");
+                        b += 5;
+                    }
+                    if (param & 4)
+                    {
+                        strcpy(b, "fire");
+                    }
+                    break;
+                }
                 case GO_ACCELERATION:
                     strcpy((char *)buffer, "0,1,2,3 / 0,4,8,c");
                     break;

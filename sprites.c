@@ -3,8 +3,8 @@
 #include "go-sprite.h"
 #include "tiles.h"
 
-#define SPEED_MULTIPLIER 0.25f
-#define JUMP_MULTIPLIER 1.0f
+#define SPEED_MULTIPLIER 0.5f
+#define JUMP_MULTIPLIER 1.75f
 #define ACCELERATION_MULTIPLIER 0.25f
 #define MAX_VY 10.0f
 
@@ -73,11 +73,11 @@ int on_screen(int16_t x, int16_t y)
 {
     if (x <= tile_map_x-16 || x >= tile_map_x + SCREEN_W)
         return 0;
-    if (y >= tile_map_y + SCREEN_H || (tile_map_y != 0 && y <= tile_map_y-16))
-        // keep things "on screen" (with physics) if they are above the screen
-        // and the top of the screen is at the max.
-        // TODO:  maybe change this for non-platformers.
-        return 0;
+    if (0) // non-platformers
+    {
+        if (y >= tile_map_y + SCREEN_H || y <= tile_map_y-16)
+            return 0;
+    }
     return 1;
 }
 
@@ -494,6 +494,7 @@ void object_run_commands(uint8_t i)
                     case 0:
                     {
                         object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*LEFT;
                         float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
                             object[i].vx = vx_limit;
@@ -502,6 +503,7 @@ void object_run_commands(uint8_t i)
                     case 1:
                     {
                         object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*RIGHT;
                         float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
                             object[i].vx = vx_limit;
@@ -510,6 +512,7 @@ void object_run_commands(uint8_t i)
                     case 2:
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*UP;
                         float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                         if (object[i].vy < vy_limit)
                             object[i].vy = vy_limit;
@@ -518,6 +521,7 @@ void object_run_commands(uint8_t i)
                     case 3:
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if (0)
@@ -547,6 +551,7 @@ void object_run_commands(uint8_t i)
                     if (motion < 0)
                     {
                         object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = LEFT;
                         float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
                             object[i].vx = vx_limit;
@@ -554,6 +559,7 @@ void object_run_commands(uint8_t i)
                     else
                     {
                         object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = RIGHT;
                         float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
                             object[i].vx = vx_limit;
@@ -579,6 +585,7 @@ void object_run_commands(uint8_t i)
                     if (motion < 0)
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = UP;
                         float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                         if (object[i].vy < vy_limit)
                             object[i].vy = vy_limit;
@@ -586,6 +593,7 @@ void object_run_commands(uint8_t i)
                     else
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if (0)
@@ -604,7 +612,38 @@ void object_run_commands(uint8_t i)
             break;
         }
         case GO_SPECIAL_INPUT:
+        {
+            int p = param/8;
+            if (param & 1) // run
+            {
+                if ((gamepad_buttons[p] & (gamepad_Y | gamepad_A)))
+                {
+                    object[i].properties |= RUNNING;
+                }
+                else
+                {
+                    object[i].properties &= ~RUNNING;
+                }
+            }
+            if (param & 2) // jump
+            {
+                if (GAMEPAD_PRESSED(p, B))
+                {
+                    object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                    object[i].properties |= IN_AIR;
+                }
+            }
+            if (param & 4) // fire 
+            {
+                if (GAMEPAD_PRESSED(p, X))
+                {
+                    object[i].firing = 16;  // or some other number?
+                    // TODO: needs help, spawn a sprite, or change how jumping around
+                    // works for fire mode
+                }
+            }
             break;
+        }
         case GO_SPAWN_TILE:
             break;
         case GO_SPAWN_SPRITE:
