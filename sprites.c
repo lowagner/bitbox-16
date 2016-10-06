@@ -5,6 +5,7 @@
 
 #define SPEED_MULTIPLIER 0.25f
 #define JUMP_MULTIPLIER 1.0f
+#define ACCELERATION_MULTIPLIER 0.25f
 #define MAX_VY 10.0f
 
 #include <stdlib.h> // rand
@@ -472,7 +473,31 @@ void object_run_commands(uint8_t i)
         case GO_LOOK:
             break;
         case GO_DIRECTION:
+        {
+            int p = param/8;
+            if (param & 1)
+            {
+                if (GAMEPAD_PRESSED(p, left))
+                {
+                    object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                    float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    if (object[i].vx < vx_limit)
+                        object[i].vx = vx_limit;
+                }
+                else if (GAMEPAD_PRESSED(p, right))
+                {
+                    object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                    float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    if (object[i].vx > vx_limit)
+                        object[i].vx = vx_limit;
+                }
+                else
+                {
+                    object[i].vx /= (1 + (object[i].edge_accel>>6));
+                }
+            }
             break;
+        }
         case GO_SPECIAL_INPUT:
             break;
         case GO_SPAWN_TILE:

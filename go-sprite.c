@@ -200,16 +200,8 @@ void go_render_command(int j, int y)
             param = hex[param];
             break;
         case GO_ACCELERATION:
-            if (param < 8)
-            {
-                cmd = '/';
-                param = '0' + param;
-            }
-            else
-            {
-                cmd = '\\';
-                param = '0' + param - 8;
-            }
+            cmd = '/';
+            param = hex[param];
             break;
         case GO_SPEED:
             if (param < 8)
@@ -491,10 +483,7 @@ void go_line()
                 //case GO_SPECIAL_INPUT:
                 //    break;
                 case GO_ACCELERATION:
-                    if ((sprite_pattern[edit_sprite/8][go_pattern_pos]>>4) < 8)
-                        strcpy((char *)buffer, "acceleration");
-                    else
-                        strcpy((char *)buffer, "deceleration");
+                    strcpy((char *)buffer, "0,1,2,3 / 0,4,8,c");
                     break;
                 case GO_SPEED:
                     if ((sprite_pattern[edit_sprite/8][go_pattern_pos]>>4) < 8)
