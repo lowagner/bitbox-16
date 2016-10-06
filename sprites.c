@@ -114,6 +114,28 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
     return i;
 }
 
+static inline int test_inside_tile(int x, int y)
+{
+    // return 0 for no hit, 1 for solid, -1 for damage
+    int index = y*tile_map_width + x;
+    uint8_t tile;
+    if (index % 2)
+        tile = tile_map[index/2] >> 4;
+    else
+        tile = tile_map[index/2] & 15;
+    uint32_t info = tile_info[tile_translator[tile]];
+    if (!(info & 8))
+        return 0; // TODO: check for warps
+    SideType side_up = (info >> (16 + 4*UP))&15;
+    SideType side_down = (info >> (16 + 4*DOWN)); // don't need &15 since it's at the end.
+    if (side_up == 0 || side_down == 0)
+        return 0;
+    if (side_up/2 == Damaging/2 || side_down/2 == Damaging/2)
+        return -1;
+    // TODO: check for other conditions?
+    return 1;
+}
+
 static inline int test_tile(int x, int y, int dir)
 {
     // return 0 for no hit, 1 for solid, -1 for damage
@@ -309,6 +331,20 @@ void object_run_commands(uint8_t i)
             }
         }
     }
+    // finally check the space that the sprite is in.
+    int y_tile = object[i].y/16;
+    switch (test_inside_tile(object[i].x/16, y_tile))
+    {
+    case 0:
+        break;
+    case -1:
+        message("need to add hurt damage here!\n");
+    case 1:
+        object[i].vy = 0;
+        object[i].y = 16.0f*(y_tile-1);
+        break;
+    }
+
     object_execute_commands:
     if (object[i].wait)
     {
