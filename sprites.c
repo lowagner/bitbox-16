@@ -160,6 +160,7 @@ static inline int test_tile(int x, int y, int dir)
 void object_run_commands(uint8_t i) 
 {
     // update position here, too
+    object[i].properties |= IN_AIR; // assume you're flying until you're not...
     if (object[i].properties & GHOSTING)
     {
         object[i].y += object[i].vy;
@@ -194,8 +195,9 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vy = 0;
                 object[i].y = 16*(y_tile-1);
+                object[i].vy = 0;
+                object[i].properties &= ~IN_AIR;
                 break;
             }
         }
@@ -209,8 +211,9 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vy = 0;
                 object[i].y = 16*(y_tile-1);
+                object[i].vy = 0;
+                object[i].properties &= ~IN_AIR;
                 break;
             }
             switch (test_tile(++x_tile, y_tile, UP))
@@ -220,8 +223,8 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vy = 0;
                 object[i].y = 16*(y_tile-1);
+                object[i].vy = 0;
                 break;
             }
         }
@@ -256,8 +259,8 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vx = 0;
                 object[i].x = 16*(x_tile-1);
+                object[i].vx = 0;
                 break;
             }
         }
@@ -281,8 +284,8 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vx = 0;
                 object[i].x = 16*(x_tile-1);
+                object[i].vx = 0;
                 break;
             }
         }
@@ -300,8 +303,8 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vx = 0;
                 object[i].x = 16*(x_tile+1);
+                object[i].vx = 0;
                 break;
             }
         }
@@ -314,8 +317,8 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vx = 0;
                 object[i].x = 16*(x_tile+1);
+                object[i].vx = 0;
                 break;
             }
             switch (test_tile(x_tile, ++y_tile, RIGHT))
@@ -325,8 +328,8 @@ void object_run_commands(uint8_t i)
             case -1:
                 message("need to add hurt damage here!\n");
             case 1:
-                object[i].vx = 0;
                 object[i].x = 16*(x_tile+1);
+                object[i].vx = 0;
                 break;
             }
         }
@@ -340,8 +343,9 @@ void object_run_commands(uint8_t i)
     case -1:
         message("need to add hurt damage here!\n");
     case 1:
-        object[i].vy = 0;
         object[i].y = 16.0f*(y_tile-1);
+        object[i].vy = 0;
+        object[i].properties &= ~IN_AIR;
         break;
     }
 
@@ -430,6 +434,8 @@ void object_run_commands(uint8_t i)
                 case UP:
                     object[i].vy = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                     object[i].vx = 0;
+                    // TODO: in platformer only:
+                    object[i].properties |= IN_AIR;
                     break;
                 case LEFT:
                     object[i].vy = 0;
@@ -449,6 +455,7 @@ void object_run_commands(uint8_t i)
                 break;
             case 6: // do a jump
                 object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                object[i].properties |= IN_AIR;
                 break;
             case 7: // toggle ghost
                 if (object[i].properties & GHOSTING)
