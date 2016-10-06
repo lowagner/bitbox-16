@@ -471,13 +471,13 @@ void go_line()
                                 b += 4;
                             }
                             if (param & 4)
-                                strcpy(b, "mirrored ");
+                                strcpy(b, "mirrored");
                         }
                         else
-                            strcpy(b, "not looking ");
+                            strcpy(b, "random");
                     }
                     else
-                        strcpy(b, "no input");
+                        strcpy(b, "no input"); // TODO: could make this do something
                     break;
                 }
                 //case GO_SPECIAL_INPUT:

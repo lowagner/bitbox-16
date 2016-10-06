@@ -170,6 +170,8 @@ void object_run_commands(uint8_t i)
     }
     // run physics and hit tests
     //   e.g. if colliding against ground, set vy = 0
+
+    // avoid adding in gravity for non-platformers:
     object[i].vy += gravity;
     if (object[i].vy > MAX_VY)
         object[i].vy = MAX_VY;
@@ -475,25 +477,128 @@ void object_run_commands(uint8_t i)
         case GO_DIRECTION:
         {
             int p = param/8;
+            if (param == 4)
+            {
+                // need special treatment here, random movement when pressing down
+                if (!(gamepad_buttons[p] & (gamepad_up | gamepad_down | gamepad_left | gamepad_right)))
+                {
+                    object[i].vx /= (1 + (object[i].edge_accel>>6));
+                    if (0) // for non-platformer
+                    {
+                        object[i].vy /= (1 + (object[i].edge_accel>>6));
+                    }
+                    break;
+                }
+                switch (rand()%4)
+                {
+                    case 0:
+                    {
+                        object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx < vx_limit)
+                            object[i].vx = vx_limit;
+                        break;
+                    }
+                    case 1:
+                    {
+                        object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx > vx_limit)
+                            object[i].vx = vx_limit;
+                        break;
+                    }
+                    case 2:
+                    {
+                        object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                        if (object[i].vy < vy_limit)
+                            object[i].vy = vy_limit;
+                        break;
+                    }
+                    case 3:
+                    {
+                        object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        // only check this for non-platformer,
+                        // a platformer will fix vy automatically
+                        if (0)
+                        {
+                            float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            if (object[i].vy > vy_limit)
+                                object[i].vy = vy_limit;
+                        }
+                        break;
+                    }
+                }
+
+                break;
+            }
             if (param & 1)
             {
+                int motion = 0;
                 if (GAMEPAD_PRESSED(p, left))
+                    --motion;
+                if (GAMEPAD_PRESSED(p, right))
+                    ++motion;
+
+                if (motion)
                 {
-                    object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                    float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
-                    if (object[i].vx < vx_limit)
-                        object[i].vx = vx_limit;
-                }
-                else if (GAMEPAD_PRESSED(p, right))
-                {
-                    object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                    float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
-                    if (object[i].vx > vx_limit)
-                        object[i].vx = vx_limit;
+                    if (param & 4)
+                        motion *= -1;
+                    if (motion < 0)
+                    {
+                        object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx < vx_limit)
+                            object[i].vx = vx_limit;
+                    }
+                    else
+                    {
+                        object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx > vx_limit)
+                            object[i].vx = vx_limit;
+                    }
                 }
                 else
                 {
                     object[i].vx /= (1 + (object[i].edge_accel>>6));
+                }
+            }
+            if (param & 2)
+            {
+                int motion = 0;
+                if (GAMEPAD_PRESSED(p, up))
+                    --motion;
+                if (GAMEPAD_PRESSED(p, down))
+                    ++motion;
+
+                if (motion)
+                {
+                    if (param & 4)
+                        motion *= -1;
+                    if (motion < 0)
+                    {
+                        object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                        if (object[i].vy < vy_limit)
+                            object[i].vy = vy_limit;
+                    }
+                    else
+                    {
+                        object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        // only check this for non-platformer,
+                        // a platformer will fix vy automatically
+                        if (0)
+                        {
+                            float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            if (object[i].vy > vy_limit)
+                                object[i].vy = vy_limit;
+                        }
+                    }
+                }
+                else if (0) // for non-platformer
+                {
+                    object[i].vy /= (1 + (object[i].edge_accel>>6));
                 }
             }
             break;
