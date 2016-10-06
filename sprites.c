@@ -498,12 +498,17 @@ void object_run_commands(uint8_t i)
         case GO_NOISE:
             break;
         case GO_RANDOMIZE:
+            if (object[i].cmd_index >= 32)
+                goto end_run_commands;
+            uint8_t *memory = &sprite_pattern[object[i].sprite_index][object[i].cmd_index];
+            *memory = ((*memory)&15) | (randomize(param)<<4);
             break;
         case GO_QUAKE:
             break;
         }
     }
     // only way to get here is to get to object[i].cmd_index >= 32
+    end_run_commands:
     object[i].cmd_index = 0;
 }
 
