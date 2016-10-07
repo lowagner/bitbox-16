@@ -436,6 +436,7 @@ void map_controls()
             if (map_sprite_under_cursor < 255)
             {
                 // just reuse the sprite that was there
+                map_modified = 1;
                 object[map_sprite_under_cursor].sprite_index = map_sprite/8;
                 object[map_sprite_under_cursor].sprite_frame = map_sprite%8;
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
@@ -464,12 +465,18 @@ void map_controls()
             if (map_Y_not_X)
             {
                 if (((tile_map_height+1)*(tile_map_width)+1)/2 <= TILE_MAP_MEMORY)
+                {
                     ++tile_map_height;
+                    map_modified = 1;
+                }
             }
             else
             {
                 if (((tile_map_height)*(tile_map_width+1)+1)/2 <= TILE_MAP_MEMORY)
+                {
                     ++tile_map_width;
+                    map_modified = 1;
+                }
             }
             make_wait = 1;
         }
@@ -479,12 +486,18 @@ void map_controls()
             if (map_Y_not_X)
             {
                 if (tile_map_height > 17) // 240/16 = 15, but we want above and below a tile
+                {
                     --tile_map_height;
+                    map_modified = 1;
+                }
             }
             else
             {
                 if (tile_map_width > 22) // 320/16 = 20, but we want left and right a tile
+                {
                     --tile_map_width;
+                    map_modified = 1;
+                }
             }
             make_wait = 1;
         }
