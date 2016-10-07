@@ -3,6 +3,7 @@
 #include "go-sprite.h"
 #include "tiles.h"
 
+#define FIRE_COUNT 32 // number of times GO_NOT_FIRE needs to be called before you can fire again
 #define SPEED_MULTIPLIER 0.5f
 #define JUMP_MULTIPLIER 1.75f
 #define ACCELERATION_MULTIPLIER 0.25f
@@ -387,12 +388,16 @@ void object_run_commands(uint8_t i)
             object[i].cmd_index += param;
             break;
         case GO_NOT_FIRE:
-            if (!object[i].firing)
+            if (object[i].firing)
             {
-                if (!param)
-                    param = 16;
-                object[i].cmd_index += param;
+                if (--object[i].firing == FIRE_COUNT-1)
+                    // continue executing at next index if firing was FIRE_COUNT
+                    break;
             }
+            // otherwise, jump forward a few indices:
+            if (!param)
+                param = 16;
+            object[i].cmd_index += param;
             break;
         case GO_EXECUTE:
             switch (param)
@@ -631,9 +636,14 @@ void object_run_commands(uint8_t i)
             {
                 if (GAMEPAD_PRESSED(p, X))
                 {
-                    object[i].firing = 16;  // or some other number?
-                    // TODO: needs help, spawn a sprite, or change how jumping around
-                    // works for fire mode
+                    if (!object[i].firing)
+                        object[i].firing = FIRE_COUNT;
+                }
+                else if (object[i].firing == FIRE_COUNT)
+                {
+                    // haven't encountered a "GO_NOT_FIRE" yet,
+                    // assume we need to turn off the fire power.
+                    object[i].firing = 0;
                 }
             }
             break;
