@@ -44,13 +44,13 @@ void run_switch()
             message("weird, sprite object %d is out of bounds\n", i);
             continue;
         }
-        if (tile_yx_is_block(y, x))
+        if (tile_xy_is_block(x, y))
             object[i].z = 0;
         else
             object[i].z = 1;
     }
     
-    update_objects(); 
+    update_object_images();
     chip_play_init(0);
 }
 

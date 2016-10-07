@@ -339,17 +339,11 @@ void object_run_commands(uint8_t i)
     }
     // finally check the space that the sprite is in.
     int y_tile = object[i].y/16;
-    switch (test_inside_tile(object[i].x/16, y_tile))
+    if (tile_xy_is_block(object[i].x/16, y_tile))
     {
-    case 0:
-        break;
-    case -1:
-        message("need to add hurt damage here!\n");
-    case 1:
         object[i].y = 16.0f*(y_tile-1);
         object[i].vy = 0;
         object[i].properties &= ~IN_AIR;
-        break;
     }
 
     object_execute_commands:
