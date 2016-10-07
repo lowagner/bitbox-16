@@ -7,6 +7,7 @@
 #define SPEED_MULTIPLIER 0.5f
 #define JUMP_MULTIPLIER 1.75f
 #define ACCELERATION_MULTIPLIER 0.25f
+#define DECELERATION_MULTIPLIER 0.25f
 #define MAX_VY 10.0f
 
 #include <stdlib.h> // rand
@@ -236,6 +237,48 @@ void object_run_commands(uint8_t i)
     else // vy < 0
     {
         // check bumping head
+        int y_tile = object[i].y/16;
+        int x_tile = object[i].x/16;
+        if (16.0f * x_tile == object[i].x)
+        {
+            switch (test_tile(x_tile, y_tile, DOWN))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile+1);
+                object[i].vy = 0;
+                break;
+            }
+        }
+        else
+        {
+            // gotta test left and right tiles
+            switch (test_tile(x_tile, y_tile, DOWN))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile+1);
+                object[i].vy = 0;
+                break;
+            }
+            switch (test_tile(++x_tile, y_tile, DOWN))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile+1);
+                object[i].vy = 0;
+                break;
+            }
+        }
     }
     object[i].x += object[i].vx;
     if (object[i].x < 16)
@@ -481,10 +524,10 @@ void object_run_commands(uint8_t i)
                 // need special treatment here, random movement when pressing down
                 if (!(gamepad_buttons[p] & (gamepad_up | gamepad_down | gamepad_left | gamepad_right)))
                 {
-                    object[i].vx /= (1 + (object[i].edge_accel>>6));
+                    object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
                     if (0) // for non-platformer
                     {
-                        object[i].vy /= (1 + (object[i].edge_accel>>6));
+                        object[i].vy /= DECELERATION_MULTIPLIER*(1 + (object[i].edge_accel>>6));
                     }
                     break;
                 }
@@ -566,7 +609,7 @@ void object_run_commands(uint8_t i)
                 }
                 else
                 {
-                    object[i].vx /= (1 + (object[i].edge_accel>>6));
+                    object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
                 }
             }
             if (param & 2)
@@ -605,7 +648,7 @@ void object_run_commands(uint8_t i)
                 }
                 else if (0) // for non-platformer
                 {
-                    object[i].vy /= (1 + (object[i].edge_accel>>6));
+                    object[i].vy /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
                 }
             }
             break;
