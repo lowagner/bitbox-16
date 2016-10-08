@@ -522,6 +522,7 @@ void map_controls()
             }
             else
             {
+                game_message[0] = 0;
                 previous_visual_mode = None;
                 game_switch(GameOn);
             }
