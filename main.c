@@ -30,6 +30,10 @@ uint8_t parade_offset CCM_MEMORY;
 
 void game_init()
 { 
+    visual_mode = None;
+    old_visual_mode = None;
+    previous_visual_mode = None;
+
     run_init();
     map_init();
     font_init();
@@ -105,8 +109,6 @@ void game_init()
     }
 
     // init game mode
-    old_visual_mode = None;
-    previous_visual_mode = None;
     game_switch(SaveLoadScreen);
 }
 
