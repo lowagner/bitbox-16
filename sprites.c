@@ -525,7 +525,7 @@ void object_run_commands(uint8_t i)
                 if (!(gamepad_buttons[p] & (gamepad_up | gamepad_down | gamepad_left | gamepad_right)))
                 {
                     object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                    if (0) // for non-platformer
+                    if ((object[i].properties & GHOSTING) || 0) // for non-platformer
                     {
                         object[i].vy /= DECELERATION_MULTIPLIER*(1 + (object[i].edge_accel>>6));
                     }
@@ -552,6 +552,7 @@ void object_run_commands(uint8_t i)
                         break;
                     }
                     case 2:
+                    if ((object[i].properties & GHOSTING) || 0) // 0 = non-platformer
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
                         object[i].sprite_frame = 2*UP;
@@ -566,7 +567,7 @@ void object_run_commands(uint8_t i)
                         object[i].sprite_frame = 2*DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
-                        if (0)
+                        if ((object[i].properties & GHOSTING) || 0)
                         {
                             float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                             if (object[i].vy > vy_limit)
