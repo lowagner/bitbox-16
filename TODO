@@ -62,5 +62,6 @@ unlock pattern commands:
     set game-type (platformer, top-down adventure, shmup)
         for platformers, set strength of gravity 
 
-game editor
-    BG_COLOR 141
+sprite drawing:
+    try blitting to a u4 buffer, then drawing to draw_buffer as u32,
+    using u32 words (u16 color * 2, 256 indexes in super_palette)
