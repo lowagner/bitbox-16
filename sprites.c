@@ -200,6 +200,7 @@ void object_run_commands(uint8_t i)
     {
         object[i].y = tile_map_height*16 - 32;
         object[i].vy = 0;
+        object[i].properties &= ~IN_AIR;
         // TODO: maybe test object right below player here.
     }
     else if (object[i].vy == 0.0f || (16.0f*((int)(object[i].y/16)) == object[i].y)) {}
@@ -647,9 +648,12 @@ void object_run_commands(uint8_t i)
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
                         object[i].sprite_frame = UP;
-                        float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
-                        if (object[i].vy < vy_limit)
-                            object[i].vy = vy_limit;
+                        if ((object[i].properties & GHOSTING) || 0) // check for non-platformer
+                        {
+                            float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            if (object[i].vy < vy_limit)
+                                object[i].vy = vy_limit;
+                        }
                     }
                     else
                     {
@@ -657,7 +661,7 @@ void object_run_commands(uint8_t i)
                         object[i].sprite_frame = DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
-                        if (0)
+                        if ((object[i].properties & GHOSTING) || 0)
                         {
                             float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                             if (object[i].vy > vy_limit)
@@ -665,7 +669,7 @@ void object_run_commands(uint8_t i)
                         }
                     }
                 }
-                else if (0) // for non-platformer
+                else if ((object[i].properties & GHOSTING) || 0) // 0 = non-platformer
                 {
                     object[i].vy /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
                 }
@@ -678,13 +682,9 @@ void object_run_commands(uint8_t i)
             if (param & 1) // run
             {
                 if ((gamepad_buttons[p] & (gamepad_Y | gamepad_A)))
-                {
                     object[i].properties |= RUNNING;
-                }
                 else
-                {
                     object[i].properties &= ~RUNNING;
-                }
             }
             if (param & 2) // jump
             {
