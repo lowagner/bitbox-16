@@ -167,7 +167,24 @@ void object_run_commands(uint8_t i)
     if (object[i].properties & GHOSTING)
     {
         object[i].y += object[i].vy;
+        if (object[i].y > tile_map_height*16 - 32)
+        {
+            object[i].y = tile_map_height*16 - 32;
+            object[i].vy = 0;
+        }
+        
         object[i].x += object[i].vx;
+        if (object[i].x < 16)
+        {
+            object[i].x = 16;
+            object[i].vx = 0;
+        }
+        else if (object[i].x > tile_map_width*16-32)
+        {
+            object[i].x = tile_map_width*16-32;
+            object[i].vx = 0;
+        }
+
         goto object_execute_commands;
     }
     // run physics and hit tests
