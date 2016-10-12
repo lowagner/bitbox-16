@@ -230,6 +230,7 @@ void object_run_commands(uint8_t i)
             case 1:
                 object[i].y = 16*(y_tile-1);
                 object[i].vy = 0;
+                object[i].properties &= ~IN_AIR;
                 break;
             }
         }
