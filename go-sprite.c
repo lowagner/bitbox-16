@@ -15,6 +15,14 @@
 #define BG_COLOR 168
 #define NUMBER_LINES 20
 
+#define FIRE_COUNT 32 // number of times GO_NOT_FIRE needs to be called before you can fire again
+#define SPEED_MULTIPLIER 0.5f
+#define JUMP_MULTIPLIER 1.75f
+#define ACCELERATION_MULTIPLIER 0.25f
+#define DECELERATION_MULTIPLIER 0.25f
+#define MAX_VY 10.0f
+
+
 uint8_t go_pattern_pos CCM_MEMORY;
 uint8_t go_pattern_offset CCM_MEMORY;
 uint8_t go_menu_not_edit CCM_MEMORY;
@@ -864,4 +872,634 @@ void go_controls()
         game_switch(SaveLoadScreen);
         return;
     } 
+}
+
+static inline int test_inside_tile(int x, int y)
+{
+    // return 0 for no hit, 1 for solid, -1 for damage
+    int index = y*tile_map_width + x;
+    uint8_t tile;
+    if (index % 2)
+        tile = tile_map[index/2] >> 4;
+    else
+        tile = tile_map[index/2] & 15;
+    uint32_t info = tile_info[tile_translator[tile]];
+    if (!(info & 8))
+        return 0; // TODO: check for warps
+    SideType side_up = (info >> (16 + 4*UP))&15;
+    SideType side_down = (info >> (16 + 4*DOWN)); // don't need &15 since it's at the end.
+    if (side_up == 0 || side_down == 0)
+        return 0;
+    if (side_up/2 == Damaging/2 || side_down/2 == Damaging/2)
+        return -1;
+    // TODO: check for other conditions?
+    return 1;
+}
+
+static inline int test_tile(int x, int y, int dir)
+{
+    // return 0 for no hit, 1 for solid, -1 for damage
+    int index = y*tile_map_width + x;
+    uint8_t tile;
+    if (index % 2)
+        tile = tile_map[index/2] >> 4;
+    else
+        tile = tile_map[index/2] & 15;
+    uint32_t info = tile_info[tile_translator[tile]];
+    if (!(info & 8))
+        return 0; // TODO: check for warps
+    SideType side = (info >> (16 + 4*dir))&15;
+    if (side == 0)
+        return 0;
+    if (side/2 == Damaging/2)
+        return -1;
+    // TODO: check for other conditions?
+    return 1;
+}
+
+void object_run_commands(uint8_t i) 
+{
+    // update position here, too
+    object[i].properties |= IN_AIR; // assume you're flying until you're not...
+    if (object[i].properties & GHOSTING)
+    {
+        object[i].y += object[i].vy;
+        if (object[i].y > tile_map_height*16 - 32)
+        {
+            object[i].y = tile_map_height*16 - 32;
+            object[i].vy = 0;
+        }
+        
+        object[i].x += object[i].vx;
+        if (object[i].x < 16)
+        {
+            object[i].x = 16;
+            object[i].vx = 0;
+        }
+        else if (object[i].x > tile_map_width*16-32)
+        {
+            object[i].x = tile_map_width*16-32;
+            object[i].vx = 0;
+        }
+
+        goto object_execute_commands;
+    }
+    // run physics and hit tests
+    //   e.g. if colliding against ground, set vy = 0
+
+    // avoid adding in gravity for non-platformers:
+    object[i].vy += gravity;
+    if (object[i].vy > MAX_VY)
+        object[i].vy = MAX_VY;
+    object[i].y += object[i].vy;
+    if (object[i].y < 16) {}
+    else if (object[i].y > tile_map_height*16 - 32)
+    {
+        object[i].y = tile_map_height*16 - 32;
+        object[i].vy = 0;
+        object[i].properties &= ~IN_AIR;
+        // TODO: maybe test object right below player here.
+    }
+    else if (object[i].vy == 0.0f || (16.0f*((int)(object[i].y/16)) == object[i].y)) {}
+    else if (object[i].vy > 0)
+    {
+        // test collision onto some tile's UP side.
+        int y_tile = object[i].y/16 + 1;
+        int x_tile = object[i].x/16;
+        if (16.0f * x_tile == object[i].x)
+        {
+            switch (test_tile(x_tile, y_tile, UP))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile-1);
+                object[i].vy = 0;
+                object[i].properties &= ~IN_AIR;
+                break;
+            }
+        }
+        else
+        {
+            // gotta test left and right tiles
+            switch (test_tile(x_tile, y_tile, UP))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile-1);
+                object[i].vy = 0;
+                object[i].properties &= ~IN_AIR;
+                break;
+            }
+            switch (test_tile(++x_tile, y_tile, UP))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile-1);
+                object[i].vy = 0;
+                object[i].properties &= ~IN_AIR;
+                break;
+            }
+        }
+    }
+    else // vy < 0
+    {
+        // check bumping head
+        int y_tile = object[i].y/16;
+        int x_tile = object[i].x/16;
+        if (16.0f * x_tile == object[i].x)
+        {
+            switch (test_tile(x_tile, y_tile, DOWN))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile+1);
+                object[i].vy = 0;
+                break;
+            }
+        }
+        else
+        {
+            // gotta test left and right tiles
+            switch (test_tile(x_tile, y_tile, DOWN))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile+1);
+                object[i].vy = 0;
+                break;
+            }
+            switch (test_tile(++x_tile, y_tile, DOWN))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].y = 16*(y_tile+1);
+                object[i].vy = 0;
+                break;
+            }
+        }
+    }
+    object[i].x += object[i].vx;
+    if (object[i].x < 16)
+    {
+        object[i].x = 16;
+        object[i].vx = 0;
+    }
+    else if (object[i].x > tile_map_width*16-32)
+    {
+        object[i].x = tile_map_width*16-32;
+        object[i].vx = 0;
+    }
+    else if (object[i].vx == 0.0f || ( ((int)(object[i].x/16)*16.0f) == object[i].x)) {}
+    else if (object[i].vx > 0)
+    {
+        // test colliding into something's LEFT side
+        int x_tile = object[i].x/16 + 1;
+        int y_tile = object[i].y/16;
+        if (16.0f * y_tile == object[i].y)
+        {
+            switch (test_tile(x_tile, y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].x = 16*(x_tile-1);
+                object[i].vx = 0;
+                break;
+            }
+        }
+        else
+        {
+            switch (test_tile(x_tile, y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].vx = 0;
+                object[i].x = 16*(x_tile-1);
+                break;
+            }
+            switch (test_tile(x_tile, ++y_tile, LEFT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].x = 16*(x_tile-1);
+                object[i].vx = 0;
+                break;
+            }
+        }
+    }
+    else // vx < 0
+    {
+        int x_tile = object[i].x/16;
+        int y_tile = object[i].y/16;
+        if (16.0f * y_tile == object[i].y)
+        {
+            switch (test_tile(x_tile, y_tile, RIGHT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].x = 16*(x_tile+1);
+                object[i].vx = 0;
+                break;
+            }
+        }
+        else
+        {
+            switch (test_tile(x_tile, y_tile, RIGHT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].x = 16*(x_tile+1);
+                object[i].vx = 0;
+                break;
+            }
+            switch (test_tile(x_tile, ++y_tile, RIGHT))
+            {
+            case 0:
+                break;
+            case -1:
+                message("need to add hurt damage here!\n");
+            case 1:
+                object[i].x = 16*(x_tile+1);
+                object[i].vx = 0;
+                break;
+            }
+        }
+    }
+    // finally check the space that the sprite is in.
+    int y_tile = object[i].y/16;
+    if (tile_xy_is_block(object[i].x/16, y_tile))
+    {
+        object[i].y = 16.0f*(y_tile-1);
+        object[i].vy = 0;
+        object[i].properties &= ~IN_AIR;
+    }
+
+    object_execute_commands:
+    if (object[i].wait)
+    {
+        --object[i].wait;
+        return;
+    }
+    while (object[i].cmd_index < 32)
+    {
+        uint8_t cmd = sprite_pattern[object[i].sprite_index][object[i].cmd_index++];
+        uint8_t param = cmd >> 4;
+        switch (cmd & 15)
+        {
+        case GO_BREAK:
+            if (param)
+                object[i].wait = param + param*param/2; // tweak as necessary
+            else
+                object[i].cmd_index = 0;
+            return;
+        case GO_NOT_MOVE:
+            if (object[i].vx || object[i].vy)
+            {
+                if (!param)
+                    param = 16;
+                object[i].cmd_index += param;
+            }
+            break;
+        case GO_NOT_RUN:
+            if (object[i].properties & RUNNING)
+                break;
+            if (!param)
+                param = 16;
+            object[i].cmd_index += param;
+            break;
+        case GO_NOT_AIR:
+            if (object[i].properties & IN_AIR)
+                break;
+            if (!param)
+                param = 16;
+            object[i].cmd_index += param;
+            break;
+        case GO_NOT_FIRE:
+            if (object[i].firing)
+            {
+                if (--object[i].firing == FIRE_COUNT-1)
+                    // continue executing at next index if firing was FIRE_COUNT
+                    break;
+            }
+            // otherwise, jump forward a few indices:
+            if (!param)
+                param = 16;
+            object[i].cmd_index += param;
+            break;
+        case GO_EXECUTE:
+            switch (param)
+            {
+            case 0: // stop
+                object[i].vx = object[i].vy = 0;
+                break;
+            case 1: // turn CCW
+            {
+                object[i].sprite_frame = (object[i].sprite_frame + 2)%8;
+                float vx = object[i].vx;
+                object[i].vx = object[i].vy;
+                object[i].vy = -vx;
+                break;
+            }
+            case 2: // turn 180
+                object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                object[i].vx = -object[i].vx;
+                object[i].vy = -object[i].vy;
+                break;
+            case 3: // turn 270 = CW
+            {
+                object[i].sprite_frame = (object[i].sprite_frame + 6)%8;
+                float vx = object[i].vx;
+                object[i].vx = -object[i].vy;
+                object[i].vy = vx;
+                break;
+            }
+            case 4: // walk
+                switch (object[i].sprite_frame/2)
+                {
+                case RIGHT:
+                    object[i].vy = 0;
+                    object[i].vx = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    break;
+                case UP:
+                    object[i].vy = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vx = 0;
+                    // TODO: in platformer only:
+                    object[i].properties |= IN_AIR;
+                    break;
+                case LEFT:
+                    object[i].vy = 0;
+                    object[i].vx = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    break;
+                case DOWN:
+                    object[i].vy = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vx = 0;
+                    break;
+                }
+                break;
+            case 5: // toggle run
+                if (object[i].properties & RUNNING)
+                    object[i].properties &= ~RUNNING;
+                else
+                    object[i].properties |= RUNNING;
+                break;
+            case 6: // do a jump
+                object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                object[i].properties |= IN_AIR;
+                break;
+            case 7: // toggle ghost
+                if (object[i].properties & GHOSTING)
+                    object[i].properties &= ~GHOSTING;
+                else
+                    object[i].properties |= GHOSTING;
+                break;
+            default:
+                // the rest are edge behaviors
+                object[i].edge_accel &= 240;
+                object[i].edge_accel |= param;
+            }
+            break;
+        case GO_LOOK:
+            break;
+        case GO_DIRECTION:
+        {
+            int p = param/8;
+            if (param == 4)
+            {
+                // need special treatment here, random movement when pressing down
+                if (!(gamepad_buttons[p] & (gamepad_up | gamepad_down | gamepad_left | gamepad_right)))
+                {
+                    object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                    if ((object[i].properties & GHOSTING) || 0) // for non-platformer
+                    {
+                        object[i].vy /= DECELERATION_MULTIPLIER*(1 + (object[i].edge_accel>>6));
+                    }
+                    break;
+                }
+                switch (rand()%4)
+                {
+                    case 0:
+                    {
+                        object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*LEFT;
+                        float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx < vx_limit)
+                            object[i].vx = vx_limit;
+                        break;
+                    }
+                    case 1:
+                    {
+                        object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*RIGHT;
+                        float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx > vx_limit)
+                            object[i].vx = vx_limit;
+                        break;
+                    }
+                    case 2:
+                    if ((object[i].properties & GHOSTING) || 0) // 0 = non-platformer
+                    {
+                        object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*UP;
+                        float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                        if (object[i].vy < vy_limit)
+                            object[i].vy = vy_limit;
+                        break;
+                    }
+                    case 3:
+                    {
+                        object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = 2*DOWN;
+                        // only check this for non-platformer,
+                        // a platformer will fix vy automatically
+                        if ((object[i].properties & GHOSTING) || 0)
+                        {
+                            float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            if (object[i].vy > vy_limit)
+                                object[i].vy = vy_limit;
+                        }
+                        break;
+                    }
+                }
+
+                break;
+            }
+            if (param & 1)
+            {
+                int motion = 0;
+                if (GAMEPAD_PRESSED(p, left))
+                    --motion;
+                if (GAMEPAD_PRESSED(p, right))
+                    ++motion;
+
+                if (motion)
+                {
+                    if (param & 4)
+                        motion *= -1;
+                    if (motion < 0)
+                    {
+                        object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = LEFT;
+                        float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx < vx_limit)
+                            object[i].vx = vx_limit;
+                    }
+                    else
+                    {
+                        object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = RIGHT;
+                        float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        if (object[i].vx > vx_limit)
+                            object[i].vx = vx_limit;
+                    }
+                }
+                else
+                {
+                    object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                }
+            }
+            if (param & 2)
+            {
+                int motion = 0;
+                if (GAMEPAD_PRESSED(p, up))
+                    --motion;
+                if (GAMEPAD_PRESSED(p, down))
+                    ++motion;
+
+                if (motion)
+                {
+                    if (param & 4)
+                        motion *= -1;
+                    if (motion < 0)
+                    {
+                        object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = UP;
+                        if ((object[i].properties & GHOSTING) || 0) // check for non-platformer
+                        {
+                            float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            if (object[i].vy < vy_limit)
+                                object[i].vy = vy_limit;
+                        }
+                    }
+                    else
+                    {
+                        object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
+                        object[i].sprite_frame = DOWN;
+                        // only check this for non-platformer,
+                        // a platformer will fix vy automatically
+                        if ((object[i].properties & GHOSTING) || 0)
+                        {
+                            float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            if (object[i].vy > vy_limit)
+                                object[i].vy = vy_limit;
+                        }
+                    }
+                }
+                else if ((object[i].properties & GHOSTING) || 0) // 0 = non-platformer
+                {
+                    object[i].vy /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                }
+            }
+            break;
+        }
+        case GO_SPECIAL_INPUT:
+        {
+            int p = param/8;
+            if (param & 1) // run
+            {
+                if ((gamepad_buttons[p] & (gamepad_Y | gamepad_A)))
+                    object[i].properties |= RUNNING;
+                else
+                    object[i].properties &= ~RUNNING;
+            }
+            if (param & 2) // jump
+            {
+                if (GAMEPAD_PRESSED(p, B))
+                {
+                    object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                    object[i].properties |= IN_AIR;
+                }
+            }
+            if (param & 4) // fire 
+            {
+                if (GAMEPAD_PRESSED(p, X))
+                {
+                    if (!object[i].firing)
+                        object[i].firing = FIRE_COUNT;
+                }
+                else if (object[i].firing == FIRE_COUNT)
+                {
+                    // haven't encountered a "GO_NOT_FIRE" yet,
+                    // assume we need to turn off the fire power.
+                    object[i].firing = 0;
+                }
+            }
+            break;
+        }
+        case GO_SPAWN_TILE:
+            break;
+        case GO_SPAWN_SPRITE:
+            break;
+        case GO_ACCELERATION:
+            object[i].edge_accel &= 15; // keep edge behavior
+            object[i].edge_accel |= param << 4;
+            break;
+        case GO_SPEED:
+            if (param & 8) // jump speed
+            {
+                object[i].speed_jump &= 15; // keep run speed
+                object[i].speed_jump |= (param-7) << 4;
+            }
+            else // run speed
+            {
+                object[i].speed_jump &= 240;
+                object[i].speed_jump |= 1 + param;
+            }
+            break;
+        case GO_NOISE:
+            break;
+        case GO_RANDOMIZE:
+            if (object[i].cmd_index >= 32)
+                goto end_run_commands;
+            uint8_t *memory = &sprite_pattern[object[i].sprite_index][object[i].cmd_index];
+            *memory = ((*memory)&15) | (randomize(param)<<4);
+            break;
+        case GO_QUAKE:
+            break;
+        }
+    }
+    // only way to get here is to get to object[i].cmd_index >= 32
+    end_run_commands:
+    object[i].cmd_index = 0;
 }
