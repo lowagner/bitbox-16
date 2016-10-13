@@ -966,7 +966,8 @@ void object_run_commands(uint8_t i)
         // test collision onto some tile's UP side.
         int y_tile = object[i].y/16 + 1;
         int x_tile = object[i].x/16;
-        if (16.0f * x_tile == object[i].x)
+        float x_delta = object[i].x - 16.0f*x_tile;
+        if (x_delta == 0.0f)
         {
             switch (test_tile(x_tile, y_tile, UP))
             {
@@ -984,29 +985,54 @@ void object_run_commands(uint8_t i)
         else
         {
             // gotta test left and right tiles
-            switch (test_tile(x_tile, y_tile, UP))
+            int hit_left = test_tile(x_tile, y_tile, UP);
+            int hit_right = test_tile(x_tile+1, y_tile, UP);
+            if (hit_right)
             {
-            case 0:
-                break;
-            case -1:
-                message("need to add hurt damage here!\n");
-            case 1:
-                object[i].y = 16*(y_tile-1);
-                object[i].vy = 0;
-                object[i].properties &= ~IN_AIR;
-                break;
+                if (hit_right < 0)
+                    message("need to add hurt damage here\n");
+                if (hit_left)
+                {
+                    if (hit_left < 0)
+                        message("need to add hurt damage here\n");
+                    object[i].y = 16*(y_tile-1);
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                }
+                else if (x_delta < 3.0f && object[i].vx < 0)
+                {
+                    // about to fall off to the left:
+                    // decide what to do based on edge behavior
+                    // here is just simple fall off:
+                    message("fell off left edge %f\n", object[i].x);
+                    object[i].x = x_tile*16.0f;
+                    object[i].vx /= 2;
+                }
+                else
+                {
+                    object[i].y = 16*(y_tile-1);
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                }
             }
-            switch (test_tile(++x_tile, y_tile, UP))
+            else if (hit_left)
             {
-            case 0:
-                break;
-            case -1:
-                message("need to add hurt damage here!\n");
-            case 1:
-                object[i].y = 16*(y_tile-1);
-                object[i].vy = 0;
-                object[i].properties &= ~IN_AIR;
-                break;
+                if (x_delta > 13.0f && object[i].vx > 0)
+                {
+                    // about to fall off to the right:
+                    // decide what to do based on edge behavior
+                    message("fell off right edge %f\n", object[i].x);
+                    object[i].x = (x_tile+1)*16.0f;
+                    object[i].vx /= 2;
+                }
+                else
+                {
+                    if (hit_left < 0)
+                        message("need to add hurt damage here\n");
+                    object[i].y = 16*(y_tile-1);
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                }
             }
         }
     }
