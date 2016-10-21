@@ -1008,8 +1008,13 @@ void object_run_commands(uint8_t i)
                         case 10:
                         case 11:
                             // turn around
+                            // TODO: this doesn't seem to help a player 
+                            // who is trying to avoid jumping off the ledge...
+                            object[i].x = x_tile*16.0f + 3.0f;
                             object[i].vx *= -1;
                             object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         case 12:
                             // jump
@@ -1019,22 +1024,33 @@ void object_run_commands(uint8_t i)
                             // turn around if low enough speed
                             if (object[i].vx > -SPEED_MULTIPLIER)
                             {
+                                object[i].x = x_tile*16.0f + 3.0f;
                                 object[i].vx *= -1; 
                                 object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
                             }
                             else
                                 object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         case 14:
                             // stop if small enough speed
                             if (object[i].vx > -SPEED_MULTIPLIER)
+                            {
+                                object[i].x = x_tile*16.0f + 3.0f;
                                 object[i].vx = 0; 
+                            }
                             else
                                 object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         case 15:
                             // stop no matter what
+                            object[i].x = x_tile*16.0f + 3.0f;
                             object[i].vx = 0;
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         default: // 8 or lower
                             // here is just simple fall off:
@@ -1062,8 +1078,13 @@ void object_run_commands(uint8_t i)
                         case 10:
                         case 11:
                             // turn around
+                            // TODO: this doesn't seem to help a player 
+                            // who is trying to avoid jumping off the ledge...
+                            object[i].x = (x_tile+1)*16.0f - 3.0f;
                             object[i].vx *= -1;
                             object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         case 12:
                             // jump
@@ -1073,22 +1094,33 @@ void object_run_commands(uint8_t i)
                             // turn around if low enough speed
                             if (object[i].vx < SPEED_MULTIPLIER)
                             {
+                                object[i].x = (x_tile+1)*16.0f - 3.0f;
                                 object[i].vx *= -1; 
                                 object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
                             }
                             else
                                 object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         case 14:
                             // stop if small enough speed
                             if (object[i].vx < SPEED_MULTIPLIER)
+                            {
+                                object[i].x = (x_tile+1)*16.0f - 3.0f;
                                 object[i].vx = 0; 
+                            }
                             else
                                 object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         case 15:
                             // stop no matter what
+                            object[i].x = (x_tile+1)*16.0f - 3.0f;
                             object[i].vx = 0;
+                            object[i].vy = 0;
+                            object[i].properties &= ~IN_AIR;
                             break;
                         default: // 8 or lower
                             // here is just simple fall off:
