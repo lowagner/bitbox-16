@@ -820,8 +820,7 @@ void go_controls()
             go_command_copy = sprite_pattern[edit_sprite/8][go_pattern_pos];
             for (int j=go_pattern_pos; j<31; ++j)
             {
-                if ((sprite_pattern[edit_sprite/8][j] = sprite_pattern[edit_sprite/8][j+1]) == 0)
-                    break;
+                sprite_pattern[edit_sprite/8][j] = sprite_pattern[edit_sprite/8][j+1];
             }
             sprite_pattern[edit_sprite/8][31] = GO_BREAK;
             return;
@@ -1003,10 +1002,46 @@ void object_run_commands(uint8_t i)
                 {
                     // about to fall off to the left:
                     // decide what to do based on edge behavior
-                    // here is just simple fall off:
-                    message("fell off left edge %f\n", object[i].x);
-                    object[i].x = x_tile*16.0f;
-                    object[i].vx /= 2;
+                    switch (object[i].edge_accel&15)
+                    {
+                        case 9:
+                        case 10:
+                        case 11:
+                            // turn around
+                            object[i].vx *= -1;
+                            object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            break;
+                        case 12:
+                            // jump
+                            object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                            break;
+                        case 13:
+                            // turn around if low enough speed
+                            if (object[i].vx > -SPEED_MULTIPLIER)
+                            {
+                                object[i].vx *= -1; 
+                                object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            }
+                            else
+                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            break;
+                        case 14:
+                            // stop if small enough speed
+                            if (object[i].vx > -SPEED_MULTIPLIER)
+                                object[i].vx = 0; 
+                            else
+                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            break;
+                        case 15:
+                            // stop no matter what
+                            object[i].vx = 0;
+                            break;
+                        default: // 8 or lower
+                            // here is just simple fall off:
+                            //message("fell off left edge %f\n", object[i].x);
+                            object[i].x = x_tile*16.0f;
+                            object[i].vx /= 2;
+                    }
                 }
                 else
                 {
@@ -1021,9 +1056,46 @@ void object_run_commands(uint8_t i)
                 {
                     // about to fall off to the right:
                     // decide what to do based on edge behavior
-                    message("fell off right edge %f\n", object[i].x);
-                    object[i].x = (x_tile+1)*16.0f;
-                    object[i].vx /= 2;
+                    switch (object[i].edge_accel&15)
+                    {
+                        case 9:
+                        case 10:
+                        case 11:
+                            // turn around
+                            object[i].vx *= -1;
+                            object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            break;
+                        case 12:
+                            // jump
+                            object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                            break;
+                        case 13:
+                            // turn around if low enough speed
+                            if (object[i].vx < SPEED_MULTIPLIER)
+                            {
+                                object[i].vx *= -1; 
+                                object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            }
+                            else
+                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            break;
+                        case 14:
+                            // stop if small enough speed
+                            if (object[i].vx < SPEED_MULTIPLIER)
+                                object[i].vx = 0; 
+                            else
+                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                            break;
+                        case 15:
+                            // stop no matter what
+                            object[i].vx = 0;
+                            break;
+                        default: // 8 or lower
+                            // here is just simple fall off:
+                            //message("fell off right edge %f\n", object[i].x);
+                            object[i].x = (x_tile+1)*16.0f;
+                            object[i].vx /= 2;
+                    }
                 }
                 else
                 {
