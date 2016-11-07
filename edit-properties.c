@@ -96,21 +96,21 @@ void edit2_line()
             break;
         case 3:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"A:cancel copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"X:cancel copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"A:save to file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"X:copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 4:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"B:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"A:paste mirrored", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"B:load from file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"A:save to file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 5:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"X:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"B:paste rotated", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"X:copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"B:load from file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 6:
             if (edit2_copying)
@@ -766,7 +766,45 @@ void edit2_controls()
     {
         if (edit2_copying)
         {
-            // or cancel a copy
+            // paste with special stuff
+            uint8_t *src, *dst;
+            uint8_t work[16][8];
+            if (edit2_copying == 1) // sprite
+                src = sprite_draw[edit2_copy_location/8][edit2_copy_location%8][0];
+            else
+                src = tile_draw[edit2_copy_location][0];
+            if (edit_sprite_not_tile)
+                dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+            else
+                dst = tile_draw[edit_tile][0];
+            if (src == dst)
+            {
+                memcpy(work, src, 16*8);    
+                src = work[0];
+            }
+            if (save_or_load == 1) // pressed A, mirror that tile L/R
+            {
+                for (int j=1; j<17; ++j)
+                for (int i=1; i<=8; ++i)
+                {
+                    uint8_t value = src[(j*8) - i];
+                    *dst++ = (value>>4) | (value<<4);
+                }
+                strcpy((char *)game_message, "mirror-pasted.");
+            }
+            else // pressed B, rotate that tile 90 degrees CCW
+            {
+                for (int i=15; i>=0; --i)
+                {
+                    if (i % 2) // odd i
+                    for (int j=0; j<16; j+=2)
+                        *dst++ = (src[(j*16+i)/2]>>4) | (src[((j+1)*16+i)/2]&240);
+                    else
+                    for (int j=0; j<16; j+=2)
+                        *dst++ = (src[(j*16+i)/2]&15) | ((src[((j+1)*16+i)/2]&15)<<4);
+                }
+                strcpy((char *)game_message, "rota-pasted.");
+            }
             edit2_copying = 0;
             return;
         }

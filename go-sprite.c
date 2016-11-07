@@ -1500,7 +1500,7 @@ void object_run_commands(uint8_t i)
                     if (motion < 0)
                     {
                         object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = LEFT;
+                        object[i].sprite_frame = 2*LEFT + ((int)object[i].x/8)%2;
                         float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
                             object[i].vx = vx_limit;
@@ -1508,7 +1508,7 @@ void object_run_commands(uint8_t i)
                     else
                     {
                         object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = RIGHT;
+                        object[i].sprite_frame = 2*RIGHT + ((int)object[i].x/8)%2;
                         float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
                             object[i].vx = vx_limit;
@@ -1534,7 +1534,7 @@ void object_run_commands(uint8_t i)
                     if (motion < 0)
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = UP;
+                        object[i].sprite_frame = 2*UP;
                         if ((object[i].properties & GHOSTING) || 0) // check for non-platformer
                         {
                             float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
@@ -1545,7 +1545,7 @@ void object_run_commands(uint8_t i)
                     else
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = DOWN;
+                        object[i].sprite_frame = 2*DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if ((object[i].properties & GHOSTING) || 0)
