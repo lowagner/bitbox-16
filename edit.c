@@ -180,7 +180,7 @@ void edit_line()
             else
                 strcpy(++b, "start:menu");
             
-            font_render_line_doubled(text, 16, line, 65535, 0);
+            font_render_line_doubled(text, 8, line, 65535, 0);
 
             if (edit_sprite_not_tile)
             {

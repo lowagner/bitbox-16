@@ -416,7 +416,7 @@ void map_controls()
                 previous_visual_mode = EditMap;
                 game_switch(EditTileOrSprite);
                 edit_sprite_not_tile = 1;
-                edit_tile = map_sprite;
+                edit_sprite = map_sprite;
                 return;
             }
             else
