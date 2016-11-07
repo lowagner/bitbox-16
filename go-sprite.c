@@ -1534,7 +1534,7 @@ void object_run_commands(uint8_t i)
                     if (motion < 0)
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*UP;
+                        object[i].sprite_frame = 2*UP + ((int)object[i].y/8)%2;
                         if ((object[i].properties & GHOSTING) || 0) // check for non-platformer
                         {
                             float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
@@ -1545,7 +1545,7 @@ void object_run_commands(uint8_t i)
                     else
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*DOWN;
+                        object[i].sprite_frame = 2*DOWN + ((int)object[i].y/8)%2;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if ((object[i].properties & GHOSTING) || 0)
