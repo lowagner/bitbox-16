@@ -907,13 +907,7 @@ static inline int test_tile(int x, int y, int dir)
     uint32_t info = tile_info[tile_translator[tile]];
     if (!(info & 8))
         return 0; // TODO: check for warps
-    SideType side = (info >> (16 + 4*dir))&15;
-    if (side == 0)
-        return 0;
-    if (side/2 == Damaging/2)
-        return -1;
-    // TODO: check for other conditions?
-    return 1;
+    return (info >> (16 + 4*dir))&15;
 }
 
 void object_run_commands(uint8_t i) 
@@ -970,11 +964,12 @@ void object_run_commands(uint8_t i)
         {
             switch (test_tile(x_tile, y_tile, UP))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].y = 16*(y_tile-1);
                 object[i].vy = 0;
                 object[i].properties &= ~IN_AIR;
@@ -1142,6 +1137,7 @@ void object_run_commands(uint8_t i)
     }
     else // vy < 0
     {
+        message("going up %f\n", object[i].y);
         // check bumping head
         int y_tile = object[i].y/16;
         int x_tile = object[i].x/16;
@@ -1149,13 +1145,15 @@ void object_run_commands(uint8_t i)
         {
             switch (test_tile(x_tile, y_tile, DOWN))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].y = 16*(y_tile+1);
                 object[i].vy = 0;
+                message("bumped up to something\n");
                 break;
             }
         }
@@ -1164,22 +1162,26 @@ void object_run_commands(uint8_t i)
             // gotta test left and right tiles
             switch (test_tile(x_tile, y_tile, DOWN))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].y = 16*(y_tile+1);
                 object[i].vy = 0;
+                message("got left hit\n");
                 break;
             }
             switch (test_tile(++x_tile, y_tile, DOWN))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
+                message("got right hit\n");
                 object[i].y = 16*(y_tile+1);
                 object[i].vy = 0;
                 break;
@@ -1207,11 +1209,12 @@ void object_run_commands(uint8_t i)
         {
             switch (test_tile(x_tile, y_tile, LEFT))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].x = 16*(x_tile-1);
                 object[i].vx = 0;
                 break;
@@ -1221,22 +1224,24 @@ void object_run_commands(uint8_t i)
         {
             switch (test_tile(x_tile, y_tile, LEFT))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].vx = 0;
                 object[i].x = 16*(x_tile-1);
                 break;
             }
             switch (test_tile(x_tile, ++y_tile, LEFT))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].x = 16*(x_tile-1);
                 object[i].vx = 0;
                 break;
@@ -1251,11 +1256,12 @@ void object_run_commands(uint8_t i)
         {
             switch (test_tile(x_tile, y_tile, RIGHT))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].x = 16*(x_tile+1);
                 object[i].vx = 0;
                 break;
@@ -1265,22 +1271,24 @@ void object_run_commands(uint8_t i)
         {
             switch (test_tile(x_tile, y_tile, RIGHT))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].x = 16*(x_tile+1);
                 object[i].vx = 0;
                 break;
             }
             switch (test_tile(x_tile, ++y_tile, RIGHT))
             {
-            case 0:
+            case Passable:
                 break;
-            case -1:
+            case Damaging:
+            case SuperDamaging:
                 message("need to add hurt damage here!\n");
-            case 1:
+            case Normal:
                 object[i].x = 16*(x_tile+1);
                 object[i].vx = 0;
                 break;
@@ -1288,12 +1296,17 @@ void object_run_commands(uint8_t i)
         }
     }
     // finally check the space that the sprite is in.
-    int y_tile = object[i].y/16;
-    if (tile_xy_is_block(object[i].x/16, y_tile))
+    int y_tile = object[i].y;
+    if (y_tile%16)
     {
-        object[i].y = 16.0f*(y_tile-1);
-        object[i].vy = 0;
-        object[i].properties &= ~IN_AIR;
+        y_tile = y_tile/16 + 1;
+        if (tile_xy_is_block(object[i].x/16, y_tile))
+        {
+            object[i].y = 16.0f*(y_tile-1);
+            message(" %f\n", object[i].y);
+            object[i].vy = 0;
+            object[i].properties &= ~IN_AIR;
+        }
     }
 
     object_execute_commands:

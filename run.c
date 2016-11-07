@@ -42,6 +42,7 @@ void run_switch()
             y < 0 || y >= tile_map_height)
         {
             message("weird, sprite object %d is out of bounds\n", i);
+            object[i].z = 0;
             continue;
         }
         if (tile_xy_is_block(x, y))
