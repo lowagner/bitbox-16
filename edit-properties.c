@@ -142,7 +142,7 @@ void edit2_line()
             uint8_t msg[32];
             uint32_t info = sprite_info[edit_sprite/8][edit_sprite%8];
             if (info&16)
-                strcpy((char *)msg, "block ");
+                strcpy((char *)msg, "unused"); // TODO use it?
             else
                 strcpy((char *)msg, "invis ");
             msg[6] = hex[info&15];

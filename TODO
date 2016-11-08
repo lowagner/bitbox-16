@@ -20,6 +20,11 @@ run.c:
     sprites:
         run sprite commands
         sprite frame animation (when to loop, probably should be based on velocity?)
+        collisions, damage tacking
+
+    sprite attacks on tiles, too.
+    
+    do we want to allow for connected sprites?  (e.g. swinging a sword sprite, attached to player or enemy, or power-up makes you twice as tall, etc.)
 
 sprite pattern commands:  no loops are possible, march through commands
 

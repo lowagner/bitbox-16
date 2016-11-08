@@ -12,9 +12,9 @@ uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pix
 uint8_t sprite_pattern[16][32] CCM_MEMORY; 
 /*
 info about a sprite (first frame, frame 0):
-    1 bit for Block-like.
+    1 bit for Block-like. // maybe for projectile?
     if Block-like:
-        4 bits ignored (what could we put here?)
+        4 bits ignored (what could we put here?) // could require all sprites to have some invisible color, no matter what...
     else:
         4 bits for "what color is invisible in this sprite"
     3 bits for inverse weight
