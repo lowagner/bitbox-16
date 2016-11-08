@@ -62,6 +62,7 @@ extern VisualMode previous_visual_mode;
 #define RUNNING 1
 #define IN_AIR 2
 #define GHOSTING 4
+#define PROJECTILE 8
 
 #define GAMEPAD_PRESS(id, key) ((gamepad_buttons[id]) & (~old_gamepad[id]) & (gamepad_##key))
 #define GAMEPAD_PRESSING(id, key) ((gamepad_buttons[id]) & (gamepad_##key) & (~old_gamepad[id] | ((gamepad_press_wait == 0)*gamepad_##key)))

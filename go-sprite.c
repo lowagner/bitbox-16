@@ -983,13 +983,13 @@ void object_run_commands(uint8_t i)
             int hit_right = test_tile(x_tile+1, y_tile, UP);
             if (hit_right)
             {
-                if (hit_right < 0)
-                    message("need to add hurt damage here\n");
+                object[i].y = 16*(y_tile-1);
+                //if (hit_right < 0)
+                //    message("need to add hurt damage here\n");
                 if (hit_left)
                 {
-                    if (hit_left < 0)
-                        message("need to add hurt damage here\n");
-                    object[i].y = 16*(y_tile-1);
+                    //if (hit_left < 0)
+                    //    message("need to add hurt damage here\n");
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
@@ -1056,13 +1056,13 @@ void object_run_commands(uint8_t i)
                 }
                 else
                 {
-                    object[i].y = 16*(y_tile-1);
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
             }
             else if (hit_left)
             {
+                object[i].y = 16*(y_tile-1);
                 if (x_delta > 13.0f && object[i].vx > 0)
                 {
                     // about to fall off to the right:
@@ -1126,9 +1126,8 @@ void object_run_commands(uint8_t i)
                 }
                 else
                 {
-                    if (hit_left < 0)
-                        message("need to add hurt damage here\n");
-                    object[i].y = 16*(y_tile-1);
+                    //if (hit_left < 0)
+                    //    message("need to add hurt damage here\n");
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
@@ -1137,11 +1136,11 @@ void object_run_commands(uint8_t i)
     }
     else // vy < 0
     {
-        message("going up %f\n", object[i].y);
         // check bumping head
         int y_tile = object[i].y/16;
         int x_tile = object[i].x/16;
-        if (16.0f * x_tile == object[i].x)
+        float x_delta = object[i].x - 16.0f*x_tile;
+        if (x_delta == 0.0f)
         {
             switch (test_tile(x_tile, y_tile, DOWN))
             {
@@ -1160,31 +1159,82 @@ void object_run_commands(uint8_t i)
         else
         {
             // gotta test left and right tiles
-            switch (test_tile(x_tile, y_tile, DOWN))
+            int hit_left = test_tile(x_tile, y_tile, DOWN);
+            int hit_right = test_tile(x_tile+1, y_tile, DOWN);
+            if (hit_left)
             {
-            case Passable:
-                break;
-            case Damaging:
-            case SuperDamaging:
-                message("need to add hurt damage here!\n");
-            case Normal:
-                object[i].y = 16*(y_tile+1);
-                object[i].vy = 0;
-                message("got left hit\n");
-                break;
+                if (hit_right)
+                {
+                    int hurt = 0;
+                    switch (hit_right)
+                    {
+                    case Passable:
+                        break;
+                    case SuperDamaging:
+                        hurt |= 2;
+                    case Damaging:
+                        hurt |= 1;
+                    case Normal:
+                        object[i].y = 16*(y_tile+1);
+                        object[i].vy = 0;
+                        break;
+                    }
+                    switch (hit_left)
+                    {
+                    case Passable:
+                        break;
+                    case SuperDamaging:
+                        hurt |= 2;
+                    case Damaging:
+                        hurt |= 1;
+                    case Normal:
+                        object[i].y = 16*(y_tile+1);
+                        object[i].vy = 0;
+                        break;
+                    }
+                    // TODO check hurt!
+                }
+                else if (x_delta > 13.0f)
+                {
+                    // be nice, jump into hole
+                    object[i].x = 16.0f*(x_tile+1);
+                    message("jumping up into hole\n");
+                }
+                else // just hit left
+                switch (hit_left)
+                {
+                case Passable:
+                    break;
+                case Damaging:
+                case SuperDamaging:
+                    message("need to add hurt damage here!\n");
+                case Normal:
+                    object[i].y = 16*(y_tile+1);
+                    object[i].vy = 0;
+                    break;
+                }
             }
-            switch (test_tile(++x_tile, y_tile, DOWN))
+            else if (hit_right)
             {
-            case Passable:
-                break;
-            case Damaging:
-            case SuperDamaging:
-                message("need to add hurt damage here!\n");
-            case Normal:
-                message("got right hit\n");
-                object[i].y = 16*(y_tile+1);
-                object[i].vy = 0;
-                break;
+                if (x_delta < 3.0f)
+                {
+                    // be nice, jump into hole
+                    object[i].x = 16.0f*x_tile;
+                    message("jumping up into hole\n");
+                }
+                else
+                switch (hit_right)
+                {
+                case Passable:
+                    break;
+                case Damaging:
+                case SuperDamaging:
+                    message("need to add hurt damage here!\n");
+                case Normal:
+                    object[i].y = 16*(y_tile+1);
+                    object[i].vy = 0;
+                    break;
+                }
             }
         }
     }
@@ -1205,6 +1255,7 @@ void object_run_commands(uint8_t i)
         // test colliding into something's LEFT side
         int x_tile = object[i].x/16 + 1;
         int y_tile = object[i].y/16;
+        float old_vx = object[i].vx;
         if (16.0f * y_tile == object[i].y)
         {
             switch (test_tile(x_tile, y_tile, LEFT))
@@ -1247,11 +1298,28 @@ void object_run_commands(uint8_t i)
                 break;
             }
         }
+        if (object[i].vx == 0.0f)
+        switch (object[i].edge_accel&15)
+        {
+            case 9: // turn CCW
+                object[i].vy = -old_vx;
+                object[i].sprite_frame = 2*UP;
+                break;
+            case 10: // turn 180
+                object[i].vx = -old_vx;
+                object[i].sprite_frame = 2*LEFT;
+                break;
+            case 11: // turn CW
+                object[i].vy = old_vx;
+                object[i].sprite_frame = 2*DOWN;
+                break;
+        }
     }
     else // vx < 0
     {
         int x_tile = object[i].x/16;
         int y_tile = object[i].y/16;
+        float old_vx = object[i].vx;
         if (16.0f * y_tile == object[i].y)
         {
             switch (test_tile(x_tile, y_tile, RIGHT))
@@ -1294,6 +1362,22 @@ void object_run_commands(uint8_t i)
                 break;
             }
         }
+        if (object[i].vx == 0.0f)
+        switch (object[i].edge_accel&15)
+        {
+            case 9: // turn CCW
+                object[i].vy = old_vx;
+                object[i].sprite_frame = 2*DOWN;
+                break;
+            case 10: // turn 180
+                object[i].vx = -old_vx;
+                object[i].sprite_frame = 2*RIGHT;
+                break;
+            case 11: // turn CW
+                object[i].vy = -old_vx;
+                object[i].sprite_frame = 2*UP;
+                break;
+        }
     }
     // finally check the space that the sprite is in.
     int y_tile = object[i].y;
@@ -1303,7 +1387,7 @@ void object_run_commands(uint8_t i)
         if (tile_xy_is_block(object[i].x/16, y_tile))
         {
             object[i].y = 16.0f*(y_tile-1);
-            message(" %f\n", object[i].y);
+            message("internal hit %f\n", object[i].y);
             object[i].vy = 0;
             object[i].properties &= ~IN_AIR;
         }
