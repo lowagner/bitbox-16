@@ -770,13 +770,33 @@ void edit2_controls()
             uint8_t *src, *dst;
             uint8_t work[16][8];
             if (edit2_copying == 1) // sprite
+            {
+                if (edit_sprite_not_tile)
+                {
+                    // copying sprite to sprite, copy also the info
+                    // TODO: should rotate/mirror sides of sprite info
+                    sprite_info[edit_sprite/8][edit_sprite%8] =
+                        sprite_info[edit2_copy_location/8][edit2_copy_location%8];
+                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                }
+                else
+                    dst = tile_draw[edit_tile][0];
+
                 src = sprite_draw[edit2_copy_location/8][edit2_copy_location%8][0];
-            else
+            }
+            else // copying from a tile
+            {
+                if (edit_sprite_not_tile)
+                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                else
+                { 
+                    // copying to a tile, copy also tile info
+                    // TODO: rotate side info
+                    tile_info[edit_tile] = tile_info[edit2_copy_location];
+                    dst = tile_draw[edit_tile][0];
+                }
                 src = tile_draw[edit2_copy_location][0];
-            if (edit_sprite_not_tile)
-                dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
-            else
-                dst = tile_draw[edit_tile][0];
+            }
             if (src == dst)
             {
                 memcpy(work, src, 16*8);    
@@ -834,13 +854,30 @@ void edit2_controls()
             // paste
             uint8_t *src, *dst;
             if (edit2_copying == 1) // sprite
+            {
                 src = sprite_draw[edit2_copy_location/8][edit2_copy_location%8][0];
+                if (edit_sprite_not_tile)
+                {
+                    // copying sprite to sprite, copy also the info
+                    sprite_info[edit_sprite/8][edit_sprite%8] =
+                        sprite_info[edit2_copy_location/8][edit2_copy_location%8];
+                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                }
+                else
+                    dst = tile_draw[edit_tile][0];
+            }
             else
+            {
                 src = tile_draw[edit2_copy_location][0];
-            if (edit_sprite_not_tile)
-                dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
-            else
-                dst = tile_draw[edit_tile][0];
+                if (edit_sprite_not_tile)
+                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                else
+                {
+                    // copy also the tile info
+                    tile_info[edit_tile] = tile_info[edit2_copy_location];
+                    dst = tile_draw[edit_tile][0];
+                }
+            }
             if (src == dst)
                 strcpy((char *)game_message, "pasting to same thing");
             else
