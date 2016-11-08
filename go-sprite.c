@@ -984,12 +984,9 @@ void object_run_commands(uint8_t i)
             if (hit_right)
             {
                 object[i].y = 16*(y_tile-1);
-                //if (hit_right < 0)
-                //    message("need to add hurt damage here\n");
                 if (hit_left)
                 {
-                    //if (hit_left < 0)
-                    //    message("need to add hurt damage here\n");
+                    // TODO inflict damage if necessary
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
@@ -1062,6 +1059,7 @@ void object_run_commands(uint8_t i)
             }
             else if (hit_left)
             {
+                // TODO inflict damage if necessary
                 object[i].y = 16*(y_tile-1);
                 if (x_delta > 13.0f && object[i].vx > 0)
                 {
@@ -1253,10 +1251,11 @@ void object_run_commands(uint8_t i)
     else if (object[i].vx > 0)
     {
         // test colliding into something's LEFT side
+        float old_vx = object[i].vx;
         int x_tile = object[i].x/16 + 1;
         int y_tile = object[i].y/16;
-        float old_vx = object[i].vx;
-        if (16.0f * y_tile == object[i].y)
+        float y_delta = object[i].y - 16.0f*y_tile;
+        if (y_delta == 0.0f)
         {
             switch (test_tile(x_tile, y_tile, LEFT))
             {
@@ -1273,29 +1272,79 @@ void object_run_commands(uint8_t i)
         }
         else
         {
-            switch (test_tile(x_tile, y_tile, LEFT))
+            int hit_up = test_tile(x_tile, y_tile, LEFT);
+            int hit_down = test_tile(x_tile, y_tile+1, LEFT);
+            if (hit_up)
             {
-            case Passable:
-                break;
-            case Damaging:
-            case SuperDamaging:
-                message("need to add hurt damage here!\n");
-            case Normal:
-                object[i].vx = 0;
-                object[i].x = 16*(x_tile-1);
-                break;
+                if (hit_down)
+                {
+                    int hurt = 0;
+                    switch (hit_up)
+                    {
+                    case Passable:
+                        break;
+                    case SuperDamaging:
+                        hurt |= 2;
+                    case Damaging:
+                        hurt |= 1;
+                    case Normal:
+                        object[i].x = 16*(x_tile-1);
+                        object[i].vx = 0;
+                        break;
+                    }
+                    switch (hit_down)
+                    {
+                    case Passable:
+                        break;
+                    case SuperDamaging:
+                        hurt |= 2;
+                    case Damaging:
+                        hurt |= 1;
+                    case Normal:
+                        object[i].x = 16*(x_tile-1);
+                        object[i].vx = 0;
+                        break;
+                    }
+                    // TODO
+                    // make hurt
+                }
+                else if (y_delta > 13.0f)
+                {
+                    object[i].y = 16*(y_tile);
+                }
+                else
+                switch (hit_up)
+                {
+                case Passable:
+                    break;
+                case Damaging:
+                case SuperDamaging:
+                    message("need to add hurt damage here!\n");
+                case Normal:
+                    object[i].x = 16*(x_tile-1);
+                    object[i].vx = 0;
+                    break;
+                }
             }
-            switch (test_tile(x_tile, ++y_tile, LEFT))
+            else if (hit_down)
             {
-            case Passable:
-                break;
-            case Damaging:
-            case SuperDamaging:
-                message("need to add hurt damage here!\n");
-            case Normal:
-                object[i].x = 16*(x_tile-1);
-                object[i].vx = 0;
-                break;
+                if (y_delta < 3.0f)
+                {
+                    object[i].y = 16*(y_tile);
+                }
+                else
+                switch (hit_down)
+                {
+                case Passable:
+                    break;
+                case Damaging:
+                case SuperDamaging:
+                    message("need to add hurt damage here!\n");
+                case Normal:
+                    object[i].x = 16*(x_tile-1);
+                    object[i].vx = 0;
+                    break;
+                }
             }
         }
         if (object[i].vx == 0.0f)
@@ -1317,10 +1366,11 @@ void object_run_commands(uint8_t i)
     }
     else // vx < 0
     {
+        float old_vx = object[i].vx;
         int x_tile = object[i].x/16;
         int y_tile = object[i].y/16;
-        float old_vx = object[i].vx;
-        if (16.0f * y_tile == object[i].y)
+        float y_delta = object[i].y - 16.0f*y_tile;
+        if (y_delta == 0.0f)
         {
             switch (test_tile(x_tile, y_tile, RIGHT))
             {
@@ -1337,29 +1387,79 @@ void object_run_commands(uint8_t i)
         }
         else
         {
-            switch (test_tile(x_tile, y_tile, RIGHT))
+            int hit_up = test_tile(x_tile, y_tile, RIGHT);
+            int hit_down = test_tile(x_tile, y_tile+1, RIGHT);
+            if (hit_up)
             {
-            case Passable:
-                break;
-            case Damaging:
-            case SuperDamaging:
-                message("need to add hurt damage here!\n");
-            case Normal:
-                object[i].x = 16*(x_tile+1);
-                object[i].vx = 0;
-                break;
+                if (hit_down)
+                {
+                    int hurt = 0;
+                    switch (hit_up)
+                    {
+                    case Passable:
+                        break;
+                    case SuperDamaging:
+                        hurt |= 2;
+                    case Damaging:
+                        hurt |= 1;
+                    case Normal:
+                        object[i].x = 16*(x_tile+1);
+                        object[i].vx = 0;
+                        break;
+                    }
+                    switch (hit_down)
+                    {
+                    case Passable:
+                        break;
+                    case SuperDamaging:
+                        hurt |= 2;
+                    case Damaging:
+                        hurt |= 1;
+                    case Normal:
+                        object[i].x = 16*(x_tile+1);
+                        object[i].vx = 0;
+                        break;
+                    }
+                    // TODO
+                    // make hurt
+                }
+                else if (y_delta > 13.0f)
+                {
+                    object[i].y = 16*(y_tile);
+                }
+                else
+                switch (hit_up)
+                {
+                case Passable:
+                    break;
+                case Damaging:
+                case SuperDamaging:
+                    message("need to add hurt damage here!\n");
+                case Normal:
+                    object[i].x = 16*(x_tile+1);
+                    object[i].vx = 0;
+                    break;
+                }
             }
-            switch (test_tile(x_tile, ++y_tile, RIGHT))
+            else if (hit_down)
             {
-            case Passable:
-                break;
-            case Damaging:
-            case SuperDamaging:
-                message("need to add hurt damage here!\n");
-            case Normal:
-                object[i].x = 16*(x_tile+1);
-                object[i].vx = 0;
-                break;
+                if (y_delta < 3.0f)
+                {
+                    object[i].y = 16*(y_tile);
+                }
+                else
+                switch (hit_down)
+                {
+                case Passable:
+                    break;
+                case Damaging:
+                case SuperDamaging:
+                    message("need to add hurt damage here!\n");
+                case Normal:
+                    object[i].x = 16*(x_tile+1);
+                    object[i].vx = 0;
+                    break;
+                }
             }
         }
         if (object[i].vx == 0.0f)
