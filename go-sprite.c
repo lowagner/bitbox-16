@@ -1311,7 +1311,6 @@ void object_run_commands(uint8_t i)
                 else if (y_delta > 13.0f)
                 {
                     object[i].y = 16*(y_tile+1);
-                    object[i].vy = 0;
                 }
                 else
                 switch (hit_up)
@@ -1332,7 +1331,6 @@ void object_run_commands(uint8_t i)
                 if (y_delta < 3.0f)
                 {
                     object[i].y = 16*(y_tile);
-                    object[i].vy = 0;
                 }
                 else
                 switch (hit_down)
@@ -1428,7 +1426,6 @@ void object_run_commands(uint8_t i)
                 else if (y_delta > 13.0f)
                 {
                     object[i].y = 16*(y_tile+1);
-                    object[i].vy = 0;
                 }
                 else
                 switch (hit_up)
@@ -1449,7 +1446,6 @@ void object_run_commands(uint8_t i)
                 if (y_delta < 3.0f)
                 {
                     object[i].y = 16*(y_tile);
-                    object[i].vy = 0;
                 }
                 else
                 switch (hit_down)
