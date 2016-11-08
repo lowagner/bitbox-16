@@ -1350,17 +1350,21 @@ void object_run_commands(uint8_t i)
         if (object[i].vx == 0.0f)
         switch (object[i].edge_accel&15)
         {
+            case 8: // fall off edges
+            case 14: // stop or fall
+            case 15: // stop at edges
+                break;
             case 9: // turn CCW
                 object[i].vy = -old_vx;
                 object[i].sprite_frame = 2*UP;
                 break;
-            case 10: // turn 180
-                object[i].vx = -old_vx;
-                object[i].sprite_frame = 2*LEFT;
-                break;
             case 11: // turn CW
                 object[i].vy = old_vx;
                 object[i].sprite_frame = 2*DOWN;
+                break;
+            default: // turn 180 (at 10), plus other things
+                object[i].vx = -old_vx;
+                object[i].sprite_frame = 2*LEFT;
                 break;
         }
     }
@@ -1465,17 +1469,21 @@ void object_run_commands(uint8_t i)
         if (object[i].vx == 0.0f)
         switch (object[i].edge_accel&15)
         {
+            case 8: // fall off edges
+            case 14: // stop or fall
+            case 15: // stop at edges
+                break;
             case 9: // turn CCW
                 object[i].vy = old_vx;
                 object[i].sprite_frame = 2*DOWN;
                 break;
-            case 10: // turn 180
-                object[i].vx = -old_vx;
-                object[i].sprite_frame = 2*RIGHT;
-                break;
             case 11: // turn CW
                 object[i].vy = -old_vx;
                 object[i].sprite_frame = 2*UP;
+                break;
+            default: // turn 180 (at 10), plus other things
+                object[i].vx = -old_vx;
+                object[i].sprite_frame = 2*RIGHT;
                 break;
         }
     }
