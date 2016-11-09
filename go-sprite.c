@@ -1000,8 +1000,6 @@ void object_run_commands(uint8_t i)
                         case 10:
                         case 11:
                             // turn around
-                            // TODO: this doesn't seem to help a player 
-                            // who is trying to avoid jumping off the ledge...
                             object[i].x = x_tile*16.0f + 3.0f;
                             object[i].vx *= -1;
                             object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
@@ -1048,7 +1046,8 @@ void object_run_commands(uint8_t i)
                             // here is just simple fall off:
                             //message("fell off left edge %f\n", object[i].x);
                             object[i].x = x_tile*16.0f;
-                            object[i].vx /= 2;
+                            if (object[i].vx > -1.0f)
+                                object[i].vx = 0;
                     }
                 }
                 else
@@ -1119,7 +1118,8 @@ void object_run_commands(uint8_t i)
                             // here is just simple fall off:
                             //message("fell off right edge %f\n", object[i].x);
                             object[i].x = (x_tile+1)*16.0f;
-                            object[i].vx /= 2;
+                            if (object[i].vx < 1.0f)
+                                object[i].vx = 0;
                     }
                 }
                 else
@@ -1803,7 +1803,61 @@ void object_run_commands(uint8_t i)
             break;
         }
         case GO_SPAWN_TILE:
+        {
+            int32_t y, x;
+            float delta_y, delta_x;
+            y = object[i].y/16;
+            delta_y = object[i].y - 16*y;
+            x = object[i].x/16;
+            delta_x = object[i].x - 16*x;
+            switch (object[i].sprite_frame/2)
+            {
+                case RIGHT:
+                    if (delta_x < 6.0f)
+                        object[i].x = (x++)*16;
+                    else
+                        x += 2;
+                    if (delta_y > 10.0f)
+                        ++y;
+                    break;
+                case UP:
+                    if (delta_x > 10.0f)
+                        ++x;
+                    if (delta_y > 10.0f)
+                        object[i].y = (y+1)*16;
+                    else
+                        --y;
+                    break;
+                case LEFT:
+                    if (delta_x > 10.0f)
+                        object[i].x = (x+1)*16;
+                    else
+                        --x;
+                    if (delta_y > 10.0f)
+                        ++y;
+                    break;
+                case DOWN:
+                    if (delta_x > 10.0f)
+                        ++x;
+                    if (delta_y < 6.0f)
+                        object[i].y = (y++)*16;
+                    else
+                        y+=2;
+                    break;
+            }
+            int index = y*tile_map_width + x;
+            if (index % 2)
+            {
+                tile_map[index/2] &= 15;
+                tile_map[index/2] |= param<<4;
+            }
+            else
+            {
+                tile_map[index/2] &= 240;
+                tile_map[index/2] |= param;
+            }
             break;
+        }
         case GO_SPAWN_SPRITE:
             break;
         case GO_ACCELERATION:
