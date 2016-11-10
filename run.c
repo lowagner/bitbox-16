@@ -16,7 +16,7 @@ uint8_t camera_index CCM_MEMORY; // which sprite has the camera on it
 void run_init()
 {
     run_paused = 0;
-    camera_index = 0;
+    camera_index = 255;
 }
 
 void run_reset()
@@ -24,7 +24,8 @@ void run_reset()
 }
 
 void run_switch()
-{ 
+{
+    camera_index = 255;
     // hide any sprites in objects by setting z = 0
     tile_map_x = 16*tile_map_width;
     tile_map_y = 16*tile_map_height;
@@ -32,8 +33,8 @@ void run_switch()
     {
         int y = object[i].y/16;
         int x = object[i].x/16;
-        if (x < 0 || x >= tile_map_width ||
-            y < 0 || y >= tile_map_height)
+        if (x <= 0 || x >= tile_map_width-1 ||
+            y <= 0 || y >= tile_map_height-1)
         {
             message("weird, sprite object %d is out of bounds\n", i);
             object[i].z = 0;
@@ -45,6 +46,7 @@ void run_switch()
         {
             object[i].z = 1;
             // find the leftmost player 0 (hero) sprite, to make camera follow
+            message("%d: %d\n", i, object[i].sprite_index);
             if (object[i].sprite_index == 0)
             {
                 if ((int)object[i].x/16 < tile_map_x + 10)
@@ -107,27 +109,43 @@ void run_controls()
     if (run_paused)
         return;
 
-    if (vga_frame % 2 == 0)
+    if (camera_index < 255)
     {
-        if (GAMEPAD_PRESSED(0, left))
+        if (object[camera_index].ix < 9*16)
         {
-            if (tile_map_x > 16)
+            if (object[camera_index].vx < -1)
+                tile_map_x += object[camera_index].vx;
+            else
                 --tile_map_x;
+            if (tile_map_x < 16)
+                tile_map_x = 16;
         }
-        else if (GAMEPAD_PRESSED(0, right))
+        else if (object[camera_index].ix >= (20-9)*16)
         {
-            if (tile_map_x + SCREEN_W + 17 < tile_map_width*16)
+            if (object[camera_index].vx > 1)
+                tile_map_x += object[camera_index].vx;
+            else
                 ++tile_map_x;
+            if (tile_map_x > 16*(tile_map_width - 1 - 20))
+                tile_map_x = 16*(tile_map_width - 1 - 20);
         }
-        if (GAMEPAD_PRESSED(0, up))
+        if (object[camera_index].iy < 5*16)
         {
-            if (tile_map_y > 16)
+            if (object[camera_index].vy < -1)
+                tile_map_y += object[camera_index].vy;
+            else
                 --tile_map_y;
+            if (tile_map_y < 16)
+                tile_map_y = 16;
         }
-        else if (GAMEPAD_PRESSED(0, down))
+        else if (object[camera_index].iy >= (15-5)*16)
         {
-            if (tile_map_y + SCREEN_H + 17 < tile_map_height*16)
+            if (object[camera_index].vy > 1)
+                tile_map_y += object[camera_index].vy;
+            else
                 ++tile_map_y;
+            if (tile_map_y > 16*(tile_map_height - 1 - 15))
+                tile_map_y = 16*(tile_map_height - 1 - 15);
         }
     }
     update_objects();
