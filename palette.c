@@ -116,10 +116,7 @@ void palette_line()
         case 7:
             break;
         case 8:
-            if (previous_visual_mode)
-                font_render_line_doubled((const uint8_t *)"start:back     dpad:", 16, internal_line, 65535, 0);
-            else
-                font_render_line_doubled((const uint8_t *)"start:file-ops dpad:", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"start:return   dpad:", 16, internal_line, 65535, 0);
             {
             uint8_t label[] = { 'r', ':', hex[(palette[palette_index]>>10)&31], 0 };
             font_render_line_doubled(label, 20+20*9, internal_line, RGB(255, 50, 50), 0);
@@ -130,7 +127,7 @@ void palette_line()
             }
             break;
         case 9:
-            font_render_line_doubled((const uint8_t *)"select:tile menu", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"select:main menu", 16, internal_line, 65535, 0);
             break;
         case 11:
             font_render_line_doubled(game_message, 16, internal_line, 65535, 0);
@@ -311,7 +308,7 @@ void palette_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        game_switch(EditTileOrSpriteProperties);
+        game_switch(SaveLoadScreen);
         previous_visual_mode = None;
         return;
     }

@@ -129,7 +129,7 @@ void edit2_line()
             break;
         case 9:
             if (edit_sprite_not_tile)
-                font_render_line_doubled((const uint8_t *)"select:palette menu", 16, internal_line, 65535, SPRITE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"select:tile menu", 16, internal_line, 65535, SPRITE_COLOR*257);
             else
                 font_render_line_doubled((const uint8_t *)"select:sprite menu", 16, internal_line, 65535, TILE_COLOR*257);
             break;
@@ -899,16 +899,7 @@ void edit2_controls()
     {
         edit2_cursor = 0;
         game_message[0] = 0;
-        if (edit_sprite_not_tile)
-        {
-            edit_sprite_not_tile = 0; 
-            game_switch(EditPalette);
-            previous_visual_mode = None;
-        }
-        else
-        {
-            edit_sprite_not_tile = 1;
-        }
+        edit_sprite_not_tile = 1 - edit_sprite_not_tile;
         return;
     }
     if (GAMEPAD_PRESS(0, start))

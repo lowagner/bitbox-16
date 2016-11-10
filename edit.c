@@ -761,19 +761,10 @@ void edit_controls()
         game_message[0] = 0;
         fill_stop();
         if (previous_visual_mode)
-        {
             game_switch(previous_visual_mode);
-            previous_visual_mode = None;
-        }
-        else if (edit_sprite_not_tile)
-        {
-            game_switch(EditAnthem);
-            edit_sprite_not_tile = 0;
-        }
         else
-        {
-            edit_sprite_not_tile = 1;
-        }
+            game_switch(SaveLoadScreen);
+        previous_visual_mode = None;
         return;
     }
     if (GAMEPAD_PRESS(0, start))

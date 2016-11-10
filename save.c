@@ -98,28 +98,28 @@ void save_line()
             switch (save_only)
             {
             case 0:
-                font_render_line_doubled((const uint8_t *)"start:play game", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:play game", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 1:
-                font_render_line_doubled((const uint8_t *)"start:edit tiles", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit tiles", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 2:
-                font_render_line_doubled((const uint8_t *)"start:edit sprites", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit sprites", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 3:
-                font_render_line_doubled((const uint8_t *)"start:edit map", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit map", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 4:
-                font_render_line_doubled((const uint8_t *)"start:edit palette", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit palette", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 5:
-                font_render_line_doubled((const uint8_t *)"start:edit music", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit music", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 6:
-                font_render_line_doubled((const uint8_t *)"start:edit patterns", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit patterns", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 7:
-                font_render_line_doubled((const uint8_t *)"start:edit unlocks", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit unlocks", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             }
             break;
@@ -318,16 +318,7 @@ void save_controls()
         save_only = (save_only + 1)&7;
         return;
     }
-    if (GAMEPAD_PRESS(0, select))
-    {
-        game_message[0] = 0;
-        // switch to next visual mode and ignore previous_visual_mode
-        game_switch(EditMap);
-        previous_visual_mode = None;
-        save_only = 0; // reset save for next time
-        return;
-    }
-    if (GAMEPAD_PRESS(0, start))
+    if (GAMEPAD_PRESS(0, start) || GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
         // go to palette picker

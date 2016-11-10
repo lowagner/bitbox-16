@@ -671,7 +671,7 @@ void map_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         previous_visual_mode = None;
-        game_switch(EditTileOrSprite);
+        game_switch(SaveLoadScreen);
         edit_sprite_not_tile = 0;
         return;
     }
