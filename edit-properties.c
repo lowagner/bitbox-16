@@ -403,23 +403,28 @@ void edit2_line()
     {
         memset(draw_buffer+(SCREEN_W - 24 - 16*2*2), BG_COLOR, 64);
     }
-    else if (vga_line < 22 + 2 + 2*16 + 2*16 && edit2_copying)
+    else if (edit2_copying)
     {
-        uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 24 - 16*2)/2;
-        internal_line = (vga_line - (22 + 2 + 2*16))/2;
-        uint8_t *tile_color = edit2_copying == 1 ?
-            &sprite_draw[edit2_copy_location/8][edit2_copy_location%8][internal_line][0] - 1:
-            &tile_draw[edit2_copy_location][internal_line][0] - 1;
-        for (int l=0; l<8; ++l) 
+        if (vga_line < 22 + 2 + 2*16 + 2*16)
         {
-            uint32_t color = palette[(*(++tile_color))&15];
-            color |= color << 16;
-            *(++dst) = color;
-            
-            color = palette[(*tile_color)>>4];
-            color |= color << 16;
-            *(++dst) = color;
+            uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 24 - 16*2)/2;
+            internal_line = (vga_line - (22 + 2 + 2*16))/2;
+            uint8_t *tile_color = edit2_copying == 1 ?
+                &sprite_draw[edit2_copy_location/8][edit2_copy_location%8][internal_line][0] - 1:
+                &tile_draw[edit2_copy_location][internal_line][0] - 1;
+            for (int l=0; l<8; ++l) 
+            {
+                uint32_t color = palette[(*(++tile_color))&15];
+                color |= color << 16;
+                *(++dst) = color;
+                
+                color = palette[(*tile_color)>>4];
+                color |= color << 16;
+                *(++dst) = color;
+            }
         }
+        else if (vga_line/2 == (22 + 2 + 2*16 + 2*16)/2)
+            memset(draw_buffer + SCREEN_W-24-16*2 + 2, BG_COLOR, 64);
     }
 }
 
