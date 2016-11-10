@@ -9,7 +9,7 @@
 
 #define BG_COLOR 192 // a uint8_t, uint16_t color is (BG_COLOR)|(BG_COLOR<<8)
 
-uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - tiles, 2 - sprites, 3 - map, 4 - palette
+uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - map, 2 - tiles, 3 - sprites, 4 - palette
                               // 5 - music, 6 - patterns, 7 - unlock
 
 #define NUMBER_LINES 17
@@ -62,13 +62,13 @@ void save_line()
                 font_render_line_doubled((const uint8_t *)"all", 16+24*9, internal_line, 65535, BG_COLOR*257);
                 break;
             case 1:
-                font_render_line_doubled((const uint8_t *)"tiles", 16+24*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"map", 16+24*9, internal_line, 65535, BG_COLOR*257);
                 break;
             case 2:
-                font_render_line_doubled((const uint8_t *)"sprites", 16+24*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"tiles", 16+24*9, internal_line, 65535, BG_COLOR*257);
                 break;
             case 3:
-                font_render_line_doubled((const uint8_t *)"map", 16+24*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"sprites", 16+24*9, internal_line, 65535, BG_COLOR*257);
                 break;
             case 4:
                 font_render_line_doubled((const uint8_t *)"palette", 16+24*9, internal_line, 65535, BG_COLOR*257);
@@ -101,13 +101,13 @@ void save_line()
                 font_render_line_doubled((const uint8_t *)"start/select:play game", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 1:
-                font_render_line_doubled((const uint8_t *)"start/select:edit tiles", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit map", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 2:
-                font_render_line_doubled((const uint8_t *)"start/select:edit sprites", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit tiles", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 3:
-                font_render_line_doubled((const uint8_t *)"start/select:edit map", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"start/select:edit sprites", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             case 4:
                 font_render_line_doubled((const uint8_t *)"start/select:edit palette", 16, internal_line, 65535, BG_COLOR*257);
@@ -226,6 +226,14 @@ void save_controls()
             }
             break;
         case 1:
+            error = (save_or_load == 1) ? io_save_map() : io_load_map();
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "map ");
+                offset = 4;
+            }
+            break;
+        case 2:
             error = (save_or_load == 1) ? io_save_tile(16) : io_load_tile(16);
             if (error != NoError)
             {
@@ -233,20 +241,12 @@ void save_controls()
                 offset = 6;
             }
             break;
-        case 2:
+        case 3:
             error = (save_or_load == 1) ? io_save_sprite(16, 8) : io_load_sprite(16, 8);
             if (error != NoError)
             {
                 strcpy((char *)game_message, "sprites ");
                 offset = 8;
-            }
-            break;
-        case 3:
-            error = (save_or_load == 1) ? io_save_map() : io_load_map();
-            if (error != NoError)
-            {
-                strcpy((char *)game_message, "map ");
-                offset = 4;
             }
             break;
         case 4:
@@ -328,15 +328,15 @@ void save_controls()
             game_switch(GameOn);
             break;
         case 1:
-            game_switch(EditTileOrSprite);
-            edit_sprite_not_tile = 0;
+            game_switch(EditMap);
             break;
         case 2:
             game_switch(EditTileOrSprite);
-            edit_sprite_not_tile = 1;
+            edit_sprite_not_tile = 0;
             break;
         case 3:
-            game_switch(EditMap);
+            game_switch(EditTileOrSprite);
+            edit_sprite_not_tile = 1;
             break;
         case 4:
             game_switch(EditPalette);
