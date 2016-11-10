@@ -54,7 +54,9 @@ void map_switch()
     {
         object[i].z = 1;
     }
-   
+  
+    map_menu_not_edit = 0;
+
     update_object_images(); 
 }
 

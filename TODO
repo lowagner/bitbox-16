@@ -1,5 +1,9 @@
 16 roadmap
 
+
+map:
+    copy tiles when changing map dimensions
+
 game.c
     game edit menu, also set to play
     goes before map edit in SELECT route.  
@@ -9,8 +13,10 @@ game.c
 chiptune.c:
     add more player(s) for sfx,
     or requisition players 2,3 for sfx...
+    OR choose random player.
 
 run.c:
+    camera follows first sprite found as player 0
     tile translation
     hide sprites which are completely set inside another block with zero velocity.
         - compute a "hidden" property (set z=0 to hide) when transitioning to run mode
