@@ -11,10 +11,12 @@
 #include <string.h> // memset
 
 uint8_t run_paused CCM_MEMORY;
+uint8_t camera_index CCM_MEMORY; // which sprite has the camera on it
 
 void run_init()
 {
-    run_paused = 0; // eventually will probably want this to be 1
+    run_paused = 0;
+    camera_index = 0;
 }
 
 void run_reset()
@@ -22,18 +24,10 @@ void run_reset()
 }
 
 void run_switch()
-{
-    if (tile_map_x < 16)
-        tile_map_x = 16;
-    else if (tile_map_x + SCREEN_W + 16 >= tile_map_width*16)
-        tile_map_x = tile_map_width*16 - SCREEN_W - 16;
-    
-    if (tile_map_y < 16)
-        tile_map_y = 16;
-    else if (tile_map_y + SCREEN_H + 16 >= tile_map_height*16)
-        tile_map_y = tile_map_height*16 - SCREEN_H - 16;
-    
+{ 
     // hide any sprites in objects by setting z = 0
+    tile_map_x = 16*tile_map_width;
+    tile_map_y = 16*tile_map_height;
     for (int i=0; i<MAX_OBJECTS; ++i)
     {
         int y = object[i].y/16;
@@ -48,8 +42,30 @@ void run_switch()
         if (tile_xy_is_block(x, y))
             object[i].z = 0;
         else
+        {
             object[i].z = 1;
+            // find the leftmost player 0 (hero) sprite, to make camera follow
+            if (object[i].sprite_index == 0)
+            {
+                if ((int)object[i].x/16 < tile_map_x + 10)
+                {
+                    tile_map_x = ((int)object[i].x/16 - 10)*16;
+                    tile_map_y = (int)object[i].y - 8*16;
+                    camera_index = i;
+                    message("found player at %f, %f\n", object[i].x, object[i].y);
+                }
+            }
+        }
     }
+    if (tile_map_x < 16)
+        tile_map_x = 16;
+    else if (tile_map_x + SCREEN_W + 16 >= tile_map_width*16)
+        tile_map_x = tile_map_width*16 - SCREEN_W - 16;
+    
+    if (tile_map_y < 16)
+        tile_map_y = 16;
+    else if (tile_map_y + SCREEN_H + 16 >= tile_map_height*16)
+        tile_map_y = tile_map_height*16 - SCREEN_H - 16;
     
     update_object_images();
     chip_play_init(0);
