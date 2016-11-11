@@ -26,7 +26,7 @@ struct object {
     uint8_t edge_accel; // first four bits: edge behavior, second four bits: acceleration
     uint8_t speed_jump; // first four bits: speed, second four bits: jump speed
     // eighth
-    uint8_t properties; // use bit-masking for RUNNING, IN_AIR, GHOSTING
+    uint8_t properties; // use bit-masking for RUNNING, IN_AIR, GHOSTING, PROJECTILE
     uint8_t firing;
     uint8_t next_object_index; 
     uint8_t previous_object_index;

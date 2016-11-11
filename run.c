@@ -70,6 +70,7 @@ void run_switch()
         tile_map_y = tile_map_height*16 - SCREEN_H - 16;
     
     update_object_images();
+    run_paused = 0;
     chip_play_init(0);
 }
 
