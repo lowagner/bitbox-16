@@ -945,7 +945,7 @@ void object_run_commands(uint8_t i)
     if (object[i].vy > MAX_VY)
         object[i].vy = MAX_VY;
     object[i].y += object[i].vy;
-    if (object[i].y < 16) {}
+    if (object[i].y < -16) {}
     else if (object[i].y > tile_map_height*16 - 32)
     {
         object[i].y = tile_map_height*16 - 32;
@@ -968,7 +968,7 @@ void object_run_commands(uint8_t i)
                 break;
             case Damaging:
             case SuperDamaging:
-                message("need to add hurt damage here!\n");
+                message("need to add hurt damage here for %d!\n", i);
             case Normal:
                 object[i].y = 16*(y_tile-1);
                 object[i].vy = 0;
@@ -1129,9 +1129,12 @@ void object_run_commands(uint8_t i)
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
+                if (hit_left > 1)
+                    message("need to add hurt damage here for %d!\n", i);
             }
         }
     }
+    else if (object[i].y < 0) {}
     else // vy < 0
     {
         // check bumping head
@@ -1146,11 +1149,10 @@ void object_run_commands(uint8_t i)
                 break;
             case Damaging:
             case SuperDamaging:
-                message("need to add hurt damage here!\n");
+                message("need to add hurt BUMP HEAD damage here to %d!\n", i);
             case Normal:
                 object[i].y = 16*(y_tile+1);
                 object[i].vy = 0;
-                message("bumped up to something\n");
                 break;
             }
         }
@@ -1191,6 +1193,8 @@ void object_run_commands(uint8_t i)
                         break;
                     }
                     // TODO check hurt!
+                    if (hurt)
+                    message("need to add hurt damage here for %d!\n", i);
                 }
                 else if (x_delta > 13.0f)
                 {
@@ -1227,7 +1231,7 @@ void object_run_commands(uint8_t i)
                     break;
                 case Damaging:
                 case SuperDamaging:
-                    message("need to add hurt damage here!\n");
+                    message("need to add hurt damage here for %d!\n", i);
                 case Normal:
                     object[i].y = 16*(y_tile+1);
                     object[i].vy = 0;
@@ -1247,7 +1251,7 @@ void object_run_commands(uint8_t i)
         object[i].x = tile_map_width*16-32;
         object[i].vx = 0;
     }
-    else if (object[i].vx == 0.0f || ( ((int)(object[i].x/16)*16.0f) == object[i].x)) {}
+    else if (object[i].y < 0 || object[i].vx == 0.0f || ( ((int)(object[i].x/16)*16.0f) == object[i].x)) {}
     else if (object[i].vx > 0)
     {
         // test colliding into something's LEFT side
@@ -1263,7 +1267,7 @@ void object_run_commands(uint8_t i)
                 break;
             case Damaging:
             case SuperDamaging:
-                message("need to add hurt damage here!\n");
+                message("need to add hurt damage here for %d!\n", i);
             case Normal:
                 object[i].x = 16*(x_tile-1);
                 object[i].vx = 0;
@@ -1307,6 +1311,8 @@ void object_run_commands(uint8_t i)
                     }
                     // TODO
                     // make hurt
+                    if (hurt)
+                    message("need to add hurt damage here for %d!\n", i);
                 }
                 else if (y_delta > 13.0f)
                 {
@@ -1319,7 +1325,7 @@ void object_run_commands(uint8_t i)
                     break;
                 case Damaging:
                 case SuperDamaging:
-                    message("need to add hurt damage here!\n");
+                    message("need to add hurt damage here for %d!\n", i);
                 case Normal:
                     object[i].x = 16*(x_tile-1);
                     object[i].vx = 0;
@@ -1339,7 +1345,7 @@ void object_run_commands(uint8_t i)
                     break;
                 case Damaging:
                 case SuperDamaging:
-                    message("need to add hurt damage here!\n");
+                    message("need to add hurt damage here for %d!\n", i);
                 case Normal:
                     object[i].x = 16*(x_tile-1);
                     object[i].vx = 0;
@@ -1382,7 +1388,7 @@ void object_run_commands(uint8_t i)
                 break;
             case Damaging:
             case SuperDamaging:
-                message("need to add hurt damage here!\n");
+                message("need to add hurt damage here for %d!\n", i);
             case Normal:
                 object[i].x = 16*(x_tile+1);
                 object[i].vx = 0;
@@ -1426,6 +1432,8 @@ void object_run_commands(uint8_t i)
                     }
                     // TODO
                     // make hurt
+                    if (hurt)
+                    message("need to add hurt damage here for %d!\n", i);
                 }
                 else if (y_delta > 13.0f)
                 {
@@ -1438,7 +1446,7 @@ void object_run_commands(uint8_t i)
                     break;
                 case Damaging:
                 case SuperDamaging:
-                    message("need to add hurt damage here!\n");
+                    message("need to add hurt damage here for %d!\n", i);
                 case Normal:
                     object[i].x = 16*(x_tile+1);
                     object[i].vx = 0;
@@ -1458,7 +1466,7 @@ void object_run_commands(uint8_t i)
                     break;
                 case Damaging:
                 case SuperDamaging:
-                    message("need to add hurt damage here!\n");
+                    message("need to add hurt damage here for %d!\n", i);
                 case Normal:
                     object[i].x = 16*(x_tile+1);
                     object[i].vx = 0;
@@ -1488,6 +1496,7 @@ void object_run_commands(uint8_t i)
         }
     }
     // finally check the space that the sprite is in.
+    /*
     int y_tile = object[i].y;
     if (y_tile%16)
     {
@@ -1500,6 +1509,7 @@ void object_run_commands(uint8_t i)
             object[i].properties &= ~IN_AIR;
         }
     }
+    */
 
     object_execute_commands:
     if (object[i].wait)
