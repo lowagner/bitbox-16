@@ -17,6 +17,7 @@
 
 #define FIRE_COUNT 32 // number of times GO_NOT_FIRE needs to be called before you can fire again
 #define SPEED_MULTIPLIER 0.5f
+#define THROW_MULTIPLIER 0.6f
 #define JUMP_MULTIPLIER 1.75f
 #define ACCELERATION_MULTIPLIER 0.25f
 #define DECELERATION_MULTIPLIER 0.25f
@@ -1869,7 +1870,41 @@ void object_run_commands(uint8_t i)
             break;
         }
         case GO_SPAWN_SPRITE:
+        {
+            uint8_t j;
+            float vx = object[i].vx, vy = object[i].vy;
+            switch (object[i].sprite_frame/2)
+            {
+                case RIGHT:
+                    j = create_object(param, RIGHT*2, object[i].x+16, object[i].y, 1);
+                    vx += (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    if (!0) // platformer
+                        vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
+                    break;
+                case UP:
+                    j = create_object(param, UP*2, object[i].x, object[i].y-16, 1);
+                    vy -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    if (!0) // platformer
+                        vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER/2;
+                    break;
+                case LEFT:
+                    j = create_object(param, LEFT*2, object[i].x-16, object[i].y, 1);
+                    vx -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    if (!0) // platformer
+                        vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
+                    break;
+                case DOWN:
+                    j = create_object(param, DOWN*2, object[i].x, object[i].y+16, 1);
+                    vy += (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    break;
+            }
+            if (j == 255)
+                break;
+            object[j].vx = vx;
+            object[j].vy = vy;
+            object[j].properties |= PROJECTILE;
             break;
+        }
         case GO_ACCELERATION:
             object[i].edge_accel &= 15; // keep edge behavior
             object[i].edge_accel |= param << 4;
@@ -1887,7 +1922,12 @@ void object_run_commands(uint8_t i)
             }
             break;
         case GO_NOISE:
+        {
+            uint8_t p = rand()%4; // choose a chip player at random
+            chip_player[p].instrument = param; // set instrument
+            chip_note(p, rand()%16, 255); // play a random note with that player
             break;
+        }
         case GO_RANDOMIZE:
             if (object[i].cmd_index >= 32)
                 goto end_run_commands;
