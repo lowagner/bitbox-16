@@ -12,11 +12,13 @@
 
 uint8_t run_paused CCM_MEMORY;
 uint8_t camera_index CCM_MEMORY; // which sprite has the camera on it
+int camera_shake CCM_MEMORY;
 
 void run_init()
 {
     run_paused = 0;
     camera_index = 255;
+    camera_shake = 0;
 }
 
 void run_reset()
@@ -25,6 +27,7 @@ void run_reset()
 
 void run_switch()
 {
+    camera_shake = 0;
     camera_index = 255;
     // hide any sprites in objects by setting z = 0
     tile_map_x = 16*tile_map_width;
@@ -147,6 +150,65 @@ void run_controls()
                 ++tile_map_y;
             if (tile_map_y > 16*(tile_map_height - 1 - 15))
                 tile_map_y = 16*(tile_map_height - 1 - 15);
+        }
+    }
+
+    if (camera_shake > 0)
+    {
+        int mvx, mvy, sx, sy;
+        if (camera_shake > 128)
+        {
+            mvx = rand()%1024;
+            mvy = mvx >> 5;
+            sx = mvx & 16;
+            mvx = (mvx & 15);
+            sy =  mvy & 16;
+            mvy = (mvy & 15);
+            camera_shake -= 64;
+        }
+        else if (camera_shake > 32)
+        {
+            mvx = rand()%256;
+            mvy = mvx >> 4;
+            sx = mvx & 8;
+            mvx = mvx & 7;
+            sy = mvy & 8;
+            mvy = mvy & 7;
+            camera_shake -= 16;
+        }
+        else
+        {
+            mvx = rand()%64;
+            mvy = mvx >> 3;
+            sx = mvx & 4;
+            mvx = mvx & 3;
+            sy = mvy & 4;
+            mvy = mvy & 3;
+            --camera_shake;
+        }
+        if (sx)
+        {
+            tile_map_x -= mvx;
+            if (tile_map_x < 0)
+                tile_map_x = 0;
+        }
+        else
+        {
+            tile_map_x += mvx;
+            if (tile_map_x > tile_map_width*16 - SCREEN_W)
+                tile_map_x = tile_map_width*16 - SCREEN_W;
+        }
+        if (sy)
+        {
+            tile_map_y -= mvy;
+            if (tile_map_y < 0)
+                tile_map_y = 0;
+        }
+        else
+        {
+            tile_map_y += mvy;
+            if (tile_map_y > tile_map_height*16 - SCREEN_H)
+                tile_map_y = tile_map_height*16 - SCREEN_H;
         }
     }
     update_objects();
