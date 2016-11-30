@@ -2,6 +2,7 @@
 #define RUN_H
 
 extern int camera_shake;
+extern int camera_index;
 
 void run_init();
 void run_reset();

@@ -1,6 +1,7 @@
 #include "bitbox.h"
 #include "sprites.h"
 #include "go-sprite.h"
+#include "run.h"
 #include "tiles.h"
 
 #include <stdlib.h> // rand
@@ -115,7 +116,7 @@ void update_object(int i)
 {
     if (object[i].draw_order_index < 255) // object was visible...
     {
-        if (on_screen(object[i].x, object[i].y))
+        if (on_screen(object[i].x, object[i].y) || i == camera_index)
         {
             // object is still visible, need to sort draw_order.. but do it later!
             object[i].iy = object[i].y - tile_map_y;

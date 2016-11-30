@@ -41,8 +41,8 @@ info about a tile:
         6 bits for randomness
 */
 uint32_t tile_info[16] CCM_MEMORY;
-int16_t tile_map_x CCM_MEMORY, tile_map_y CCM_MEMORY;
-uint16_t tile_map_width CCM_MEMORY, tile_map_height CCM_MEMORY;
+int tile_map_x CCM_MEMORY, tile_map_y CCM_MEMORY;
+int tile_map_width CCM_MEMORY, tile_map_height CCM_MEMORY;
 // tile_map_width * tile_map_height <= TILE_MAP_MEMORY
 // tile_map_x < tile_map_width - 320
 // tile_map_y < tile_map_height - 240

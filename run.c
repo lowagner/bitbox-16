@@ -11,7 +11,7 @@
 #include <string.h> // memset
 
 uint8_t run_paused CCM_MEMORY;
-uint8_t camera_index CCM_MEMORY; // which sprite has the camera on it
+int camera_index CCM_MEMORY; // which sprite has the camera on it
 int camera_shake CCM_MEMORY;
 
 void run_init()
