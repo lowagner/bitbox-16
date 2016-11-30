@@ -10,13 +10,7 @@ game.c
     press START to play
         warn if map is not saved
 
-chiptune.c:
-    add more player(s) for sfx,
-    or requisition players 2,3 for sfx...
-    OR choose random player.
-
 run.c:
-    camera follows first sprite found as player 0
     tile translation
     hide sprites which are completely set inside another block with zero velocity.
         - compute a "hidden" property (set z=0 to hide) when transitioning to run mode
@@ -25,7 +19,7 @@ run.c:
     
     sprites:
         run sprite commands
-        sprite frame animation (when to loop, probably should be based on velocity?)
+            * look
         collisions, damage tacking
 
     sprite attacks on tiles, too.
@@ -34,22 +28,8 @@ run.c:
 
 sprite pattern commands:  no loops are possible, march through commands
 
-    end/wait (end if argument is 0, wait quadratically)
-        wait = argument + argument*argument/4 (or something like that)
-    
     look for closest player, change direction based on argument
 
-    handle player special input (1 bit for player 1, 2=jump, 4=run, 8=fire)
-    spawn other sprite (projectile) directly in front of player,
-        set velocity using next 8 bits??
-        
-    spawn tile directly in front of player (at nearest grid point)
-
-    set shake screen
-        2 bits intensity, 2 bits duration
-    make noise
-        4 bits for instrument, then play random note in the instrument octave
-    
 
 allow for more than 4 unlock commands, 
     4 tied to tiles, 
