@@ -61,7 +61,9 @@ uint8_t chip_track[16][CHIP_PLAYERS][MAX_TRACK_LENGTH] CCM_MEMORY;
     as well as for a track
 */
 
+uint8_t load_instrument[4] CCM_MEMORY;
 struct chip_player chip_player[CHIP_PLAYERS] CCM_MEMORY;
+
 
 /* 
     chip song
@@ -325,6 +327,7 @@ void chip_reset()
 
 void reset_player(int i)
 {
+    load_instrument[i] = i;
     chip_player[i].instrument = i;
     chip_player[i].cmd_index = 0;
     chip_player[i].track_cmd_index = 0;
@@ -398,58 +401,63 @@ void chip_play_track_init(int track)
     }
 }
 
-void _chip_note(uint8_t i, uint8_t note)
+void _chip_note(uint8_t p, uint8_t note)
 {
     #ifdef DEBUG_CHIPTUNE
-    message("note %d on player %d\n", (note+12*chip_player[i].octave), i);
+    message("note %d on player %d\n", (note+12*chip_player[p].octave), p);
     #endif
+    chip_player[p].instrument = load_instrument[p];
     // now set some defaults and startup the command index
-    if (instrument[chip_player[i].instrument].is_drum)
+    if (instrument[chip_player[p].instrument].is_drum)
     {
         // a drum instrument has 3 sub instruments.
         note %= 12;
         // first subinstrument is 2*MAX_DRUM_LENGTH commands long, and takes up first 10 notes.
         if (note < 10)
         {
-            chip_player[i].cmd_index = 0;
-            chip_player[i].max_drum_index = 2*MAX_DRUM_LENGTH;
+            chip_player[p].cmd_index = 0;
+            chip_player[p].max_drum_index = 2*MAX_DRUM_LENGTH;
         }
         else if (note == 10)
         {
-            chip_player[i].cmd_index = 2*MAX_DRUM_LENGTH;
-            chip_player[i].max_drum_index = 3*MAX_DRUM_LENGTH;
+            chip_player[p].cmd_index = 2*MAX_DRUM_LENGTH;
+            chip_player[p].max_drum_index = 3*MAX_DRUM_LENGTH;
         }
         else
         {
-            chip_player[i].cmd_index = 3*MAX_DRUM_LENGTH;
-            chip_player[i].max_drum_index = 4*MAX_DRUM_LENGTH;
+            chip_player[p].cmd_index = 3*MAX_DRUM_LENGTH;
+            chip_player[p].max_drum_index = 4*MAX_DRUM_LENGTH;
         }
-        oscillator[i].waveform = WF_NOISE; // by default
-        chip_player[i].volume = 255; 
+        oscillator[p].waveform = WF_NOISE; // by default
+        chip_player[p].volume = 255; 
     }
     else
     {
-        chip_player[i].cmd_index = 0;
-        oscillator[i].waveform = WF_TRIANGLE; // by default
-        chip_player[i].volume = 14*17; 
+        chip_player[p].cmd_index = 0;
+        oscillator[p].waveform = WF_TRIANGLE; // by default
+        chip_player[p].volume = 14*17; 
     }
-    chip_player[i].track_note = note + chip_player[i].octave*12;
-    chip_player[i].volumed = 0;
-    chip_player[i].inertia = 0;
-    chip_player[i].wait = 0;
-    chip_player[i].dutyd = 0;
-    chip_player[i].vibrato_depth = 0;
-    chip_player[i].vibrato_rate = 1;
-    chip_player[i].bend = 0;
-    oscillator[i].side = 8; // default to output both L/R
-    oscillator[i].duty = 0x8000; // default to square wave
+    chip_player[p].track_note = note + chip_player[p].octave*12;
+    chip_player[p].volumed = 0;
+    chip_player[p].inertia = 0;
+    chip_player[p].wait = 0;
+    chip_player[p].dutyd = 0;
+    chip_player[p].vibrato_depth = 0;
+    chip_player[p].vibrato_rate = 1;
+    chip_player[p].bend = 0;
+    chip_player[p].bendd = 0;
+    oscillator[p].side = 8; // default to output both L/R
+    oscillator[p].duty = 0x8000; // default to square wave
 }
 
-void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
+void chip_note(uint8_t p, uint8_t inst, uint8_t note, uint8_t track_volume)
 {
-    _chip_note(i, note);
-    chip_player[i].track_volume = track_volume;
-    chip_player[i].track_volumed = 0;
+    uint8_t old_instrument = load_instrument[p];
+    load_instrument[p] = inst;
+    _chip_note(p, note);
+    chip_player[p].track_volume = track_volume;
+    chip_player[p].track_volumed = 0;
+    load_instrument[p] = old_instrument;
 }
 
 static void track_run_command(uint8_t i, uint8_t cmd) 
@@ -494,7 +502,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             }
             break;
         case TRACK_INSTRUMENT:
-            chip_player[i].instrument = param;
+            load_instrument[i] = param;
             break;
         case TRACK_VOLUME: // v = volume
             chip_player[i].track_volume = param*17;

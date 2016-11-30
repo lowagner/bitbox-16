@@ -1923,9 +1923,12 @@ void object_run_commands(uint8_t i)
             break;
         case GO_NOISE:
         {
-            uint8_t p = rand()%4; // choose a chip player at random
-            chip_player[p].instrument = param; // set instrument
-            chip_note(p, rand()%16, 255); // play a random note with that player
+            chip_note(
+                rand()%4, // random player
+                param, // instrument
+                rand()%16, // random note
+                255 // full volume 
+            ); 
             break;
         }
         case GO_RANDOMIZE:

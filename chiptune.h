@@ -100,7 +100,7 @@ void chip_play_init(); // re-initialize current tune to start over.
 void chip_play_track_init(int track); // 
 
 // play a note of this instrument now - useful for FX !
-void chip_note(uint8_t ch, uint8_t note, uint8_t track_volume);
+void chip_note(uint8_t p, uint8_t inst, uint8_t note, uint8_t track_volume);
 
 // These are our possible waveforms. Any other value plays silence.
 enum 

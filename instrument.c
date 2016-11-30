@@ -1199,8 +1199,7 @@ void instrument_controls()
             instrument_note = (instrument_note + 1)%24;
             reset_player(verse_player);
             chip_player[verse_player].octave = instrument[instrument_i].octave;
-            chip_player[verse_player].instrument = instrument_i;
-            chip_note(verse_player, instrument_note, 240); 
+            chip_note(verse_player, instrument_i, instrument_note, 240); 
         }
         
         if (GAMEPAD_PRESS(0, B))
@@ -1211,8 +1210,7 @@ void instrument_controls()
                 instrument_note = 23;
             reset_player(verse_player);
             chip_player[verse_player].octave = instrument[instrument_i].octave;
-            chip_player[verse_player].instrument = instrument_i;
-            chip_note(verse_player, instrument_note, 240); 
+            chip_note(verse_player, instrument_i, instrument_note, 240); 
         }
     }
 
