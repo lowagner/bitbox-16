@@ -110,7 +110,7 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
     return i;
 }
 
-void update_object(uint8_t i)
+void update_object(int i)
 //int16_t x, int16_t y), object[index].x, object[index].y
 {
     if (object[i].draw_order_index < 255) // object was visible...
@@ -144,7 +144,7 @@ void update_object(uint8_t i)
     }
 }
 
-void update_object_image(uint8_t i)
+void update_object_image(int i)
 //int16_t x, int16_t y), object[index].x, object[index].y
 {
     if (object[i].draw_order_index < 255) // object was visible...
@@ -215,7 +215,7 @@ void remove_object_from_view(uint8_t i)
 
 void update_objects()
 {
-    uint8_t index = first_used_object_index;
+    int index = first_used_object_index;
     while (index < 255)
     {
         update_object(index);
@@ -407,7 +407,7 @@ void sprites_reset()
 
 void update_object_images()
 {
-    uint8_t index = first_used_object_index;
+    int index = first_used_object_index;
     while (index < 255)
     {
         update_object_image(index);

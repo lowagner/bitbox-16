@@ -886,14 +886,13 @@ static inline int test_inside_tile(int x, int y)
     uint32_t info = tile_info[tile_translator[tile]];
     if (!(info & 8))
         return 0; // TODO: check for warps
-    SideType side_up = (info >> (16 + 4*UP))&15;
-    SideType side_down = (info >> (16 + 4*DOWN)); // don't need &15 since it's at the end.
-    if (side_up == 0 || side_down == 0)
-        return 0;
-    if (side_up/2 == Damaging/2 || side_down/2 == Damaging/2)
-        return -1;
-    // TODO: check for other conditions?
-    return 1;
+    // check if blocked on each side:
+    if (((info >> 16)&15) &&
+        ((info >> 20)&15) &&
+        ((info >> 24)&15) &&
+        ((info >> 28)))
+        return 1;
+    return 0;
 }
 
 static inline int test_tile(int x, int y, int dir)
@@ -911,7 +910,7 @@ static inline int test_tile(int x, int y, int dir)
     return (info >> (16 + 4*dir))&15;
 }
 
-void object_run_commands(uint8_t i) 
+void object_run_commands(int i) 
 {
     // update position here, too
     object[i].properties |= IN_AIR; // assume you're flying until you're not...
@@ -1871,29 +1870,58 @@ void object_run_commands(uint8_t i)
         }
         case GO_SPAWN_SPRITE:
         {
-            uint8_t j;
+            uint8_t j = 255;
             float vx = object[i].vx, vy = object[i].vy;
+            int ty = object[i].y/16, tx = object[i].x/16;
             switch (object[i].sprite_frame/2)
             {
                 case RIGHT:
+                    if (16.0f*ty == object[i].y)
+                    {
+                        if (test_inside_tile(tx+1, ty))
+                            break;
+                    }
+                    else if (test_inside_tile(tx+1, ty) || test_inside_tile(tx+1, ty+1))
+                        break;
                     j = create_object(param, RIGHT*2, object[i].x+16, object[i].y, 1);
                     vx += (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     if (!0) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
                     break;
                 case UP:
+                    if (16.0f*tx == object[i].x)
+                    {
+                        if (test_inside_tile(tx, ty-1))
+                            break;
+                    }
+                    else if (test_inside_tile(tx, ty-1) || test_inside_tile(tx+1, ty-1))
+                        break;
                     j = create_object(param, UP*2, object[i].x, object[i].y-16, 1);
                     vy -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     if (!0) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER/2;
                     break;
                 case LEFT:
+                    if (16.0f*ty == object[i].y)
+                    {
+                        if (test_inside_tile(tx-1, ty))
+                            break;
+                    }
+                    else if (test_inside_tile(tx-1, ty) || test_inside_tile(tx-1, ty+1))
+                        break;
                     j = create_object(param, LEFT*2, object[i].x-16, object[i].y, 1);
                     vx -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     if (!0) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
                     break;
                 case DOWN:
+                    if (16.0f*tx == object[i].x)
+                    {
+                        if (test_inside_tile(tx, ty+1))
+                            break;
+                    }
+                    else if (test_inside_tile(tx, ty+1) || test_inside_tile(tx+1, ty+1))
+                        break;
                     j = create_object(param, DOWN*2, object[i].x, object[i].y+16, 1);
                     vy += (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     break;
