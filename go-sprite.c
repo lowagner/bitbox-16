@@ -4,6 +4,7 @@
 #include "chiptune.h"
 #include "sprites.h"
 #include "edit.h"
+#include "run.h"
 #include "name.h"
 #include "font.h"
 #include "io.h"
@@ -1966,6 +1967,10 @@ void object_run_commands(int i)
             *memory = ((*memory)&15) | (randomize(param)<<4);
             break;
         case GO_QUAKE:
+            if (param)
+                camera_shake += param + param*param;
+            else
+                camera_shake = 0;
             break;
         }
     }
