@@ -1,5 +1,9 @@
 16 roadmap
 
+instrument, track:
+    when looking at combined bit commands (vibrato, track note + wait),
+    underline the separated values in the help/info area.
+
 
 map:
     copy tiles when changing map dimensions
@@ -60,9 +64,12 @@ sprite drawing:
 anthem:
     transpose rows/columns, to be more in line with inst and verse editors
 
+
 G16 file format
 
 a bunch of curly brace patterns, with nested groups in square brackets
+comments can follow after a space from any valid specifier.
+MAYBE NIX the comments, at least for instrument/verse/anthem.  (see C16 format below.)
 
 {palette:OPTIONAL_NUMBER_COLORS_SPECIFIED
     0:v33 RGB, from 0 to v each
@@ -88,7 +95,7 @@ a bunch of curly brace patterns, with nested groups in square brackets
         6:<0    crescendo, values <0 to <f
         7:>3    decrescendo, values >1 to >g
         8:if    inertia, note slides, i0 to if
-        9:~f    vibrato, ~0 to ~f
+        9:~f    vibrato, ~0 to ~f.  2 bits for rate, 2 bits for amplitude
         a:/7    bend up, /0 to /7.  bend down: \ from \1 to \8
         b:B3    bitcrush, B0 to Bf
         c:D1    duty, D0 to Df
@@ -102,5 +109,41 @@ a bunch of curly brace patterns, with nested groups in square brackets
 } actually, everything after any valid sequence is a comment, until the newline.
 {verse format is p-t, where p is the player (0-3) and t is the track (0-f)
     [0-0:OPTIONAL_NUMBER_LINES_SPECIFIED
+        0:0g    break or wait until quarter note
+        1:O3    octave (O0 to O6), absolute octave (O=), wrap (/1 \1 or /2 \2) or up/down only (+1 -1 +2 -2)
+        2:I3    instrument, I0 to If
+        3:V3    volume, V0 to Vf
+        4:C3    note, C0 (C) to Cf (Eb next octave up)
+        5:W3    wait, W1 to Wg
+        6:N0    note+wait, N0 to Nf.  2 bits for relative note, 2 bits for wait
     ]
+}
+
+C16 chip format
+    layout instrument, verse, and anthem in ASCII format, easily searched by length, no comments allowed, no brackets or spaces or newlines.
+    make anthem last, allow for up to 64 in length.
+
+C16
+{i[
+   0:0g  # this comment is not allowed.  offset: 8 bytes, data at byte 13 and 14
+   1:S5  # offset 16 bytes, data at 21 and 22
+   ...
+   f:0g  # offset 128 bytes, data at 133, 134
+  ] # offset 136
+  [ # offset 140
+   0:0g # offset 144, data at bytes 149, 150
+   ...
+  ]
+  ...
+  [     # 16 instrument, last one ends a bit different
+   ...
+]i}
+{v[
+  ]
+  ...
+  [
+]v}
+{a:g
+   2222
+   ...
 }
