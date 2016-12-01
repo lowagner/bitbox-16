@@ -185,21 +185,11 @@ uint8_t randomize(uint8_t arg)
         case 0:
             return rand()%16;
         case 1:
-            return 1 + 14*(rand()%2);
+            return 1 + (rand()%8)*2;
         case 2:
-            return 1 + 7*(rand()%3);
+            return (rand()%8)*2;
         case 3:
-            switch (rand()%4)
-            {
-                case 0:
-                    return 0;
-                case 1:
-                    return 1;
-                case 2:
-                    return 8;
-                case 3:
-                    return 15;
-            }
+            return 1 + 7*(rand()%3);
         case 4:
             return rand()%8;
         case 5:
@@ -238,7 +228,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
                 chip_player[i].cmd_index = MAX_INSTRUMENT_LENGTH; // end instrument commmands
             break;
         case SIDE: // s = switch side (L/R)
-            oscillator[i].side = param; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R, 4 and higher fade
+            oscillator[i].side = param; // 0 = silent, 1 = left side, 8 = both sides, 15 = right side
             break;
         case VOLUME: // v = volume
             chip_player[i].volume = param*17;
@@ -832,7 +822,7 @@ static inline uint16_t gen_sample()
         // Mix it in the appropriate output channel
         switch (oscillator[i].side)
         {
-            case 0:
+            case 1:
                 acc[0] += add;
                 break;
             case 8:
