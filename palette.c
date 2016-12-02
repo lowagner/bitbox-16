@@ -8,6 +8,15 @@
 #include "string.h" //memcpy
 
 uint16_t palette[16] CCM_MEMORY; 
+uint32_t palette2[256] CCM_MEMORY;
+
+void update_palette2()
+{
+    uint32_t *p = palette2-1;
+    for (int i=0; i<16; ++i)
+    for (int j=0; j<16; ++j)
+        *++p = palette[j] | (palette[i]<<16);
+}
 
 void palette_reset()
 {

@@ -6,6 +6,8 @@
 #define SCREEN_W 320
 #define SCREEN_H 240
 
+extern uint8_t U8row[SCREEN_W+32];
+
 typedef enum {
     Passable=0,
     Normal=1,

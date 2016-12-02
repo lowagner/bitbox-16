@@ -27,6 +27,8 @@ void run_reset()
 
 void run_switch()
 {
+    update_palette2();
+
     camera_shake = 0;
     camera_index = 255;
     // hide any sprites in objects by setting z = 0
@@ -81,6 +83,15 @@ void run_line()
 {
     tiles_line();
     sprites_line();
+    uint16_t *U16 = (uint16_t *)(U8row+16) - 1;
+    uint32_t *dst = (uint32_t *)draw_buffer - 1;
+    const uint32_t *final_dst = dst + SCREEN_W/2;
+    while (dst < final_dst)
+    {
+        uint16_t u16 = *++U16;
+        *++dst = palette2[(u16&15)|(u16>>4)]; 
+    }
+
     if (vga_line >= 2 && vga_line < 10)
     {
         if (run_paused)
