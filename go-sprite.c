@@ -1928,7 +1928,11 @@ void object_run_commands(int i)
                     break;
             }
             if (j == 255)
-                break;
+            {
+                // reset, couldn't spawn a sprite.
+                object[i].cmd_index = 0;
+                return;
+            }
             object[j].vx = vx;
             object[j].vy = vy;
             object[j].properties |= PROJECTILE;
