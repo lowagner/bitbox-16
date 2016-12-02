@@ -35,6 +35,8 @@ void map_init()
 
 void map_switch()
 {
+    update_palette2();
+
     if (map_tile_x*16 < tile_map_x)
         tile_map_x = map_tile_x*16;
     else if (map_tile_x*16 >= tile_map_x + SCREEN_W)
@@ -276,6 +278,15 @@ void map_line()
     tiles_line();
     if (map_menu_not_edit || (vga_frame/32) % 4)
         sprites_line();
+
+    uint16_t *U16 = (uint16_t *)(U8row+16) - 1;
+    uint32_t *dst = (uint32_t *)draw_buffer - 1;
+    const uint32_t *final_dst = dst + SCREEN_W/2;
+    while (dst < final_dst)
+    {
+        uint16_t u16 = *++U16;
+        *++dst = palette2[(u16&15)|(u16>>4)]; 
+    }
    
     // draw the cursor, if on this line:
     int tile_j = tile_map_y + vga_line; 

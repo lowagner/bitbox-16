@@ -1,5 +1,6 @@
 #include "common.h"
 #include "bitbox.h"
+#include <string.h> // memcpy
 
 uint8_t tile_draw[16][16][8] CCM_MEMORY;
 uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;
@@ -121,223 +122,219 @@ uint32_t pack_warp_info(uint8_t translation, uint8_t timing, uint8_t density,
 
 void tiles_line()
 {
-    if (tile_map_x % 16)
+    static const void *even_location[16] = {
+        NULL,
+        &&even_tile_1,
+        &&even_tile_2,
+        &&even_tile_3,
+        &&even_tile_4,
+        &&even_tile_5,
+        &&even_tile_6,
+        &&even_tile_7,
+        &&even_tile_8,
+        &&even_tile_9,
+        &&even_tile_10,
+        &&even_tile_11,
+        &&even_tile_12,
+        &&even_tile_13,
+        &&even_tile_14,
+        &&even_tile_15
+    };
+    static const void *odd_location[16] = {
+        NULL,
+        &&odd_tile_1,
+        &&odd_tile_2,
+        &&odd_tile_3,
+        &&odd_tile_4,
+        &&odd_tile_5,
+        &&odd_tile_6,
+        &&odd_tile_7,
+        &&odd_tile_8,
+        &&odd_tile_9,
+        &&odd_tile_10,
+        &&odd_tile_11,
+        &&odd_tile_12,
+        &&odd_tile_13,
+        &&odd_tile_14,
+        &&odd_tile_15
+    };
+    int count = 10;
+    uint8_t *U8 = U8row + 15;
+    int tile_j = tile_map_y + vga_line;
+    int index = (tile_j/16)*(tile_map_width) + tile_map_x / 16;
+    int remainder = tile_map_x % 16;
+    tile_j %= 16;
+    int two_tile;
+    int trans;
+    uint8_t *draw;
+    int two_color;
+    uint8_t *two_p = &tile_map[index/2] - 1;
+    if (index % 2)
     {
-        uint16_t *dst = draw_buffer;
-        int tile_j = tile_map_y + vga_line;
-        int index = (tile_j/16)*(tile_map_width) + tile_map_x / 16;
-        tile_j %= 16;
-        uint8_t *tile = &tile_map[index/2];
-        if (index % 2)
+        two_tile = *++two_p;
+        if (remainder)
         {
-            // draw the first tile (it's somewhat off-screen)
-            uint8_t trans = tile_translator[((*tile)>>4)]; // first one is odd
-                
-            uint8_t *tile_color = &tile_draw[trans][tile_j][(tile_map_x%16)/2] - 1;
-            if (tile_map_x % 2)
-            {
-                ++tile_color;
-                for (int l=(tile_map_x%16)/2; l<7; ++l)
-                {
-                    *dst++ = palette[(*tile_color)>>4];
-                    *dst++ = palette[(*(++tile_color))&15];
-                }
-                *dst++ = palette[(*tile_color)>>4];
-            }
-            else
-            {
-                for (int l=(tile_map_x%16)/2; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
-
-            // draw 19 un-broken tiles (tile 2 to tile 21)
-            for (int k=0; k<19/2; ++k)
-            {
-                // translate the tile into what tile it should be drawn as:
-                // first one is even (not odd)
-                trans = tile_translator[(*(++tile))&15];
-                tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-
-                // second one is odd
-                trans = tile_translator[((*tile)>>4)];
-                tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
-            // 21st tile is even, but still unbroken
-            trans = tile_translator[(*(++tile))&15];
-            tile_color = &tile_draw[trans][tile_j][0] - 1;
-            for (int l=0; l<8; ++l)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                *dst++ = palette[(*tile_color)>>4];
-            }
-
-            // draw 22'nd broken tile is odd
-            trans = tile_translator[((*tile)>>4)&15];
-            tile_color = &tile_draw[trans][tile_j][0]-1; 
-            if (tile_map_x % 2)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                for (int l=0; l<(tile_map_x%16)/2; ++l)
-                {
-                    *dst++ = palette[(*tile_color)>>4];
-                    *dst++ = palette[(*(++tile_color))&15];
-                }
-            }
-            else
-            {
-                for (int l=0; l<(tile_map_x%16)/2; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
+            count = 11;
+            trans = tile_translator[two_tile>>4];
+            draw = &tile_draw[trans][tile_j][remainder/2];
+            two_color = *draw;
+            goto *even_location[remainder];
         }
-        else 
+        for (; count>0; --count)
         {
-            // draw the first tile (it's somewhat off-screen)
-            uint8_t trans = tile_translator[(*tile)&15]; // first one is even
-            uint8_t *tile_color = &tile_draw[trans][tile_j][(tile_map_x%16)/2] - 1;
-            if (tile_map_x % 2)
-            {
-                ++tile_color;
-                for (int l=(tile_map_x%16)/2; l<7; ++l)
-                {
-                    *dst++ = palette[(*tile_color)>>4];
-                    *dst++ = palette[(*(++tile_color))&15];
-                }
-                *dst++ = palette[(*tile_color)>>4];
-            }
-            else
-            {
-                for (int l=(tile_map_x%16)/2; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
-
-            // draw 19 un-broken tiles (tile 2 to tile 21)
-            for (int k=0; k<19/2; ++k)
-            {
-                // translate the tile into what tile it should be drawn as:
-                // first one is odd
-                trans = tile_translator[((*tile)>>4)];
-                tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-                
-                // second one is even
-                trans = tile_translator[(*(++tile))&15];
-                tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
-            // 21st tile is odd, but still unbroken
-            trans = tile_translator[((*tile)>>4)];
-            tile_color = &tile_draw[trans][tile_j][0] - 1;
-            for (int l=0; l<8; ++l)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                *dst++ = palette[(*tile_color)>>4];
-            }
-
-            // draw 22'nd broken tile is even
-            trans = tile_translator[(*(++tile))&15];
-            tile_color = &tile_draw[trans][tile_j][0]-1; 
-            if (tile_map_x % 2)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                for (int l=0; l<(tile_map_x%16)/2; ++l)
-                {
-                    *dst++ = palette[(*tile_color)>>4];
-                    *dst++ = palette[(*(++tile_color))&15];
-                }
-            }
-            else
-            {
-                for (int l=0; l<(tile_map_x%16)/2; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
+            trans = tile_translator[two_tile>>4];
+            draw = &tile_draw[trans][tile_j][0];
+            two_color = *draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+           
+            two_tile = *++two_p;
+            trans = tile_translator[two_tile&15];
+            draw = &tile_draw[trans][tile_j][0];
+            two_color = *draw;
+            *++U8 = two_color&15;
+            odd_tile_1:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            odd_tile_2:
+            *++U8 = two_color&15;
+            odd_tile_3:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            odd_tile_4:
+            *++U8 = two_color&15;
+            odd_tile_5:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            odd_tile_6:
+            *++U8 = two_color&15;
+            odd_tile_7:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            odd_tile_8:
+            *++U8 = two_color&15;
+            odd_tile_9:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            odd_tile_10:
+            *++U8 = two_color&15;
+            odd_tile_11:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            odd_tile_12:
+            *++U8 = two_color&15;
+            odd_tile_13:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            odd_tile_14:
+            *++U8 = two_color&15;
+            odd_tile_15:
+            *++U8 = two_color>>4;
         }
     }
-    else // tile_map_x puts a tile exactly on the edge of the screen
+    else
     {
-        uint16_t *dst = draw_buffer;
-        int tile_j = tile_map_y + vga_line;
-        int index = (tile_j/16)*(tile_map_width) + tile_map_x / 16;
-        tile_j %= 16;
-        uint8_t *tile = &tile_map[index/2]-1;
-        if (index % 2)
+        if (remainder)
         {
-            ++tile;
-            for (int k=0; k<10; ++k)
-            {
-                // translate the tile into what tile it should be drawn as:
-                uint8_t trans = tile_translator[((*tile)>>4)];
-
-                uint8_t *tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-                    
-                trans = tile_translator[(*(++tile))&15];
-                tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
+            count = 11;
+            two_tile = *++two_p;
+            trans = tile_translator[two_tile&15];
+            draw = &tile_draw[trans][tile_j][remainder/2];
+            two_color = *draw;
+            goto *odd_location[remainder];
         }
-        else // not odd
+        for (; count>0; --count)
         {
-            for (int k=0; k<10; ++k)
-            {
-                // translate the tile into what tile it should be drawn as:
-                uint8_t trans = tile_translator[(*(++tile))&15];
-
-                uint8_t *tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-                
-                // translate the tile into what tile it should be drawn as:
-                trans = tile_translator[((*tile)>>4)];
-
-                tile_color = &tile_draw[trans][tile_j][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
-
+            two_tile = *++two_p;
+            trans = tile_translator[two_tile&15];
+            draw = &tile_draw[trans][tile_j][0];
+            two_color = *draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            *++U8 = two_color&15;
+            *++U8 = two_color>>4;
+           
+            trans = tile_translator[two_tile>>4];
+            draw = &tile_draw[trans][tile_j][0];
+            two_color = *draw;
+            *++U8 = two_color&15;
+            even_tile_1:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            even_tile_2:
+            *++U8 = two_color&15;
+            even_tile_3:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            even_tile_4:
+            *++U8 = two_color&15;
+            even_tile_5:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            even_tile_6:
+            *++U8 = two_color&15;
+            even_tile_7:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            even_tile_8:
+            *++U8 = two_color&15;
+            even_tile_9:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            even_tile_10:
+            *++U8 = two_color&15;
+            even_tile_11:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            even_tile_12:
+            *++U8 = two_color&15;
+            even_tile_13:
+            *++U8 = two_color>>4;
+            two_color = *++draw;
+            even_tile_14:
+            *++U8 = two_color&15;
+            even_tile_15:
+            *++U8 = two_color>>4;
         }
     }
 }

@@ -255,92 +255,22 @@ void sprites_line()
         if (!o->z)
             continue; // hidden object
         int sprite_draw_row = vga16 - o->iy;
-        if (o->ix < 0) // object left of screen but still visible
+        uint8_t *U8 = U8row + 15 + o->ix;
+        uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
+        int invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
+        for (int pxl=0; pxl<8; ++pxl)
         {
-            uint16_t *dst = draw_buffer;
-            uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][-o->ix/2];
-            uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
-            if ((-o->ix)%2)
-            {
-                // if -o->ix == 15
-                // this executes no matter what:
-                uint8_t color = ((*src)>>4); //&15; //unnecessary!
-                if (color != invisible_color)
-                    *dst = palette[color]; // &65535; // unnecessary...
-                ++dst;
-                // if (o->ix == -13)
-                // we run from 7 to <8, which is just once:
-                for (int pxl=(-o->ix+1)/2; pxl<16/2; ++pxl) // 
-                {
-                    color = ((*(++src)))&15;
-                    if (color != invisible_color)
-                        *dst = palette[color]; // &65535; // unnecessary...
-                    ++dst; 
-                    color = ((*src)>>4); //&15; //unnecessary!
-                    if (color != invisible_color)
-                        *dst = palette[color]; // &65535; // unnecessary...
-                    ++dst; 
-                }
-            }
-            else // not odd
-            {
-                --src;
-                for (int pxl=-o->ix/2; pxl<16/2; ++pxl)
-                {
-                    uint8_t color = (*(++src))&15;
-                    if (color != invisible_color)
-                        *dst = palette[color]; // &65535; // unnecessary...
-                    ++dst; 
-                    color = ((*src)>>4); //&15; //unnecessary!
-                    if (color != invisible_color)
-                        *dst = palette[color]; // &65535; // unnecessary...
-                    ++dst; 
-                }
-            }
-        }
-        else if (o->ix > SCREEN_W-16)
-        {
-            // object right of screen but still visible
-            int num_pxls = 1 + (SCREEN_W-1) - o->ix;
-            uint16_t *dst = draw_buffer + o->ix;
-            uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
-            uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
-            uint8_t color;
-            for (int pxl=0; pxl<num_pxls/2; ++pxl)
-            {
-                color = (*(++src))&15;
-                if (color != invisible_color)
-                    *dst = palette[color]; // &65535; // unnecessary...
-                ++dst; 
-                color = ((*src)>>4); //&15; //unnecessary!
-                if (color != invisible_color)
-                    *dst = palette[color]; // &65535; // unnecessary...
-                ++dst; 
-            }
-            if (num_pxls%2)
-            {
-                color = (*(++src))&15;
-                if (color != invisible_color)
-                    *dst = palette[color]; // &65535; // unnecessary...
-            }
-        }
-        else
-        {
-            // object is somewhere in the middle of the screen
-            uint16_t *dst = draw_buffer + o->ix;
-            uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
-            uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
-            for (int pxl=0; pxl<8; ++pxl)
-            {
-                uint8_t color = (*(++src))&15;
-                if (color != invisible_color)
-                    *dst = palette[color]; // &65535; // unnecessary...
-                ++dst; 
-                color = ((*src)>>4); //&15; //unnecessary!
-                if (color != invisible_color)
-                    *dst = palette[color]; // &65535; // unnecessary...
-                ++dst; 
-            }
+            int two_color = *(++src);
+            int color = two_color&15;
+            if (color != invisible_color)
+                *++U8 = color; // &65535; // unnecessary...
+            else
+                ++U8; 
+            color = two_color>>4;
+            if (color != invisible_color)
+                *++U8 = color; // &65535; // unnecessary...
+            else
+                ++U8; 
         }
     }
 }

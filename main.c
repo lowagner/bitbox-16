@@ -26,6 +26,8 @@ uint8_t gamepad_press_wait CCM_MEMORY;
 uint8_t game_message[32] CCM_MEMORY;
 uint8_t parade_offset CCM_MEMORY;
 
+uint8_t U8row[SCREEN_W+32] CCM_MEMORY;
+
 #define BSOD 140
 
 void game_init()
