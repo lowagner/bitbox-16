@@ -884,31 +884,22 @@ static inline int test_inside_tile(int x, int y)
         tile = tile_map[index/2] >> 4;
     else
         tile = tile_map[index/2] & 15;
-    uint32_t info = tile_info[tile_translator[tile]];
-    if (!(info & 8))
-        return 0; // TODO: check for warps
-    // check if blocked on each side:
-    if (((info >> 16)&15) &&
-        ((info >> 20)&15) &&
-        ((info >> 24)&15) &&
-        ((info >> 28)))
-        return 1;
-    return 0;
+    return (tile_info[tile_translator[tile]].material == 15); 
 }
 
 static inline int test_tile(int x, int y, int dir)
 {
     // return 0 for no hit, 1 for solid, -1 for damage
     int index = y*tile_map_width + x;
-    uint8_t tile;
+    int tile;
     if (index % 2)
         tile = tile_map[index/2] >> 4;
     else
         tile = tile_map[index/2] & 15;
-    uint32_t info = tile_info[tile_translator[tile]];
-    if (!(info & 8))
+    tile = tile_translator[tile];
+    if (!(tile_info[tile].material & 8))
         return 0; // TODO: check for warps
-    return (info >> (16 + 4*dir))&15;
+    return tile_info[tile].side[dir];
 }
 
 void object_run_commands(int i) 

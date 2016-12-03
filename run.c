@@ -34,6 +34,13 @@ void run_switch()
     // hide any sprites in objects by setting z = 0
     tile_map_x = 16*tile_map_width;
     tile_map_y = 16*tile_map_height;
+
+    for (int i=0; i<16; ++i)
+    {
+        if ((tile_info[i].material & 8) && tile_info[i].side[0] && tile_info[i].side[1] && tile_info[i].side[2] && tile_info[i].side[3])
+            tile_info[i].material = 15;
+    }
+
     for (int i=0; i<MAX_OBJECTS; ++i)
     {
         int y = object[i].y/16;

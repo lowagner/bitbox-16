@@ -168,6 +168,34 @@ void save_controls()
         switch (save_only)
         {
         case 0: // save all
+            error = (save_or_load == 1) ? io_save_instrument(16) : io_load_instrument(16);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "instr. ");
+                offset = 7;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_verse(16) : io_load_verse(16);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "verse ");
+                offset = 6;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_anthem() : io_load_anthem();
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "anthem ");
+                offset = 7;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_palette() : io_load_palette();
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "palette ");
+                offset = 8;
+                break;
+            }
             error = (save_or_load == 1) ? io_save_tile(16) : io_load_tile(16);
             if (error != NoError)
             {
@@ -182,46 +210,18 @@ void save_controls()
                 offset = 8;
                 break;
             }
-            error = (save_or_load == 1) ? io_save_map() : io_load_map();
-            if (error != NoError)
-            {
-                strcpy((char *)game_message, "map ");
-                offset = 4;
-                break;
-            }
-            error = (save_or_load == 1) ? io_save_palette() : io_load_palette();
-            if (error != NoError)
-            {
-                strcpy((char *)game_message, "palette ");
-                offset = 8;
-                break;
-            }
-            error = (save_or_load == 1) ? io_save_anthem() : io_load_anthem();
-            if (error != NoError)
-            {
-                strcpy((char *)game_message, "anthem ");
-                offset = 7;
-                break;
-            }
-            error = (save_or_load == 1) ? io_save_verse(16) : io_load_verse(16);
-            if (error != NoError)
-            {
-                strcpy((char *)game_message, "verse ");
-                offset = 6;
-                break;
-            }
-            error = (save_or_load == 1) ? io_save_instrument(16) : io_load_instrument(16);
-            if (error != NoError)
-            {
-                strcpy((char *)game_message, "instr. ");
-                offset = 7;
-                break;
-            }
             error = (save_or_load == 1) ? io_save_go(16) : io_load_go(16);
             if (error != NoError)
             {
                 strcpy((char *)game_message, "pattn. ");
                 offset = 7;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_map() : io_load_map();
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "map ");
+                offset = 4;
                 break;
             }
             break;

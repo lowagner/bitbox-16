@@ -125,9 +125,9 @@ void map_line()
             else if (vga_line >= MAP_HEADER - 4 - 10 - 8) // 14+8 =  22
             {
                 uint8_t msg[] = { 
-                    'X', hex[map_tile_x/100], '0' + (map_tile_x/10)%10, '0' + (map_tile_x%10), 
+                    'X', hex[map_tile_x/256], hex[(map_tile_x/16)%16], hex[map_tile_x%16],
                     ' ', ' ',
-                    'Y', hex[map_tile_y/100], '0' + (map_tile_y/10)%10, '0' + (map_tile_y%10), 
+                    'Y', hex[map_tile_y/16], hex[map_tile_y%16], 
                 0 };
                 font_render_line_doubled(msg, 16, vga_line - (MAP_HEADER - 4 - 10 - 8), RGB(100,100,100), 0);
             }
@@ -477,7 +477,7 @@ void map_controls()
             game_message[0] = 0;
             if (map_Y_not_X)
             {
-                if (((tile_map_height+1)*(tile_map_width)+1)/2 <= TILE_MAP_MEMORY)
+                if (((tile_map_height+1)*(tile_map_width)+1)/2 <= TILE_MAP_MEMORY && tile_map_height < 256)
                 {
                     ++tile_map_height;
                     map_modified = 1;

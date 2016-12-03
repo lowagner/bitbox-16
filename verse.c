@@ -172,7 +172,7 @@ void verse_render_command(int j, int y)
             }
             else if (param == 7)
             {
-                cmd = '=';
+                cmd = 'O';
                 param = '=';
             }
             else if (param < 12)

@@ -55,14 +55,12 @@ void edit2_line()
         }
         else if (line == 13)
         {
-            if (edit_sprite_not_tile || tile_info[edit_tile]&8)
+            if (edit_sprite_not_tile || tile_info[edit_tile].material&8)
                 memset(&draw_buffer[16+7*9], 229, 9*2*5);
-            else if (tile_info[edit_tile]&(1<<13)) // a warp or a load level
+            else if (tile_info[edit_tile].vuln_warp_jump) // a warp or a load level
                 memset(&draw_buffer[16+6*9+9*10*(edit2_cursor-4)], 229, 9*2*3);
             else // current
-            {
-                memset(&draw_buffer[16+11*9+9*9*(edit2_cursor-4)], 229, 9*2*2);
-            }
+                memset(&draw_buffer[32+11*9+9*8*(edit2_cursor-4)], 229, 9*2);
         }
     }
     else
@@ -165,8 +163,8 @@ void edit2_line()
         else
         {
             uint8_t msg[32];
-            uint8_t param = tile_info[edit_tile]&15;
-            if (tile_info[edit_tile]&8)
+            uint8_t param = tile_info[edit_tile].material&15;
+            if (tile_info[edit_tile].material&8)
                 strcpy((char *)msg, "solid ");
             else if (param)
                 strcpy((char *)msg, "water ");
@@ -174,42 +172,44 @@ void edit2_line()
                 strcpy((char *)msg, "  air ");
             msg[6] = hex[param];
             strcpy((char *)msg+7, " trans ");
-            msg[14] = hex[(tile_info[edit_tile]>>4)&15];
+            msg[14] = hex[(tile_info[edit_tile].translation)&15];
             strcpy((char *)msg+15, " time. ");
-            param = (tile_info[edit_tile]>>8)&15;
+            param = (tile_info[edit_tile].timing)&15;
             if (param)
                 msg[22] = hex[param];
             else
                 msg[22] = hex[16];
-            if (tile_info[edit_tile]&8) // solid
+            if (tile_info[edit_tile].material&8) // solid
             {
                 strcpy((char *)msg+23, " vulnr ");
-                msg[30] = hex[(tile_info[edit_tile]>>12)&15];
+                msg[30] = hex[(tile_info[edit_tile].vuln_warp_jump)&15];
                 msg[31] = 0;
             }
-            else if (tile_info[edit_tile]&(1<<13)) // warp
+            else switch (tile_info[edit_tile].vuln_warp_jump)
             {
-                if (tile_info[edit_tile]&(1<<12)) // warp to another level
+                case 0: // 
+                    // does the water/air tile damage you
+                    if (tile_info[edit_tile].damage_angle&15) 
+                        strcpy((char *)msg+23, " damge:Y");
+                    else
+                        strcpy((char *)msg+23, " damge:N"); 
+                    break;
+                case 1:
+                case 2:
+                case 3:
                     strcpy((char *)msg+23, " gotolvl");
-                else // warp within level
+                    break;
+                default: // warp within level
                     strcpy((char *)msg+23, " gotopos"); 
-            }
-            else 
-            {
-                // does the water/air tile damage you
-                if (tile_info[edit_tile]&(1<<12)) 
-                    strcpy((char *)msg+23, " damge:Y");
-                else
-                    strcpy((char *)msg+23, " damge:N"); 
             }
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
         }
         break;
         case 13:
-        if (edit_sprite_not_tile || tile_info[edit_tile]&8) // solid block or sprite
+        if (edit_sprite_not_tile || tile_info[edit_tile].material&8) // solid block or sprite
         {
             uint32_t info = edit_sprite_not_tile ? sprite_info[edit_sprite/8][edit_sprite%8] :
-                tile_info[edit_tile];
+                tile_info[edit_tile].value;
             uint8_t msg[32];
             if (edit2_cursor >= 4)
                 edit2_side = edit2_cursor - 4;
@@ -281,99 +281,67 @@ void edit2_line()
             }
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
         }
-        else if (tile_info[edit_tile]&(1<<13)) // warp
+        else 
         {
-            if (tile_info[edit_tile]&(1<<12)) // external warp
+            uint8_t msg[32];
+            switch (tile_info[edit_tile].vuln_warp_jump)
             {
-                uint8_t msg[32];
-                strcpy((char *)msg, "digits ");
-                int digits = 0, number = 0;
-                if (tile_info[edit_tile]&(1<<17)) // 3 digits
+                case 0:
                 {
-                    digits = 3;
-                    number = (tile_info[edit_tile]>>18)&1023;
-                    if (number > 999)
-                        number = 999;
+                    if (tile_info[edit_tile].material&7)
+                        strcpy((char *)msg, "flow angle ");
+                    else
+                        strcpy((char *)msg, "wind angle ");
+                    msg[11] = hex[tile_info[edit_tile].damage_angle>>4];
+                    strcpy((char *)msg+12, " power ");
+                    msg[19] = hex[tile_info[edit_tile].random_strength>>4];
+                    strcpy((char *)msg+20, " randm ");
+                    msg[27] = hex[tile_info[edit_tile].random_strength&15];
+                    msg[28] = 0;
+                    font_render_line_doubled(msg, 32, internal_line, 65535, BG_COLOR*257);
+                    break;
                 }
-                else if (tile_info[edit_tile]&(1<<20)) // 2 digits
+                case 1:
+                case 2:
+                case 3:
                 {
-                    digits = 2;
-                    number = (tile_info[edit_tile]>>21)&127;
-                    if (number > 99)
-                        number = 99;
-                }
-                else if (tile_info[edit_tile]&(1<<23))
-                {
-                    digits = 1;
-                    number = (tile_info[edit_tile]>>24)&15;
-                    if (number > 9)
-                        number = 9;
-                }
-                msg[7] = '0'+digits;
-                if (!digits)
-                {
-                    msg[8] = 0;
-                }
-                else
-                {
+                    int digits = tile_info[edit_tile].vuln_warp_jump;
+                    strcpy((char *)msg, "digits ");
+                    msg[7] = '0'+digits;
                     strcpy((char *)msg+8, " number ");
                     int index = 16+digits;
                     msg[index] = 0;
+                    int number = tile_info[edit_tile].warp;
                     while (digits-- > 0)
                     {
                         msg[--index] = '0'+number%10;
                         number /= 10;
                     }
+                    font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+                    goto render_direction;
                 }
-                font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
-                strcpy((char *)msg, "direxn ");
-                msg[7] = hex[tile_info[edit_tile]>>28];
-                msg[8] = 0;
-                font_render_line_doubled(msg, 16+20*9, internal_line, 65535, BG_COLOR*257);
-            }
-            else
-            {
-                // internal warp
-                int y = (tile_info[edit_tile]>>14)&16383;
-                uint8_t msg[32];
-                int x = y % tile_map_width;
-                y /= tile_map_width;
-                strcpy((char *)msg, "pos X ");
-                msg[8] = '0' + x%10;
-                msg[7] = '0' + (x/10)%10;
-                msg[6] = '0' + ((x/10)/10)%10;
-                strcpy((char *)msg+9, " pos Y ");
-                msg[18] = '0' + y%10;
-                msg[17] = '0' + (y/10)%10;
-                msg[16] = '0' + ((y/10)/10)%10;
-                msg[19] = 0;
-                font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
-                strcpy((char *)msg, "direxn ");
-                msg[7] = hex[tile_info[edit_tile]>>28];
-                msg[8] = 0;
-                font_render_line_doubled(msg, 16+20*9, internal_line, 65535, BG_COLOR*257);
-            }
-        } 
-        else // current
-        {
-            uint8_t msg[32];
-            uint32_t current = (tile_info[edit_tile]>>14);
-            if (tile_info[edit_tile]&7)
-                strcpy((char *)msg, "flow angle ");
-            else
-                strcpy((char *)msg, "wind angle ");
-            msg[11] = direction[(current&63)/16];
-            msg[12] = hex[(current&63)%16];
-            strcpy((char *)msg+13, " power ");
-            current >>= 6;
-            msg[20] = '0' + (current&63)/8;
-            msg[21] = '0' + (current&63)%8;
-            strcpy((char *)msg+22, " randm ");
-            current >>= 6;
-            msg[29] = '0' + (current&63)/8;
-            msg[30] = '0' + (current&63)%8;
-            msg[31] = 0;
-            font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+                default:
+                {
+                    // internal warp
+                    strcpy((char *)msg, "pos X ");
+                    int x = tile_info[edit_tile].jx;
+                    msg[8] = hex[x%16];
+                    msg[7] = hex[(x/16)%16];
+                    msg[6] = hex[(x/256)%16];
+                    strcpy((char *)msg+9, " pos Y ");
+                    int y = tile_info[edit_tile].jy;
+                    msg[17] = hex[y%16];
+                    msg[16] = hex[(y/16)%16];
+                    msg[18] = 0;
+                    font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+                  render_direction:
+                    strcpy((char *)msg, "direxn ");
+                    msg[7] = hex[tile_info[edit_tile].press_direction];
+                    msg[8] = 0;
+                    font_render_line_doubled(msg, 16+20*9, internal_line, 65535, BG_COLOR*257);
+                    break;
+                }
+            } 
         }
         break;
         case (NUMBER_LINES-2):
@@ -459,7 +427,7 @@ void edit2_controls()
     {
         if (edit2_cursor)
             --edit2_cursor;
-        else if (edit_sprite_not_tile || tile_info[edit_tile]&8)
+        else if (edit_sprite_not_tile || tile_info[edit_tile].material&8)
             edit2_cursor = 7;
         else
             edit2_cursor = 6;
@@ -468,7 +436,7 @@ void edit2_controls()
     if (GAMEPAD_PRESS(0, right))
     {
         ++edit2_cursor;
-        if (edit_sprite_not_tile || tile_info[edit_tile]&8)
+        if (edit_sprite_not_tile || tile_info[edit_tile].material&8)
         {
             if (edit2_cursor > 7)
                 edit2_cursor = 0;
@@ -503,107 +471,120 @@ void edit2_controls()
                 sprite_info[edit_sprite/8][edit_sprite%8] |= param;
             }
         }
-        else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
+        else switch (edit2_cursor)
         {
-            uint32_t param = tile_info[edit_tile]&(15<<(edit2_cursor*4));
-            tile_info[edit_tile] &= ~(15<<(edit2_cursor*4));
-            param = (param+(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
-            tile_info[edit_tile] |= param;
-        }
-        else if (edit2_cursor == 3)
-        {
-            uint32_t param = tile_info[edit_tile]&(3<<12);
-            tile_info[edit_tile] &= ~(3<<12);
-            param = (param+(1<<12))&(3<<12);
-            tile_info[edit_tile] |= param;
-        }
-        else if (tile_info[edit_tile]&(1<<13)) // warp
-        {
-            if (edit2_cursor == 6)
-            {
-                // adjust directional warp
-                uint32_t param = tile_info[edit_tile]&(15<<28);
-                tile_info[edit_tile] &= ~(15<<28);
-                param = (param+(1<<28))&(15<<28);
-                tile_info[edit_tile] |= param; 
-            }
-            else if (tile_info[edit_tile]&(1<<12)) // level warp
-            {
-                int digits = 0;
-                int number = 0, max_number = 0;
-                if (tile_info[edit_tile]&(1<<17)) // 3 digits
+            case 0: // material
+                if (++tile_info[edit_tile].material > 15)
+                    tile_info[edit_tile].material = 0;
+                break;
+            case 1: // translation
+                if (++tile_info[edit_tile].translation > 15)
+                    tile_info[edit_tile].translation = 0;
+                break;
+            case 2: // timing
+                if (++tile_info[edit_tile].timing > 15)
+                    tile_info[edit_tile].timing = 0;
+                break;
+            case 3: // damage or warp or jump
+                if (tile_info[edit_tile].material&8)
                 {
-                    digits = 3;
-                    number = (tile_info[edit_tile]>>18)&1023;
-                    if (number > 999)
-                        number = 999;
-                    max_number = 999;
+                    // adjusting vulnerability
+                    if (++tile_info[edit_tile].vuln_warp_jump > 15)
+                        tile_info[edit_tile].vuln_warp_jump = 0;
                 }
-                else if (tile_info[edit_tile]&(1<<20)) // 2 digits
+                else if (tile_info[edit_tile].vuln_warp_jump)
                 {
-                    digits = 2;
-                    number = (tile_info[edit_tile]>>21)&127;
-                    if (number > 99)
-                        number = 99;
-                    max_number = 99;
+                    if (tile_info[edit_tile].vuln_warp_jump < 4)
+                        tile_info[edit_tile].vuln_warp_jump = 4;
+                    else // set back to no damage
+                    {
+                        tile_info[edit_tile].vuln_warp_jump = 0;
+                        tile_info[edit_tile].damage_angle = (tile_info[edit_tile].damage_angle&240);
+                    }
                 }
-                else if (tile_info[edit_tile]&(1<<23))
+                else 
                 {
-                    digits = 1;
-                    number = (tile_info[edit_tile]>>24)&15;
-                    if (number > 9)
-                        number = 9;
-                    max_number = 9;
+                    if (tile_info[edit_tile].damage_angle&15) // damage for a flow sprite
+                        tile_info[edit_tile].vuln_warp_jump = 1;
+                    else // add damage
+                        tile_info[edit_tile].damage_angle = (tile_info[edit_tile].damage_angle&240) | 1;
                 }
-                if (edit2_cursor == 4) // edit digits
+                break;
+            case 4:
+                if (tile_info[edit_tile].material&8)
                 {
-                    if (++digits == 4)
-                        digits = 0;
+                    if (++tile_info[edit_tile].side[0] > 15)
+                        tile_info[edit_tile].side[0] = 0;
                 }
-                else
+                else switch (tile_info[edit_tile].vuln_warp_jump)
                 {
-                    if (++number > max_number)
-                        number = 0;
-                }
-                tile_info[edit_tile] &= ~(16383<<14);
-                if (digits)
-                switch (digits)
-                {
-                    case 1:
-                        tile_info[edit_tile] |= (1<<23)|(number<<24);
+                    case 0: // fluid, angle of flow
+                        tile_info[edit_tile].damage_angle += 16;
                         break;
-                    case 2:
-                        tile_info[edit_tile] |= (1<<20)|(number<<21);
+                    case 1: // warp, one digit 
+                        tile_info[edit_tile].vuln_warp_jump = 2;
                         break;
-                    case 3:
-                        tile_info[edit_tile] |= (1<<17)|(number<<18);
+                    case 2: // warp, two digits
+                        tile_info[edit_tile].vuln_warp_jump = 3;
+                        break;
+                    case 3: // warp, three digits
+                        tile_info[edit_tile].vuln_warp_jump = 1;
+                        break;
+                    default: // jump, modify x position
+                        if (++tile_info[edit_tile].jx >= tile_map_width)
+                            tile_info[edit_tile].jx = 0;
                         break;
                 }
-            }
-            else
-            {
-                int16_t pos = (tile_info[edit_tile]>>14) & (16383);
-                if (edit2_cursor == 4) // internal warp, x coordinate
+                break;
+            case 5:
+                if (tile_info[edit_tile].material&8)
                 {
-                    if (++pos % tile_map_width == 0)
-                        pos -= tile_map_width;
+                    if (++tile_info[edit_tile].side[1] > 15)
+                        tile_info[edit_tile].side[1] = 0;
                 }
-                else // internal warp, y coordinate
+                else switch (tile_info[edit_tile].vuln_warp_jump)
                 {
-                    pos += tile_map_width;
-                    if (pos >= tile_map_width*tile_map_height)
-                        pos %= tile_map_width;
+                    case 0: // fluid, strength of flow
+                        tile_info[edit_tile].random_strength += 16;
+                        break;
+                    case 1: // warp, one digit 
+                        tile_info[edit_tile].warp = (tile_info[edit_tile].warp+1)%10;
+                        break;
+                    case 2: // warp, two digits
+                        tile_info[edit_tile].warp = (tile_info[edit_tile].warp+1)%100;
+                        break;
+                    case 3: // warp, three digits
+                        tile_info[edit_tile].warp = (tile_info[edit_tile].warp+1)%1000;
+                        break;
+                    default: // jump, modify y position
+                        if (++tile_info[edit_tile].jy >= tile_map_height)
+                            tile_info[edit_tile].jy = 0;
+                        break;
                 }
-                tile_info[edit_tile] &= ~(16383<<14);
-                tile_info[edit_tile] |= (pos<<14);
-            }
-        }
-        else // current
-        {
-            uint32_t param = tile_info[edit_tile]&(63<<(edit2_cursor*6-10));
-            tile_info[edit_tile] &= ~(63<<(edit2_cursor*6-10));
-            param = (param+(1<<(edit2_cursor*6-10)))&(63<<(edit2_cursor*6-10));
-            tile_info[edit_tile] |= param;
+                break;
+            case 6:
+                if (tile_info[edit_tile].material&8)
+                {
+                    if (++tile_info[edit_tile].side[2] > 15)
+                        tile_info[edit_tile].side[2] = 0;
+                }
+                else if (tile_info[edit_tile].vuln_warp_jump)
+                {
+                    if (++tile_info[edit_tile].press_direction > 15)
+                        tile_info[edit_tile].press_direction = 0;
+                }
+                else // adjusting random
+                {
+                    tile_info[edit_tile].random_strength = (tile_info[edit_tile].random_strength&240) | ((tile_info[edit_tile].random_strength+1)&15);
+                }
+                break;
+            case 7:
+                if (tile_info[edit_tile].material&8)
+                {
+                    if (++tile_info[edit_tile].side[3] > 15)
+                        tile_info[edit_tile].side[3] = 0;
+                }
+                break;
         }
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
         return;
@@ -634,109 +615,120 @@ void edit2_controls()
                 sprite_info[edit_sprite/8][edit_sprite%8] |= param;
             }
         }
-        else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
+        else switch (edit2_cursor)
         {
-            uint32_t param = tile_info[edit_tile]&(15<<(edit2_cursor*4));
-            tile_info[edit_tile] &= ~(15<<(edit2_cursor*4));
-            param = (param-(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
-            tile_info[edit_tile] |= param;
-        }
-        else if (edit2_cursor == 3)
-        {
-            uint32_t param = tile_info[edit_tile]&(3<<12);
-            tile_info[edit_tile] &= ~(3<<12);
-            param = (param-(1<<12))&(3<<12);
-            tile_info[edit_tile] |= param;
-        }
-        else if (tile_info[edit_tile]&(1<<13)) // warp
-        {
-            if (edit2_cursor == 6)
-            {
-                // adjust directional warp
-                uint32_t param = tile_info[edit_tile]&(15<<28);
-                tile_info[edit_tile] &= ~(15<<28);
-                param = (param-(1<<28))&(15<<28);
-                tile_info[edit_tile] |= param; 
-            }
-            else if (tile_info[edit_tile]&(1<<12)) // level warp
-            {
-                int digits = 0;
-                int number = 0, max_number = 0;
-                if (tile_info[edit_tile]&(1<<17)) // 3 digits
+            case 0: // material
+                if (--tile_info[edit_tile].material > 15)
+                    tile_info[edit_tile].material = 15;
+                break;
+            case 1: // translation
+                if (--tile_info[edit_tile].translation > 15)
+                    tile_info[edit_tile].translation = 15;
+                break;
+            case 2: // timing
+                if (--tile_info[edit_tile].timing > 15)
+                    tile_info[edit_tile].timing = 15;
+                break;
+            case 3: // damage or warp or jump
+                if (tile_info[edit_tile].material&8)
                 {
-                    digits = 3;
-                    number = (tile_info[edit_tile]>>18)&1023;
-                    if (number > 999)
-                        number = 999;
-                    max_number = 999;
+                    // adjusting vulnerability
+                    if (--tile_info[edit_tile].vuln_warp_jump > 15)
+                        tile_info[edit_tile].vuln_warp_jump = 15;
                 }
-                else if (tile_info[edit_tile]&(1<<20)) // 2 digits
+                else if (tile_info[edit_tile].vuln_warp_jump)
                 {
-                    digits = 2;
-                    number = (tile_info[edit_tile]>>21)&127;
-                    if (number > 99)
-                        number = 99;
-                    max_number = 99;
+                    if (tile_info[edit_tile].vuln_warp_jump < 4) // set to damage
+                    {
+                        tile_info[edit_tile].vuln_warp_jump = 0;
+                        tile_info[edit_tile].damage_angle = (tile_info[edit_tile].damage_angle&240)|1;
+                    }
+                    else // set back to warp
+                        tile_info[edit_tile].vuln_warp_jump = 1;
                 }
-                else if (tile_info[edit_tile]&(1<<23))
+                else 
                 {
-                    digits = 1;
-                    number = (tile_info[edit_tile]>>24)&15;
-                    if (number > 9)
-                        number = 9;
-                    max_number = 9;
+                    if (tile_info[edit_tile].damage_angle&15) // damage for a flow sprite, undamage:
+                        tile_info[edit_tile].damage_angle = (tile_info[edit_tile].damage_angle&240);
+                    else // no damage, set to jump
+                        tile_info[edit_tile].vuln_warp_jump = 4;
                 }
-                if (edit2_cursor == 4) // edit digits
+                break;
+            case 4:
+                if (tile_info[edit_tile].material&8)
                 {
-                    if (--digits < 0)
-                        digits = 3;
+                    if (--tile_info[edit_tile].side[0] > 15)
+                        tile_info[edit_tile].side[0] = 15;
                 }
-                else
+                else switch (tile_info[edit_tile].vuln_warp_jump)
                 {
-                    if (--number < 0)
-                        number = max_number;
-                }
-                tile_info[edit_tile] &= ~(16383<<14);
-                if (digits)
-                switch (digits)
-                {
-                    case 1:
-                        tile_info[edit_tile] |= (1<<23)|(number<<24);
+                    case 0: // fluid, angle of flow
+                        tile_info[edit_tile].damage_angle += 240;
                         break;
-                    case 2:
-                        tile_info[edit_tile] |= (1<<20)|(number<<21);
+                    case 1: // warp, one digit 
+                        tile_info[edit_tile].vuln_warp_jump = 3;
                         break;
-                    case 3:
-                        tile_info[edit_tile] |= (1<<17)|(number<<18);
+                    case 2: // warp, two digits
+                        tile_info[edit_tile].vuln_warp_jump = 1;
+                        break;
+                    case 3: // warp, three digits
+                        tile_info[edit_tile].vuln_warp_jump = 2;
+                        break;
+                    default: // jump, modify x position
+                        if (--tile_info[edit_tile].jx >= tile_map_width)
+                            tile_info[edit_tile].jx = tile_map_width-1;
                         break;
                 }
-            }
-            else
-            {
-                int16_t pos = (tile_info[edit_tile]>>14) & (16383);
-                if (edit2_cursor == 4) // internal warp, x coordinate
+                break;
+            case 5:
+                if (tile_info[edit_tile].material&8)
                 {
-                    if (pos % tile_map_width == 0)
-                        pos += tile_map_width-1;
-                    else
-                        --pos;
+                    if (--tile_info[edit_tile].side[1] > 15)
+                        tile_info[edit_tile].side[1] = 15;
                 }
-                else // internal warp, y coordinate
+                else switch (tile_info[edit_tile].vuln_warp_jump)
                 {
-                    pos -= tile_map_width;
-                    if (pos < 0)
-                        pos += tile_map_width*tile_map_height;
+                    case 0: // fluid, strength of flow
+                        tile_info[edit_tile].random_strength += 240;
+                        break;
+                    case 1: // warp, one digit 
+                        tile_info[edit_tile].warp = (tile_info[edit_tile].warp+9)%10;
+                        break;
+                    case 2: // warp, two digits
+                        tile_info[edit_tile].warp = (tile_info[edit_tile].warp+99)%100;
+                        break;
+                    case 3: // warp, three digits
+                        tile_info[edit_tile].warp = (tile_info[edit_tile].warp+999)%1000;
+                        break;
+                    default: // jump, modify y position
+                        if (--tile_info[edit_tile].jy >= tile_map_height)
+                            tile_info[edit_tile].jy = tile_map_height-1;
+                        break;
                 }
-                tile_info[edit_tile] &= ~(16383<<14);
-                tile_info[edit_tile] |= (pos<<14);
-            }
-        }
-        else // current
-        {
-            uint32_t param = tile_info[edit_tile]&(63<<(edit2_cursor*6-10));
-            tile_info[edit_tile] &= ~(63<<(edit2_cursor*6-10));
-            param = (param-(1<<(edit2_cursor*6-10)))&(63<<(edit2_cursor*6-10));
-            tile_info[edit_tile] |= param;
+                break;
+            case 6:
+                if (tile_info[edit_tile].material&8)
+                {
+                    if (--tile_info[edit_tile].side[2] > 15)
+                        tile_info[edit_tile].side[2] = 15;
+                }
+                else if (tile_info[edit_tile].vuln_warp_jump)
+                {
+                    if (--tile_info[edit_tile].press_direction > 15)
+                        tile_info[edit_tile].press_direction = 15;
+                }
+                else // adjusting random
+                {
+                    tile_info[edit_tile].random_strength = (tile_info[edit_tile].random_strength&240) | ((tile_info[edit_tile].random_strength+15)&15);
+                }
+                break;
+            case 7:
+                if (tile_info[edit_tile].material&8)
+                {
+                    if (--tile_info[edit_tile].side[3] > 15)
+                        tile_info[edit_tile].side[3] = 15;
+                }
+                break;
         }
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
         return;
