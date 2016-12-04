@@ -1338,14 +1338,13 @@ FileError io_save_anthem()
     if (io_set_extension(filename, "G16"))
         return MountError; 
 
-    fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS); 
-    if (fat_result)
-        return OpenError;
+    FileError ferr = io_open_or_zero_file(filename, FILE_SIZE);
+    if (ferr)
+        return ferr;
 
     f_lseek(&fat_file, ANTHEM_OFFSET);
    
     char msg[4] = { '{', 'A', hex[song_length], '\n' };
-    FileError ferr;
     if ((ferr = file_write(msg, 4)))
         return ferr;
 
@@ -1387,14 +1386,13 @@ FileError io_save_palette()
     if (io_set_extension(filename, "G16"))
         return MountError;
 
-    fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
-    if (fat_result != FR_OK)
-        return OpenError;
+    FileError ferr = io_open_or_zero_file(filename, FILE_SIZE);
+    if (ferr)
+        return ferr;
     
     f_lseek(&fat_file, PALETTE_OFFSET);
 
     char msg[4] = { '{', 'P', 'C', '\n' };
-    FileError ferr;
     if ((ferr = file_write(msg, 4)))
         return ferr;
 
