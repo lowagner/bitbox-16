@@ -39,7 +39,7 @@ sprite pattern commands:  no loops are possible, march through commands
     look for closest player, change direction based on argument
 
 
-allow for more than 4 unlock commands, 
+allow for 8 unlock commands, 
     4 tied to tiles, 
     one for startup / level initialization, 
     one for game loop, (constantly running)

@@ -5,9 +5,20 @@
 
 // break objects up into 16x16 sprites with 8 possible frames (down/right/left/up * 2 for animation):
 extern uint8_t sprite_draw[16][8][16][8]; 
-extern uint32_t sprite_info[16][8];  
 extern uint8_t sprite_pattern[16][32]; 
-
+struct sprite_info
+{
+    uint8_t invisible_color;
+    uint8_t inverse_weight;
+    uint8_t vulnerability;
+    uint8_t impervious;
+    union
+    {
+        uint32_t value;
+        uint8_t side[4];
+    };
+};
+extern struct sprite_info sprite_info[16][8];
 struct object {
     // first 32 bits:
     int16_t iy, ix;

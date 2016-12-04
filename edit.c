@@ -178,7 +178,7 @@ void edit_line()
 
             if (edit_sprite_not_tile)
             {
-                uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
+                uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8].invisible_color;
                 if (invisible < 16)
                     font_render_line_doubled((uint8_t *)"invisible", 222, line, palette[invisible], ~palette[invisible]);
             }

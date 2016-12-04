@@ -1,6 +1,7 @@
 #include "bitbox.h"
 #include "chiptune.h"
 #include "common.h"
+#include "go-sprite.h"
 #include "tiles.h"
 #include "name.h"
 #include <math.h>
@@ -9,9 +10,28 @@
 #include "fatfs/ff.h"
 #include <string.h> // strlen
 
-#define FILE_SIZE (4 + 8+16*(MAX_INSTRUMENT_LENGTH*8+8) + 8+16*(MAX_TRACK_LENGTH*16+8) + 8+MAX_SONG_LENGTH*(8) + 8+16*(8) + 8+16*(16*18 + 20 + 8))
+#define INSTRUMENT_DATA_LENGTH (8+16*(MAX_INSTRUMENT_LENGTH*8+8))
+#define VERSE_DATA_LENGTH (8+16*(MAX_TRACK_LENGTH*16+8))
+#define ANTHEM_DATA_LENGTH (8+MAX_SONG_LENGTH*(8))
+#define PALETTE_DATA_LENGTH (8+16*(8))
+#define TILE_DATA_LENGTH (8+16*(16*18+20+8))
+#define SPRITE_DATA_LENGTH (8+16*8*(16*18+20+8))
+#define GO_DATA_LENGTH (8+16*(32*8+8))
+#define UNLOCK_DATA_LENGTH (8+8*(16*8+8))
+#define MAP_DATA_LENGTH (8+10+2*TILE_MAP_MEMORY)
+#define LOCATION_DATA_LENGTH (8+12*MAX_OBJECTS) // sprite location
 
-#define FLOW_SPEED 3.0f
+#define INSTRUMENT_OFFSET (4)
+#define VERSE_OFFSET (INSTRUMENT_OFFSET + INSTRUMENT_DATA_LENGTH)
+#define ANTHEM_OFFSET (VERSE_OFFSET + VERSE_DATA_LENGTH)
+#define PALETTE_OFFSET (ANTHEM_OFFSET + ANTHEM_DATA_LENGTH)
+#define TILE_OFFSET (PALETTE_OFFSET + PALETTE_DATA_LENGTH)
+#define SPRITE_OFFSET (TILE_OFFSET + TILE_DATA_LENGTH)
+#define GO_OFFSET (SPRITE_OFFSET + SPRITE_DATA_LENGTH)
+#define UNLOCK_OFFSET (GO_OFFSET + GO_DATA_LENGTH)
+#define MAP_OFFSET (UNLOCK_OFFSET + UNLOCK_DATA_LENGTH)
+#define LOCATION_OFFSET (MAP_OFFSET + MAP_DATA_LENGTH)
+#define FILE_SIZE (LOCATION_OFFSET + LOCATION_DATA_LENGTH)
 
 int io_mounted = 0;
 FATFS fat_fs;
@@ -20,9 +40,6 @@ FRESULT fat_result;
 char old_base_filename[9] CCM_MEMORY;
 uint8_t old_chip_volume CCM_MEMORY;
        
-FileError _io_save_instrument(unsigned int i);
-FileError _io_save_verse(unsigned int i);
-
 void io_message_from_error(uint8_t *msg, FileError error, int save_not_load)
 {
     switch (error)
@@ -128,19 +145,19 @@ FileError io_open_or_zero_file(const char *fname, unsigned int size)
         fat_result = f_open(&fat_file, fname, FA_WRITE | FA_OPEN_ALWAYS);
         if (fat_result != FR_OK)
             return OpenError;
-        uint8_t zero[128] = {0};
+        uint8_t zero[256] = {0};
         while (size) 
         {
             int write_size;
-            if (size <= 128)
+            if (size <= sizeof(zero))
             {
                 write_size = size;
                 size = 0;
             }
             else
             {
-                write_size = 128;
-                size -= 128;
+                write_size = sizeof(zero);
+                size -= sizeof(zero);
             }
             UINT bytes_get;
             f_write(&fat_file, zero, write_size, &bytes_get);
@@ -329,109 +346,6 @@ FileError io_load_tile(unsigned int i)
     return NoError;
 }
 
-FileError io_save_sprite(unsigned int i, unsigned int f)
-{
-    char filename[13];
-    if (io_set_extension(filename, "S16"))
-        return MountError;
-    
-    if (i >= 16)
-    {
-        // write them all, ignore f
-        fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
-        if (fat_result != FR_OK)
-            return OpenError; 
-
-        for (i=0; i<16; ++i)
-        for (f=0; f<8; ++f)
-        {
-            UINT bytes_get;
-            fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
-            if (fat_result != FR_OK)
-            {
-                f_close(&fat_file);
-                return WriteError; 
-            }
-            else if (bytes_get != 4)
-            {
-                f_close(&fat_file);
-                return MissingDataError;
-            }
-            fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
-            if (fat_result != FR_OK)
-            {
-                f_close(&fat_file);
-                return WriteError;
-            }
-            if (bytes_get != sizeof(sprite_draw[0][0]))
-            {
-                f_close(&fat_file);
-                return MissingDataError;
-            }
-        }
-        f_close(&fat_file);
-        return NoError;
-    }
-    // i < 16
-    FileError ferr = io_open_or_zero_file(filename, 16*8*(sizeof(sprite_draw[0][0])+4));
-    if (ferr)
-        return ferr;
-    if (f >= 8)
-    {
-        // write all frames
-        f_lseek(&fat_file, i*8*(sizeof(sprite_draw[0][0])+4)); 
-        for (f=0; f<8; ++f)
-        {
-            UINT bytes_get;
-            fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
-            if (fat_result != FR_OK)
-            {
-                f_close(&fat_file);
-                return WriteError; 
-            }
-            else if (bytes_get != 4)
-            {
-                f_close(&fat_file);
-                return MissingDataError;
-            }
-            fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
-            if (fat_result != FR_OK)
-            {
-                f_close(&fat_file);
-                return WriteError;
-            }
-            if (bytes_get != sizeof(sprite_draw[0][0]))
-            {
-                f_close(&fat_file);
-                return MissingDataError;
-            }
-        }
-        f_close(&fat_file);
-        return NoError;
-    }
-    // f < 8
-    f_lseek(&fat_file, (i*8 + f)*(sizeof(sprite_draw[0][0])+4)); 
-    UINT bytes_get;
-    fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
-    if (fat_result != FR_OK)
-    {
-        f_close(&fat_file);
-        return WriteError; 
-    }
-    else if (bytes_get != 4)
-    {
-        f_close(&fat_file);
-        return MissingDataError;
-    }
-    fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
-    f_close(&fat_file);
-    if (fat_result != FR_OK)
-        return WriteError;
-    if (bytes_get != sizeof(sprite_draw[0][0]))
-        return MissingDataError;
-    return NoError;
-}
-
 FileError io_load_sprite(unsigned int i, unsigned int f) 
 {
     char filename[13];
@@ -449,7 +363,8 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
         for (int f=0; f<8; ++f)
         {
             UINT bytes_get;
-            fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            uint32_t info;
+            fat_result = f_read(&fat_file, &info, 4, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -482,7 +397,8 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
         for (f=0; f<8; ++f) // frame
         {
             UINT bytes_get;
-            fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            uint32_t info;
+            fat_result = f_read(&fat_file, &info, 4, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -511,7 +427,8 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
     // f < 8
     f_lseek(&fat_file, (i*8 + f)*(sizeof(sprite_draw[0][0])+4)); 
     UINT bytes_get;
-    fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+    uint32_t info;
+    fat_result = f_read(&fat_file, &info, 4, &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
@@ -930,58 +847,6 @@ FileError io_load_anthem()
     return NoError;
 }
 
-FileError io_save_go(unsigned int i)
-{
-    char filename[13];
-    if (io_set_extension(filename, "E16"))
-        return MountError; 
-
-    if (i >= 16)
-    {
-        fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
-        if (fat_result != FR_OK)
-            return OpenError;
-
-        for (i=0; i<16; ++i)
-        {
-            UINT bytes_get; 
-            fat_result = f_write(&fat_file, sprite_pattern[i], sizeof(sprite_pattern[0]), &bytes_get);
-            if (fat_result != FR_OK)
-            {
-                f_close(&fat_file);
-                return WriteError;
-            }
-            if (bytes_get != sizeof(sprite_pattern[0]))
-            {
-                f_close(&fat_file);
-                return MissingDataError;
-            }
-        }
-        f_close(&fat_file);
-        return NoError;
-    }
-
-    FileError ferr = io_open_or_zero_file(filename, 16*sizeof(sprite_pattern[0]));
-    if (ferr)
-        return ferr;
-
-    f_lseek(&fat_file, i*sizeof(sprite_pattern[0])); 
-    UINT bytes_get; 
-    fat_result = f_write(&fat_file, sprite_pattern[i], sizeof(sprite_pattern[0]), &bytes_get);
-    if (fat_result != FR_OK)
-    {
-        f_close(&fat_file);
-        return WriteError;
-    }
-    if (bytes_get != sizeof(sprite_pattern[0]))
-    {
-        f_close(&fat_file);
-        return MissingDataError;
-    }
-    f_close(&fat_file);
-    return NoError;
-}
-
 FileError io_load_go(unsigned int i)
 {
     char filename[13];
@@ -1032,7 +897,7 @@ FileError io_load_go(unsigned int i)
 
 void write_instrument_command_argument(char *s, uint8_t cmd)
 {
-    uint8_t param = cmd>>4;
+    int param = cmd>>4;
     switch (cmd&15)
     {
         case BREAK:
@@ -1236,6 +1101,7 @@ FileError io_save_instrument(unsigned int i)
 
     if (i >= 16)
     {
+        f_lseek(&fat_file, 0);
         if ((ferr = file_write("G16\n{IN\n", 8)))
             return ferr;
         for (i=0; i<16; ++i)
@@ -1249,7 +1115,7 @@ FileError io_save_instrument(unsigned int i)
         return NoError;
     }
 
-    f_lseek(&fat_file, 8 + i*(MAX_INSTRUMENT_LENGTH*8+8));
+    f_lseek(&fat_file, INSTRUMENT_OFFSET + 4 + i*(MAX_INSTRUMENT_LENGTH*8+8));
     if ((ferr = _io_save_instrument(i)))
         return ferr;
     f_close(&fat_file);
@@ -1261,8 +1127,8 @@ void write_verse_command_argument(char *s, unsigned int i, unsigned int j)
     --s;
     for (int p=0; p<CHIP_PLAYERS; ++p)
     {
-        uint8_t cmd = chip_track[i][p][j];
-        uint8_t param = cmd>>4;
+        int cmd = chip_track[i][p][j];
+        int param = cmd>>4;
         switch (cmd&15)
         {
             case TRACK_BREAK:
@@ -1445,7 +1311,7 @@ FileError io_save_verse(unsigned int i)
 
     if (i >= 16)
     {
-        f_lseek(&fat_file, 4 + 8+16*(MAX_INSTRUMENT_LENGTH*8+8));
+        f_lseek(&fat_file, VERSE_OFFSET);
         if ((ferr = file_write("{VS\n", 4)))
             return ferr;
         for (i=0; i<16; ++i)
@@ -1459,7 +1325,7 @@ FileError io_save_verse(unsigned int i)
         return NoError;
     }
 
-    f_lseek(&fat_file, 4 + 8+16*(MAX_INSTRUMENT_LENGTH*8+8) + 4+i*(MAX_TRACK_LENGTH*16+8));
+    f_lseek(&fat_file, VERSE_OFFSET + 4 + i*(MAX_TRACK_LENGTH*16+8));
     if ((ferr = _io_save_verse(i)))
         return ferr;
     f_close(&fat_file);
@@ -1476,7 +1342,7 @@ FileError io_save_anthem()
     if (fat_result)
         return OpenError;
 
-    f_lseek(&fat_file, 4 + 8+16*(MAX_INSTRUMENT_LENGTH*8+8) + 8+16*(MAX_TRACK_LENGTH*16+8));
+    f_lseek(&fat_file, ANTHEM_OFFSET);
    
     char msg[4] = { '{', 'A', hex[song_length], '\n' };
     FileError ferr;
@@ -1525,7 +1391,7 @@ FileError io_save_palette()
     if (fat_result != FR_OK)
         return OpenError;
     
-    f_lseek(&fat_file, 4 + 8+16*(MAX_INSTRUMENT_LENGTH*8+8) + 8+16*(MAX_TRACK_LENGTH*16+8) + 8+MAX_SONG_LENGTH*8);
+    f_lseek(&fat_file, PALETTE_OFFSET);
 
     char msg[4] = { '{', 'P', 'C', '\n' };
     FileError ferr;
@@ -1650,14 +1516,14 @@ FileError _io_save_tile(unsigned int i)
     for (int j=0; j<16; ++j)
     {
         char data16[18] = { ' ', 
-            hex[tile_draw[i][j][0]&15], hex[tile_draw[i][j][0]>>15],
-            hex[tile_draw[i][j][1]&15], hex[tile_draw[i][j][1]>>15],
-            hex[tile_draw[i][j][2]&15], hex[tile_draw[i][j][2]>>15],
-            hex[tile_draw[i][j][3]&15], hex[tile_draw[i][j][3]>>15],
-            hex[tile_draw[i][j][4]&15], hex[tile_draw[i][j][4]>>15],
-            hex[tile_draw[i][j][5]&15], hex[tile_draw[i][j][5]>>15],
-            hex[tile_draw[i][j][6]&15], hex[tile_draw[i][j][6]>>15],
-            hex[tile_draw[i][j][7]&15], hex[tile_draw[i][j][7]>>15],
+            hex[tile_draw[i][j][0]&15], hex[tile_draw[i][j][0]>>4],
+            hex[tile_draw[i][j][1]&15], hex[tile_draw[i][j][1]>>4],
+            hex[tile_draw[i][j][2]&15], hex[tile_draw[i][j][2]>>4],
+            hex[tile_draw[i][j][3]&15], hex[tile_draw[i][j][3]>>4],
+            hex[tile_draw[i][j][4]&15], hex[tile_draw[i][j][4]>>4],
+            hex[tile_draw[i][j][5]&15], hex[tile_draw[i][j][5]>>4],
+            hex[tile_draw[i][j][6]&15], hex[tile_draw[i][j][6]>>4],
+            hex[tile_draw[i][j][7]&15], hex[tile_draw[i][j][7]>>4],
             '\n' };
         if ((ferr = file_write(data16, 18)))
             return ferr;
@@ -1681,7 +1547,7 @@ FileError io_save_tile(unsigned int i)
 
     if (i >= 16)
     {
-        f_lseek(&fat_file, 4 + 8+16*(MAX_INSTRUMENT_LENGTH*8+8) + 8+16*(MAX_TRACK_LENGTH*16+8) + 8+MAX_SONG_LENGTH*8 + 8+16*8);
+        f_lseek(&fat_file, TILE_OFFSET);
         if ((ferr = file_write("{TL\n", 4)))
             return ferr;
         for (i=0; i<16; ++i)
@@ -1695,9 +1561,292 @@ FileError io_save_tile(unsigned int i)
         return NoError;
     }
 
-    f_lseek(&fat_file, 4 + 8+16*(MAX_INSTRUMENT_LENGTH*8+8) + 8+16*(MAX_TRACK_LENGTH*16+8) + 8+MAX_SONG_LENGTH*8 + 8+16*8 + 4+i*(16*18 + 20 + 8));
+    f_lseek(&fat_file, TILE_OFFSET + 4 + i*(16*18 + 20 + 8));
     if ((ferr = _io_save_tile(i)))
         return ferr;
     f_close(&fat_file);
     return NoError;
 }
+
+FileError _io_save_sprite(unsigned int i, unsigned int f)
+{
+    static const char dir[8] = { 'R', 'r', 'U', 'u', 'L', 'l', 'D', 'd' };
+    char third_bracket[4] = { hex[i], dir[f], '[', '\n' };
+    FileError ferr;
+    if ((ferr = file_write(third_bracket, 4)))
+        return ferr;
+
+    char meta_data[20] = { 
+        'I', hex[sprite_info[i][f].invisible_color&31], ' ', 
+        'W', hex[sprite_info[i][f].inverse_weight&15], ' ', 
+        'V', hex[sprite_info[i][f].vulnerability&15], ' ',
+        'P', hex[sprite_info[i][f].impervious&15], ' ',
+        hex[sprite_info[i][f].side[0]&15], ' ',
+        hex[sprite_info[i][f].side[1]&15], ' ',
+        hex[sprite_info[i][f].side[2]&15], ' ',
+        hex[sprite_info[i][f].side[3]&15], '\n',
+    };
+    if ((ferr = file_write(meta_data, 20)))
+        return ferr;
+    
+    for (int j=0; j<16; ++j)
+    {
+        char data16[18] = { ' ', 
+            hex[sprite_draw[i][f][j][0]&15], hex[sprite_draw[i][f][j][0]>>4],
+            hex[sprite_draw[i][f][j][1]&15], hex[sprite_draw[i][f][j][1]>>4],
+            hex[sprite_draw[i][f][j][2]&15], hex[sprite_draw[i][f][j][2]>>4],
+            hex[sprite_draw[i][f][j][3]&15], hex[sprite_draw[i][f][j][3]>>4],
+            hex[sprite_draw[i][f][j][4]&15], hex[sprite_draw[i][f][j][4]>>4],
+            hex[sprite_draw[i][f][j][5]&15], hex[sprite_draw[i][f][j][5]>>4],
+            hex[sprite_draw[i][f][j][6]&15], hex[sprite_draw[i][f][j][6]>>4],
+            hex[sprite_draw[i][f][j][7]&15], hex[sprite_draw[i][f][j][7]>>4],
+            '\n' };
+        if ((ferr = file_write(data16, 18)))
+            return ferr;
+    }
+    
+    third_bracket[2] = ']';
+    if ((ferr = file_write(third_bracket, 4)))
+        return ferr;
+    return NoError;
+}
+
+FileError io_save_sprite(unsigned int i, unsigned int f)
+{
+    char filename[13];
+    if (io_set_extension(filename, "G16"))
+        return MountError; 
+    
+    FileError ferr = io_open_or_zero_file(filename, FILE_SIZE);
+    if (ferr)
+        return ferr;
+
+    if (i >= 16)
+    {
+        f_lseek(&fat_file, SPRITE_OFFSET);
+        if ((ferr = file_write("{SP\n", 4)))
+            return ferr;
+        for (i=0; i<16; ++i)
+        for (f=0; f<8; ++f)
+        {
+            if ((ferr = _io_save_sprite(i, f)))
+                return ferr;
+        }
+        if ((ferr = file_write("}SP\n", 4)))
+            return ferr;
+        f_close(&fat_file);
+        return NoError;
+    }
+    if (f >= 8)
+    {
+        f_lseek(&fat_file, SPRITE_OFFSET + 4 + (8*i)*(16*18+20+8));
+        for (f=0; f<8; ++f)
+        {
+            if ((ferr = _io_save_sprite(i, f)))
+                return ferr;
+        }
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    f_lseek(&fat_file, SPRITE_OFFSET + 4 + (8*i+f)*(16*18+20+8));
+    if ((ferr = _io_save_sprite(i, f)))
+        return ferr;
+    f_close(&fat_file);
+    return NoError;
+}
+
+void write_go_command_argument(char *s, int i, int j)
+{
+    int cmd = sprite_pattern[i][j];
+    int param = cmd>>4;
+    switch (cmd&15)
+    {
+        case GO_BREAK:
+            *s = '0';
+            *++s = hex[param];
+            break;
+        case GO_NOT_MOVE:
+            *s = 'm';
+            if (!param)
+                param = 16;
+            *++s = hex[j+1+param];
+            break;
+        case GO_NOT_RUN:
+            *s = 'r';
+            if (!param)
+                param = 16;
+            *++s = hex[j+1+param];
+            break;
+        case GO_NOT_AIR:
+            *s = 'a';
+            if (!param)
+                param = 16;
+            *++s = hex[j+1+param];
+            break;
+        case GO_NOT_FIRE:
+            *s = 'f';
+            if (!param)
+                param = 16;
+            *++s = hex[j+1+param];
+            break;
+        case GO_EXECUTE:
+            *s = 'E';
+            *++s = hex[param];
+            break;
+        case GO_LOOK:
+            *s = 'L';
+            *++s = hex[param];
+            break;
+        case GO_DIRECTION:
+            *s = 'D';
+            *++s = hex[param];
+            break;
+        case GO_SPECIAL_INPUT:
+            *s = 'I';
+            *++s = hex[param];
+            break;
+        case GO_SPAWN_TILE:
+            *s = 'T';
+            *++s = hex[param];
+            break;
+        case GO_SPAWN_SPRITE:
+            *s = 'S';
+            *++s = hex[param];
+            break;
+        case GO_ACCELERATION:
+            *s = '/';
+            *++s = hex[param];
+            break;
+        case GO_SPEED:
+            if (param < 8)
+            {
+                *s = '+';
+                *++s = '0' + param;
+            }
+            else
+            {
+                *s = '^';
+                *++s = '0' + param - 8;
+            }
+            break;
+        case GO_NOISE:
+            *s = 'N';
+            *++s = hex[param];
+            break;
+        case GO_RANDOMIZE:
+            *s = 'R';
+            switch (param)
+            {
+                case 0:
+                    *++s = 'a';
+                    break;
+                case 1:
+                    *++s = 'o';
+                    break;
+                case 2:
+                    *++s = 'e';
+                    break;
+                case 3:
+                    *++s = 's';
+                    break;
+                case 4:
+                    *++s = 'l';
+                    break;
+                case 5:
+                    *++s = 'm';
+                    break;
+                case 6:
+                    *++s = 'h';
+                    break;
+                case 7:
+                    *++s = 'b';
+                    break;
+                case 8:
+                    *++s = 'L';
+                    break;
+                case 9:
+                    *++s = 'K';
+                    break;
+                case 10:
+                    *++s = 'J';
+                    break;
+                case 11:
+                    *++s = 'H';
+                    break;
+                case 12:
+                    *++s = '0';
+                    break;
+                case 13:
+                    *++s = '1';
+                    break;
+                case 14:
+                    *++s = '2';
+                    break;
+                case 15:
+                    *++s = '3';
+                    break;
+            }
+            break;
+        case GO_QUAKE:
+            *s = 'Q';
+            *++s = hex[param];
+            break;
+    }
+}
+
+FileError _io_save_go(unsigned int i)
+{
+    char third_bracket[4] = { ' ', hex[i], '[', '\n' };
+    FileError ferr;
+    if ((ferr = file_write(third_bracket, 4)))
+        return ferr;
+    
+    char two_data[8] = { ' ', ' ', ' ', '0', ':', '0', '0', '\n' };
+    for (int j=0; j<32; ++j)
+    {
+        two_data[3] = hex[j];
+        write_go_command_argument(two_data+5, i, j);
+        if ((ferr = file_write(two_data, 8)))
+            return ferr;
+    }
+
+    third_bracket[2] = ']';
+    if ((ferr = file_write(third_bracket, 4)))
+        return ferr;
+    return NoError;
+}
+
+FileError io_save_go(unsigned int i)
+{
+    char filename[13];
+    if (io_set_extension(filename, "G16"))
+        return MountError; 
+    
+    FileError ferr = io_open_or_zero_file(filename, FILE_SIZE);
+    if (ferr)
+        return ferr;
+
+    if (i >= 16)
+    {
+        f_lseek(&fat_file, GO_OFFSET);
+        if ((ferr = file_write("{GO\n", 4)))
+            return ferr;
+        for (i=0; i<16; ++i)
+        {
+            if ((ferr = _io_save_go(i)))
+                return ferr;
+        }
+        if ((ferr = file_write("}GO\n", 4)))
+            return ferr;
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    f_lseek(&fat_file, GO_OFFSET + 4 + i*(32*8+8));
+    if ((ferr = _io_save_go(i)))
+        return ferr;
+    f_close(&fat_file);
+    return NoError;
+}
+

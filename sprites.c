@@ -11,20 +11,7 @@ float gravity CCM_MEMORY;
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
 uint8_t sprite_pattern[16][32] CCM_MEMORY; 
-/*
-info about a sprite (first frame, frame 0):
-    1 bit for Block-like. // maybe for projectile?
-    if Block-like:
-        4 bits ignored (what could we put here?) // could require all sprites to have some invisible color, no matter what...
-    else:
-        4 bits for "what color is invisible in this sprite"
-    3 bits for inverse weight
-    4 bits for vulnerability, must have (attack & vulnerability) > 0 to destroy it.
-    1 bit for impervious, x 4 sides.  some sides can be impervious to damage...
-    4 bits for surface property, x 4 sides 
-      see common.h for information
-*/
-uint32_t sprite_info[16][8] CCM_MEMORY; 
+struct sprite_info sprite_info[16][8] CCM_MEMORY; 
 
 struct object object[MAX_OBJECTS] CCM_MEMORY;
 uint8_t first_free_object_index CCM_MEMORY;
@@ -257,7 +244,7 @@ void sprites_line()
         int sprite_draw_row = vga16 - o->iy;
         uint8_t *U8 = U8row + 15 + o->ix;
         uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
-        int invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
+        int invisible_color = sprite_info[o->sprite_index][o->sprite_frame].invisible_color & 31;
         for (int pxl=0; pxl<8; ++pxl)
         {
             int two_color = *(++src);
@@ -315,7 +302,7 @@ void sprites_reset()
     {
         for (int frame=0; frame<8; ++frame)
         {
-            sprite_info[tile][frame] = 16;
+            sprite_info[tile][frame].invisible_color = 16;
             int forward = frame % 2;
             for (int line=0; line<16; ++line)
             {
@@ -330,7 +317,7 @@ void sprites_reset()
     // 16th sprite is random
     for (int l=0; l<8; ++l)
     {
-        sprite_info[15][l] = 0; // with black as invisible for all frames
+        sprite_info[15][l].invisible_color = 0; // with black as invisible for all frames
         for (int k=0; k<256/2; ++k)
             *sc++ = rand()%256;
     }

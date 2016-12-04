@@ -138,18 +138,20 @@ void edit2_line()
         if (edit_sprite_not_tile)
         {
             uint8_t msg[32];
-            uint32_t info = sprite_info[edit_sprite/8][edit_sprite%8];
+            int info = sprite_info[edit_sprite/8][edit_sprite%8].invisible_color;
             if (info&16)
-                strcpy((char *)msg, "unused"); // TODO use it?
+                strcpy((char *)msg, "visible");
             else
+            {
                 strcpy((char *)msg, "invis ");
-            msg[6] = hex[info&15];
+                msg[6] = hex[info&15];
+            }
             strcpy((char *)msg+7,   "   1/m=");
-            msg[14] = hex[(info>>5)&7];
+            msg[14] = hex[sprite_info[edit_sprite/8][edit_sprite%8].inverse_weight];
             strcpy((char *)msg+15,  " vulnr ");
-            msg[22] = hex[(info>>8)&15];
+            msg[22] = hex[sprite_info[edit_sprite/8][edit_sprite%8].vulnerability];
             strcpy((char *)msg+23, " imprv ");
-            msg[30] = hex[(info>>12)&15];
+            msg[30] = hex[sprite_info[edit_sprite/8][edit_sprite%8].impervious];
             msg[31] = 0;
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             if (!(info&16))
@@ -208,8 +210,8 @@ void edit2_line()
         case 13:
         if (edit_sprite_not_tile || tile_info[edit_tile].material&8) // solid block or sprite
         {
-            uint32_t info = edit_sprite_not_tile ? sprite_info[edit_sprite/8][edit_sprite%8] :
-                tile_info[edit_tile].value;
+            uint8_t *info = edit_sprite_not_tile ? sprite_info[edit_sprite/8][edit_sprite%8].side :
+                tile_info[edit_tile].side;
             uint8_t msg[32];
             if (edit2_cursor >= 4)
                 edit2_side = edit2_cursor - 4;
@@ -228,7 +230,7 @@ void edit2_line()
                     strcpy((char *)msg, "bottom ");
                     break;
             }
-            switch ((info>>(16+4*edit2_side))&15)
+            switch (info[edit2_side]&15)
             {
                 case Passable:
                     strcpy((char *)msg+7, "passable");
@@ -447,29 +449,28 @@ void edit2_controls()
     }
     if (GAMEPAD_PRESSING(0, up))
     {
-        if (edit_sprite_not_tile)
+        if (edit_sprite_not_tile) switch (edit2_cursor)
         {
-            if (edit2_cursor == 0)
-            {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(31);
-                param = (param+1)&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
-            }
-            else if (edit2_cursor == 1)
-            {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(7<<5);
-                param = (param+(1<<5))&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
-            }
-            else
-            {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(15<<(edit2_cursor*4));
-                param = (param+(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
-            }
+            case 0: // invisible color
+                if (++sprite_info[edit_sprite/8][edit_sprite%8].invisible_color > 16)
+                    sprite_info[edit_sprite/8][edit_sprite%8].invisible_color = 0;
+                break;
+            case 1: // inverse weight
+                if (++sprite_info[edit_sprite/8][edit_sprite%8].inverse_weight > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].inverse_weight = 0;
+                break;
+            case 2: // vulnerability
+                if (++sprite_info[edit_sprite/8][edit_sprite%8].vulnerability > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].vulnerability = 0;
+                break;
+            case 3: // impervious
+                if (++sprite_info[edit_sprite/8][edit_sprite%8].impervious > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].impervious = 0;
+                break;
+            default: // sides
+                if (++sprite_info[edit_sprite/8][edit_sprite%8].side[edit2_cursor-4] > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].side[edit2_cursor-4] = 0;
+                break;
         }
         else switch (edit2_cursor)
         {
@@ -591,29 +592,28 @@ void edit2_controls()
     }
     if (GAMEPAD_PRESSING(0, down))
     {
-        if (edit_sprite_not_tile)
+        if (edit_sprite_not_tile) switch (edit2_cursor)
         {
-            if (edit2_cursor == 0)
-            {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(31);
-                param = (param-1)&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
-            }
-            else if (edit2_cursor == 1)
-            {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(7<<5);
-                param = (param-(1<<5))&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
-            }
-            else
-            {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(15<<(edit2_cursor*4));
-                param = (param-(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
-            }
+            case 0: // invisible color
+                if (--sprite_info[edit_sprite/8][edit_sprite%8].invisible_color > 16)
+                    sprite_info[edit_sprite/8][edit_sprite%8].invisible_color = 16;
+                break;
+            case 1: // inverse weight
+                if (--sprite_info[edit_sprite/8][edit_sprite%8].inverse_weight > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].inverse_weight = 15;
+                break;
+            case 2: // vulnerability
+                if (--sprite_info[edit_sprite/8][edit_sprite%8].vulnerability > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].vulnerability = 15;
+                break;
+            case 3: // impervious
+                if (--sprite_info[edit_sprite/8][edit_sprite%8].impervious > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].impervious = 15;
+                break;
+            default: // sides
+                if (--sprite_info[edit_sprite/8][edit_sprite%8].side[edit2_cursor-4] > 15)
+                    sprite_info[edit_sprite/8][edit_sprite%8].side[edit2_cursor-4] = 15;
+                break;
         }
         else switch (edit2_cursor)
         {
