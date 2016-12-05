@@ -38,6 +38,8 @@ allow for 8 unlock commands,
 
 unlock pattern commands:
     wait
+    set damage multiplier -- start every sprite with 15 health, you can have single or double damage hits, but if the damage multiplier is f, even a single hit is fatal.
+    heal player
     set letter box -- add black lines above/below the play field
     set letter box delta
     set spawn location x, y (needs 14 bits total for both x,y)
