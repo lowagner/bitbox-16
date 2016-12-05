@@ -14,8 +14,8 @@ GAME_C_OPTS += -DVGAMODE_320
 # see this file for options
 include $(BITBOX)/lib/bitbox.mk
 
-font.c: font_generator.py
-	python2 font_generator.py
+font.c: mk_font.py
+	python2 mk_font.py
 
 clean::
 	rm -f font.c font.h
