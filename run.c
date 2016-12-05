@@ -51,8 +51,7 @@ void run_switch()
         {
             object[i].z = 1;
             // find the leftmost player 0 (hero) sprite, to make camera follow
-            message("%d: %d\n", i, object[i].sprite_index);
-            if (object[i].sprite_index == 0)
+            if (object[i].sprite_index/8 == 0)
             {
                 if ((int)object[i].x/16 < tile_map_x + 10)
                 {

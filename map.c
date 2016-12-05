@@ -77,7 +77,7 @@ void map_reset()
     }
    
     for (int k=0; k<MAX_OBJECTS; ++k)
-        create_object(k%16, rand()%8, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), 2+rand()%128);
+        create_object((k%16)*8 + rand()%8, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), 2+rand()%128);
 }
 
 void map_line()
@@ -161,21 +161,21 @@ void map_line()
             if (map_menu_not_edit)
             {
                 uint16_t *dst = draw_buffer + 24 + 19;
-                uint8_t *sprite_color = &sprite_draw[(map_sprite/8-1)&15][map_sprite%8][tile_j][0] - 1;
+                uint8_t *sprite_color = &sprite_draw[((map_sprite/8-1)&15)*8+map_sprite%8][tile_j][0] - 1;
                 for (int l=0; l<8; ++l)
                 {
                     *(++dst) = palette[(*(++sprite_color))&15];
                     *(++dst) = palette[(*sprite_color)>>4];
                 }
                 dst += 40-16;
-                sprite_color = &sprite_draw[map_sprite/8][map_sprite%8][tile_j][0] - 1;
+                sprite_color = &sprite_draw[map_sprite][tile_j][0] - 1;
                 for (int l=0; l<8; ++l)
                 {
                     *(++dst) = palette[(*(++sprite_color))&15];
                     *(++dst) = palette[(*sprite_color)>>4];
                 }
                 dst += 40-16;
-                sprite_color = &sprite_draw[(map_sprite/8+1)&15][map_sprite%8][tile_j][0] - 1;
+                sprite_color = &sprite_draw[((map_sprite/8+1)&15)*8+map_sprite%8][tile_j][0] - 1;
                 for (int l=0; l<8; ++l)
                 {
                     *(++dst) = palette[(*(++sprite_color))&15];
@@ -435,7 +435,7 @@ void map_controls()
             else
             {
                 // copy the sprite property into map_sprite:
-                map_sprite = 8*object[map_sprite_under_cursor].sprite_index + object[map_sprite_under_cursor].sprite_frame;
+                map_sprite = object[map_sprite_under_cursor].sprite_index;
                 remove_object(map_sprite_under_cursor);
                 map_sprite_under_cursor = 255;
                 modified = 1;
@@ -450,13 +450,12 @@ void map_controls()
             {
                 // just reuse the sprite that was there
                 map_modified = 1;
-                object[map_sprite_under_cursor].sprite_index = map_sprite/8;
-                object[map_sprite_under_cursor].sprite_frame = map_sprite%8;
+                object[map_sprite_under_cursor].sprite_index = map_sprite;
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }
             // no object found under cursor, create one:
-            map_sprite_under_cursor = create_object(map_sprite/8, map_sprite%8, 16*map_tile_x, 16*map_tile_y, 1);
+            map_sprite_under_cursor = create_object(map_sprite, 16*map_tile_x, 16*map_tile_y, 1);
             if (map_sprite_under_cursor == 255) // could not create one
             {
                 strcpy((char *)game_message, "too many sprites");

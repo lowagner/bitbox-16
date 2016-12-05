@@ -407,7 +407,7 @@ FileError io_save_sprite(unsigned int i, unsigned int f)
         for (f=0; f<8; ++f)
         {
             UINT bytes_get;
-            fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            fat_result = f_write(&fat_file, &sprite_info[8*i+f], 4, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -418,13 +418,13 @@ FileError io_save_sprite(unsigned int i, unsigned int f)
                 f_close(&fat_file);
                 return MissingDataError;
             }
-            fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
+            fat_result = f_write(&fat_file, sprite_draw[8*i+f], sizeof(sprite_draw[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
                 return WriteError;
             }
-            if (bytes_get != sizeof(sprite_draw[0][0]))
+            if (bytes_get != sizeof(sprite_draw[0]))
             {
                 f_close(&fat_file);
                 return MissingDataError;
@@ -434,17 +434,17 @@ FileError io_save_sprite(unsigned int i, unsigned int f)
         return NoError;
     }
     // i < 16
-    FileError ferr = io_open_or_zero_file(filename, 16*8*(sizeof(sprite_draw[0][0])+4));
+    FileError ferr = io_open_or_zero_file(filename, 16*8*(sizeof(sprite_draw[0])+4));
     if (ferr)
         return ferr;
     if (f >= 8)
     {
         // write all frames
-        f_lseek(&fat_file, i*8*(sizeof(sprite_draw[0][0])+4)); 
+        f_lseek(&fat_file, i*8*(sizeof(sprite_draw[0])+4)); 
         for (f=0; f<8; ++f)
         {
             UINT bytes_get;
-            fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            fat_result = f_write(&fat_file, &sprite_info[8*i+f], 4, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -455,13 +455,13 @@ FileError io_save_sprite(unsigned int i, unsigned int f)
                 f_close(&fat_file);
                 return MissingDataError;
             }
-            fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
+            fat_result = f_write(&fat_file, sprite_draw[8*i+f], sizeof(sprite_draw[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
                 return WriteError;
             }
-            if (bytes_get != sizeof(sprite_draw[0][0]))
+            if (bytes_get != sizeof(sprite_draw[0]))
             {
                 f_close(&fat_file);
                 return MissingDataError;
@@ -471,9 +471,9 @@ FileError io_save_sprite(unsigned int i, unsigned int f)
         return NoError;
     }
     // f < 8
-    f_lseek(&fat_file, (i*8 + f)*(sizeof(sprite_draw[0][0])+4)); 
+    f_lseek(&fat_file, (i*8 + f)*(sizeof(sprite_draw[0])+4)); 
     UINT bytes_get;
-    fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+    fat_result = f_write(&fat_file, &sprite_info[8*i+f], 4, &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
@@ -484,11 +484,11 @@ FileError io_save_sprite(unsigned int i, unsigned int f)
         f_close(&fat_file);
         return MissingDataError;
     }
-    fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
+    fat_result = f_write(&fat_file, sprite_draw[8*i+f], sizeof(sprite_draw[0]), &bytes_get);
     f_close(&fat_file);
     if (fat_result != FR_OK)
         return WriteError;
-    if (bytes_get != sizeof(sprite_draw[0][0]))
+    if (bytes_get != sizeof(sprite_draw[0]))
         return MissingDataError;
     return NoError;
 }
@@ -510,7 +510,7 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
         for (int f=0; f<8; ++f)
         {
             UINT bytes_get;
-            fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            fat_result = f_read(&fat_file, &sprite_info[8*i+f], 4, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -521,13 +521,13 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
                 f_close(&fat_file);
                 return MissingDataError;
             }
-            fat_result = f_read(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
+            fat_result = f_read(&fat_file, sprite_draw[8*i+f], sizeof(sprite_draw[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
                 return ReadError;
             }
-            if (bytes_get != sizeof(sprite_draw[0][0]))
+            if (bytes_get != sizeof(sprite_draw[0]))
             {
                 f_close(&fat_file);
                 return MissingDataError;
@@ -539,11 +539,11 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
     // i < 16
     if (f >= 8)
     {
-        f_lseek(&fat_file, i*8*(sizeof(sprite_draw[0][0])+4));
+        f_lseek(&fat_file, i*8*(sizeof(sprite_draw[0])+4));
         for (f=0; f<8; ++f) // frame
         {
             UINT bytes_get;
-            fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            fat_result = f_read(&fat_file, &sprite_info[8*i+f], 4, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -554,13 +554,13 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
                 f_close(&fat_file);
                 return MissingDataError;
             }
-            fat_result = f_read(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
+            fat_result = f_read(&fat_file, sprite_draw[8*i+f], sizeof(sprite_draw[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
                 return ReadError;
             }
-            if (bytes_get != sizeof(sprite_draw[0][0]))
+            if (bytes_get != sizeof(sprite_draw[0]))
             {
                 f_close(&fat_file);
                 return MissingDataError;
@@ -570,9 +570,9 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
         return NoError;
     }
     // f < 8
-    f_lseek(&fat_file, (i*8 + f)*(sizeof(sprite_draw[0][0])+4)); 
+    f_lseek(&fat_file, (i*8 + f)*(sizeof(sprite_draw[0])+4)); 
     UINT bytes_get;
-    fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+    fat_result = f_read(&fat_file, &sprite_info[8*i+f], 4, &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
@@ -583,11 +583,11 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
         f_close(&fat_file);
         return MissingDataError;
     }
-    fat_result = f_read(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
+    fat_result = f_read(&fat_file, sprite_draw[8*i+f], sizeof(sprite_draw[0]), &bytes_get);
     f_close(&fat_file);
     if (fat_result != FR_OK)
         return ReadError;
-    if (bytes_get != sizeof(sprite_draw[0][0]))
+    if (bytes_get != sizeof(sprite_draw[0]))
         return MissingDataError;
     return NoError;
 }
@@ -684,7 +684,7 @@ FileError io_save_map()
         struct object *o = &object[index];
         uint16_t szxy[3] = 
         { 
-            o->sprite_index*8 + o->sprite_frame + (o->z << 8),
+            o->sprite_index + (o->z << 8),
             (uint16_t)o->x, (uint16_t)o->y 
         };
         fat_result = f_write(&fat_file, &szxy[0], 6, &bytes_get);
@@ -802,9 +802,9 @@ FileError io_load_map()
             f_close(&fat_file);
             return MissingDataError;
         }
-        uint8_t sprite = szxy[0]&255;
+        uint8_t sprite = szxy[0]&127;
         uint8_t z = szxy[0]>>8;
-        uint8_t index = create_object(sprite/8, sprite%8, (int16_t)szxy[1], (int16_t)szxy[2], z);
+        uint8_t index = create_object(sprite, (int16_t)szxy[1], (int16_t)szxy[2], z);
         if (index == 255)
         {
             f_close(&fat_file);

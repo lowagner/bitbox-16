@@ -296,7 +296,7 @@ void go_line()
         else if (vga_line >= 8)
         {
             uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 8 - 16*2)/2 - 1;
-            uint8_t *tile_color = &sprite_draw[edit_sprite/8][(vga_frame/64)%8][(vga_line-8)/2][0] - 1;
+            uint8_t *tile_color = &sprite_draw[(edit_sprite/8)*8+(vga_frame/64)%8][(vga_line-8)/2][0] - 1;
             for (int l=0; l<8; ++l) 
             {
                 uint32_t color = palette[(*(++tile_color))&15];
@@ -638,7 +638,7 @@ void go_line()
     {
         uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 8 - 16*2)/2 - 1;
         internal_line = (vga_line - 8)/2;
-        uint8_t *tile_color = &sprite_draw[edit_sprite/8][(vga_frame/64)%8][internal_line][0] - 1;
+        uint8_t *tile_color = &sprite_draw[(edit_sprite/8)*8+(vga_frame/64)%8][internal_line][0] - 1;
         for (int l=0; l<8; ++l) 
         {
             uint32_t color = palette[(*(++tile_color))&15];
@@ -1003,7 +1003,8 @@ void object_run_commands(int i)
                             // turn around
                             object[i].x = x_tile*16.0f + 3.0f;
                             object[i].vx *= -1;
-                            object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                                (object[i].sprite_index + 4)%8;
                             object[i].vy = 0;
                             object[i].properties &= ~IN_AIR;
                             break;
@@ -1017,7 +1018,8 @@ void object_run_commands(int i)
                             {
                                 object[i].x = x_tile*16.0f + 3.0f;
                                 object[i].vx *= -1; 
-                                object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                                object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                                    (object[i].sprite_index + 4)%8;
                             }
                             else
                                 object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
@@ -1075,7 +1077,8 @@ void object_run_commands(int i)
                             // who is trying to avoid jumping off the ledge...
                             object[i].x = (x_tile+1)*16.0f - 3.0f;
                             object[i].vx *= -1;
-                            object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                            object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                                (object[i].sprite_index + 4)%8;
                             object[i].vy = 0;
                             object[i].properties &= ~IN_AIR;
                             break;
@@ -1089,7 +1092,8 @@ void object_run_commands(int i)
                             {
                                 object[i].x = (x_tile+1)*16.0f - 3.0f;
                                 object[i].vx *= -1; 
-                                object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                                object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                                    (object[i].sprite_index + 4)%8;
                             }
                             else
                                 object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
@@ -1363,15 +1367,15 @@ void object_run_commands(int i)
                 break;
             case 9: // turn CCW
                 object[i].vy = -old_vx;
-                object[i].sprite_frame = 2*UP;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
                 break;
             case 11: // turn CW
                 object[i].vy = old_vx;
-                object[i].sprite_frame = 2*DOWN;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
                 break;
             default: // turn 180 (at 10), plus other things
                 object[i].vx = -old_vx;
-                object[i].sprite_frame = 2*LEFT;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT;
                 break;
         }
     }
@@ -1484,15 +1488,15 @@ void object_run_commands(int i)
                 break;
             case 9: // turn CCW
                 object[i].vy = old_vx;
-                object[i].sprite_frame = 2*DOWN;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
                 break;
             case 11: // turn CW
                 object[i].vy = -old_vx;
-                object[i].sprite_frame = 2*UP;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
                 break;
             default: // turn 180 (at 10), plus other things
                 object[i].vx = -old_vx;
-                object[i].sprite_frame = 2*RIGHT;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT;
                 break;
         }
     }
@@ -1520,7 +1524,7 @@ void object_run_commands(int i)
     }
     while (object[i].cmd_index < 32)
     {
-        uint8_t cmd = sprite_pattern[object[i].sprite_index][object[i].cmd_index++];
+        uint8_t cmd = sprite_pattern[object[i].sprite_index/8][object[i].cmd_index++];
         uint8_t param = cmd >> 4;
         switch (cmd & 15)
         {
@@ -1572,27 +1576,27 @@ void object_run_commands(int i)
                 break;
             case 1: // turn CCW
             {
-                object[i].sprite_frame = (object[i].sprite_frame + 2)%8;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + (object[i].sprite_index+2)%8;
                 float vx = object[i].vx;
                 object[i].vx = object[i].vy;
                 object[i].vy = -vx;
                 break;
             }
             case 2: // turn 180
-                object[i].sprite_frame = (object[i].sprite_frame + 4)%8;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + (object[i].sprite_index+4)%8;
                 object[i].vx = -object[i].vx;
                 object[i].vy = -object[i].vy;
                 break;
             case 3: // turn 270 = CW
             {
-                object[i].sprite_frame = (object[i].sprite_frame + 6)%8;
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + (object[i].sprite_index+6)%8;
                 float vx = object[i].vx;
                 object[i].vx = -object[i].vy;
                 object[i].vy = vx;
                 break;
             }
             case 4: // walk
-                switch (object[i].sprite_frame/2)
+                switch ((object[i].sprite_index%8)/2)
                 {
                 case RIGHT:
                     object[i].vy = 0;
@@ -1658,7 +1662,7 @@ void object_run_commands(int i)
                     case 0:
                     {
                         object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*LEFT;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT;
                         float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
                             object[i].vx = vx_limit;
@@ -1667,7 +1671,7 @@ void object_run_commands(int i)
                     case 1:
                     {
                         object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*RIGHT;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT;
                         float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
                             object[i].vx = vx_limit;
@@ -1677,7 +1681,7 @@ void object_run_commands(int i)
                     if ((object[i].properties & GHOSTING) || 0) // 0 = non-platformer
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*UP;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
                         float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                         if (object[i].vy < vy_limit)
                             object[i].vy = vy_limit;
@@ -1686,7 +1690,7 @@ void object_run_commands(int i)
                     case 3:
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*DOWN;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if ((object[i].properties & GHOSTING) || 0)
@@ -1716,7 +1720,7 @@ void object_run_commands(int i)
                     if (motion < 0)
                     {
                         object[i].vx -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*LEFT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
                         float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
                             object[i].vx = vx_limit;
@@ -1724,7 +1728,7 @@ void object_run_commands(int i)
                     else
                     {
                         object[i].vx += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*RIGHT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
                         float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
                             object[i].vx = vx_limit;
@@ -1750,7 +1754,7 @@ void object_run_commands(int i)
                     if (motion < 0)
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*UP + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                         if ((object[i].properties & GHOSTING) || 0) // check for non-platformer
                         {
                             float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
@@ -1761,7 +1765,7 @@ void object_run_commands(int i)
                     else
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
-                        object[i].sprite_frame = 2*DOWN + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if ((object[i].properties & GHOSTING) || 0)
@@ -1821,7 +1825,7 @@ void object_run_commands(int i)
             delta_y = object[i].y - 16*y;
             x = object[i].x/16;
             delta_x = object[i].x - 16*x;
-            switch (object[i].sprite_frame/2)
+            switch ((object[i].sprite_index%8)/2)
             {
                 case RIGHT:
                     if (delta_x < 6.0f)
@@ -1874,7 +1878,7 @@ void object_run_commands(int i)
             uint8_t j = 255;
             float vx = object[i].vx, vy = object[i].vy;
             int ty = object[i].y/16, tx = object[i].x/16;
-            switch (object[i].sprite_frame/2)
+            switch ((object[i].sprite_index%8)/2)
             {
                 case RIGHT:
                     if (16.0f*ty == object[i].y)
@@ -1884,7 +1888,7 @@ void object_run_commands(int i)
                     }
                     else if (test_inside_tile(tx+1, ty) || test_inside_tile(tx+1, ty+1))
                         break;
-                    j = create_object(param, RIGHT*2, object[i].x+16, object[i].y, 1);
+                    j = create_object(8*param + RIGHT*2, object[i].x+16, object[i].y, 1);
                     vx += (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     if (!0) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
@@ -1897,7 +1901,7 @@ void object_run_commands(int i)
                     }
                     else if (test_inside_tile(tx, ty-1) || test_inside_tile(tx+1, ty-1))
                         break;
-                    j = create_object(param, UP*2, object[i].x, object[i].y-16, 1);
+                    j = create_object(8*param + UP*2, object[i].x, object[i].y-16, 1);
                     vy -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     if (!0) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER/2;
@@ -1910,7 +1914,7 @@ void object_run_commands(int i)
                     }
                     else if (test_inside_tile(tx-1, ty) || test_inside_tile(tx-1, ty+1))
                         break;
-                    j = create_object(param, LEFT*2, object[i].x-16, object[i].y, 1);
+                    j = create_object(8*param + LEFT*2, object[i].x-16, object[i].y, 1);
                     vx -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     if (!0) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
@@ -1923,7 +1927,7 @@ void object_run_commands(int i)
                     }
                     else if (test_inside_tile(tx, ty+1) || test_inside_tile(tx+1, ty+1))
                         break;
-                    j = create_object(param, DOWN*2, object[i].x, object[i].y+16, 1);
+                    j = create_object(8*param + DOWN*2, object[i].x, object[i].y+16, 1);
                     vy += (object[i].speed_jump&15)*THROW_MULTIPLIER;
                     break;
             }
@@ -1967,7 +1971,7 @@ void object_run_commands(int i)
         case GO_RANDOMIZE:
             if (object[i].cmd_index >= 32)
                 goto end_run_commands;
-            uint8_t *memory = &sprite_pattern[object[i].sprite_index][object[i].cmd_index];
+            uint8_t *memory = &sprite_pattern[object[i].sprite_index/8][object[i].cmd_index];
             *memory = ((*memory)&15) | (randomize(param)<<4);
             break;
         case GO_QUAKE:

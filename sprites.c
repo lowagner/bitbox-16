@@ -9,7 +9,7 @@
 float gravity CCM_MEMORY;
 
 // break sprites up into 16x16 tiles:
-uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
+uint8_t sprite_draw[128][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
 uint8_t sprite_pattern[16][32] CCM_MEMORY; 
 /*
 info about a sprite (first frame, frame 0):
@@ -24,7 +24,7 @@ info about a sprite (first frame, frame 0):
     4 bits for surface property, x 4 sides 
       see common.h for information
 */
-uint32_t sprite_info[16][8] CCM_MEMORY; 
+uint32_t sprite_info[128] CCM_MEMORY; 
 
 struct object object[MAX_OBJECTS] CCM_MEMORY;
 uint8_t first_free_object_index CCM_MEMORY;
@@ -77,7 +77,7 @@ int on_screen(int16_t x, int16_t y)
     return 1;
 }
 
-uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int16_t y, uint8_t z)
+uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z)
 {
     if (first_free_object_index == 255)
         return -1;
@@ -94,7 +94,6 @@ uint8_t create_object(uint8_t sprite_index, uint8_t sprite_frame, int16_t x, int
 
     // add in object properties
     object[i].sprite_index = sprite_index;
-    object[i].sprite_frame = sprite_frame;
     object[i].y = y;
     object[i].x = x;
     object[i].z = z;
@@ -256,8 +255,8 @@ void sprites_line()
             continue; // hidden object
         int sprite_draw_row = vga16 - o->iy;
         uint8_t *U8 = U8row + 15 + o->ix;
-        uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
-        int invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
+        uint8_t *src = &sprite_draw[o->sprite_index][sprite_draw_row][0]-1;
+        int invisible_color = sprite_info[o->sprite_index] & 31;
         for (int pxl=0; pxl<8; ++pxl)
         {
             int two_color = *(++src);
@@ -309,13 +308,13 @@ void sprites_frame()
 void sprites_reset()
 {
     // create some random sprites...
-    uint8_t *sc = sprite_draw[0][0][0];
+    uint8_t *sc = sprite_draw[0][0];
     int color_index = 0;
     for (int tile=0; tile<15; ++tile)
     {
         for (int frame=0; frame<8; ++frame)
         {
-            sprite_info[tile][frame] = 16;
+            sprite_info[8*tile+frame] = 16;
             int forward = frame % 2;
             for (int line=0; line<16; ++line)
             {
@@ -330,7 +329,7 @@ void sprites_reset()
     // 16th sprite is random
     for (int l=0; l<8; ++l)
     {
-        sprite_info[15][l] = 0; // with black as invisible for all frames
+        sprite_info[15*8+l] = 0; // with black as invisible for all frames
         for (int k=0; k<256/2; ++k)
             *sc++ = rand()%256;
     }

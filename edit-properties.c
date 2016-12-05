@@ -140,7 +140,7 @@ void edit2_line()
         if (edit_sprite_not_tile)
         {
             uint8_t msg[32];
-            uint32_t info = sprite_info[edit_sprite/8][edit_sprite%8];
+            uint32_t info = sprite_info[edit_sprite];
             if (info&16)
                 strcpy((char *)msg, "unused"); // TODO use it?
             else
@@ -208,7 +208,7 @@ void edit2_line()
         case 13:
         if (edit_sprite_not_tile || tile_info[edit_tile]&8) // solid block or sprite
         {
-            uint32_t info = edit_sprite_not_tile ? sprite_info[edit_sprite/8][edit_sprite%8] :
+            uint32_t info = edit_sprite_not_tile ? sprite_info[edit_sprite] :
                 tile_info[edit_tile];
             uint8_t msg[32];
             if (edit2_cursor >= 4)
@@ -386,7 +386,7 @@ void edit2_line()
         uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 24 - 16*2*2)/2 - 1;
         internal_line = (vga_line - 22)/2;
         uint8_t *tile_color = edit_sprite_not_tile ?
-            &sprite_draw[edit_sprite/8][edit_sprite%8][internal_line][0] - 1:
+            &sprite_draw[edit_sprite][internal_line][0] - 1:
             &tile_draw[edit_tile][internal_line][0] - 1;
         for (int l=0; l<8; ++l) 
         {
@@ -410,7 +410,7 @@ void edit2_line()
             uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 24 - 16*2)/2;
             internal_line = (vga_line - (22 + 2 + 2*16))/2;
             uint8_t *tile_color = edit2_copying == 1 ?
-                &sprite_draw[edit2_copy_location/8][edit2_copy_location%8][internal_line][0] - 1:
+                &sprite_draw[edit2_copy_location][internal_line][0] - 1:
                 &tile_draw[edit2_copy_location][internal_line][0] - 1;
             for (int l=0; l<8; ++l) 
             {
@@ -483,24 +483,24 @@ void edit2_controls()
         {
             if (edit2_cursor == 0)
             {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(31);
+                uint32_t param = sprite_info[edit_sprite]&(31);
+                sprite_info[edit_sprite] &= ~(31);
                 param = (param+1)&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+                sprite_info[edit_sprite] |= param;
             }
             else if (edit2_cursor == 1)
             {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(7<<5);
+                uint32_t param = sprite_info[edit_sprite]&(7<<5);
+                sprite_info[edit_sprite] &= ~(7<<5);
                 param = (param+(1<<5))&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+                sprite_info[edit_sprite] |= param;
             }
             else
             {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(15<<(edit2_cursor*4));
+                uint32_t param = sprite_info[edit_sprite]&(15<<(edit2_cursor*4));
+                sprite_info[edit_sprite] &= ~(15<<(edit2_cursor*4));
                 param = (param+(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+                sprite_info[edit_sprite] |= param;
             }
         }
         else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
@@ -614,24 +614,24 @@ void edit2_controls()
         {
             if (edit2_cursor == 0)
             {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(31);
+                uint32_t param = sprite_info[edit_sprite]&(31);
+                sprite_info[edit_sprite] &= ~(31);
                 param = (param-1)&(31);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+                sprite_info[edit_sprite] |= param;
             }
             else if (edit2_cursor == 1)
             {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(7<<5);
+                uint32_t param = sprite_info[edit_sprite]&(7<<5);
+                sprite_info[edit_sprite] &= ~(7<<5);
                 param = (param-(1<<5))&(7<<5);
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+                sprite_info[edit_sprite] |= param;
             }
             else
             {
-                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(15<<(edit2_cursor*4));
+                uint32_t param = sprite_info[edit_sprite]&(15<<(edit2_cursor*4));
+                sprite_info[edit_sprite] &= ~(15<<(edit2_cursor*4));
                 param = (param-(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
-                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+                sprite_info[edit_sprite] |= param;
             }
         }
         else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
@@ -780,19 +780,18 @@ void edit2_controls()
                 {
                     // copying sprite to sprite, copy also the info
                     // TODO: should rotate/mirror sides of sprite info
-                    sprite_info[edit_sprite/8][edit_sprite%8] =
-                        sprite_info[edit2_copy_location/8][edit2_copy_location%8];
-                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                    sprite_info[edit_sprite] = sprite_info[edit2_copy_location];
+                    dst = sprite_draw[edit_sprite][0];
                 }
                 else
                     dst = tile_draw[edit_tile][0];
 
-                src = sprite_draw[edit2_copy_location/8][edit2_copy_location%8][0];
+                src = sprite_draw[edit2_copy_location][0];
             }
             else // copying from a tile
             {
                 if (edit_sprite_not_tile)
-                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                    dst = sprite_draw[edit_sprite][0];
                 else
                 { 
                     // copying to a tile, copy also tile info
@@ -860,13 +859,12 @@ void edit2_controls()
             uint8_t *src, *dst;
             if (edit2_copying == 1) // sprite
             {
-                src = sprite_draw[edit2_copy_location/8][edit2_copy_location%8][0];
+                src = sprite_draw[edit2_copy_location][0];
                 if (edit_sprite_not_tile)
                 {
                     // copying sprite to sprite, copy also the info
-                    sprite_info[edit_sprite/8][edit_sprite%8] =
-                        sprite_info[edit2_copy_location/8][edit2_copy_location%8];
-                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                    sprite_info[edit_sprite] = sprite_info[edit2_copy_location];
+                    dst = sprite_draw[edit_sprite][0];
                 }
                 else
                     dst = tile_draw[edit_tile][0];
@@ -875,7 +873,7 @@ void edit2_controls()
             {
                 src = tile_draw[edit2_copy_location][0];
                 if (edit_sprite_not_tile)
-                    dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+                    dst = sprite_draw[edit_sprite][0];
                 else
                 {
                     // copy also the tile info

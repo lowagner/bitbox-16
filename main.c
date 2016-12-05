@@ -296,7 +296,7 @@ void draw_parade(int line, uint8_t bg_color)
             uint16_t *dst = draw_buffer + 31;
             for (int s=0; s<16; ++s)
             {
-                uint8_t *tile_color = &sprite_draw[s][parade_offset%8][internal_line][0] - 1;
+                uint8_t *tile_color = &sprite_draw[s*8+parade_offset%8][internal_line][0] - 1;
                 for (int l=0; l<8; ++l)
                 {
                     *dst++ = palette[(*(++tile_color))&15];
