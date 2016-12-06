@@ -47,10 +47,10 @@ extern uint8_t first_drawing_index;
 extern uint8_t last_drawing_index; 
 
 uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z);
-void move_object(uint8_t i, int16_t x, int16_t y);
-void make_unseen_object_viewable(uint8_t i);
-void remove_object(uint8_t index);
-void remove_object_from_view(uint8_t i);
+void move_object(int i, int16_t x, int16_t y);
+void make_unseen_object_viewable(int i);
+void remove_object(int index);
+void remove_object_from_view(int i);
 int on_screen(int16_t x, int16_t y);
 void update_objects();
 

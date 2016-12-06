@@ -21,7 +21,7 @@
 #define INDIGO 15
 
 extern uint16_t palette[16]; 
-extern uint32_t palette2[256];
+extern uint32_t palette2[512];
 
 void palette_init();
 void palette_reset();

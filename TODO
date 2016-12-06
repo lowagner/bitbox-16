@@ -50,5 +50,5 @@ unlock pattern commands:
     set spawn location delta x, y
     shake screen
     make noise
-    set game-type (platformer, top-down adventure, shmup)
-        for platformers, set strength of gravity 
+    set game-type (platformer, top-down adventure) via GRAVITY
+        determine platformer or not by GRAVITY only.  don't have separate variable.

@@ -4,6 +4,7 @@
 #include "chiptune.h"
 #include "sprites.h"
 #include "edit.h"
+#include "unlocks.h"
 #include "run.h"
 #include "name.h"
 #include "font.h"
@@ -23,7 +24,6 @@
 #define ACCELERATION_MULTIPLIER 0.25f
 #define DECELERATION_MULTIPLIER 0.25f
 #define MAX_VY 10.0f
-
 
 uint8_t go_pattern_pos CCM_MEMORY;
 uint8_t go_pattern_offset CCM_MEMORY;
@@ -877,7 +877,6 @@ void go_controls()
 
 static inline int test_inside_tile(int x, int y)
 {
-    // return 0 for no hit, 1 for solid, -1 for damage
     int index = y*tile_map_width + x;
     uint8_t tile;
     if (index % 2)
@@ -898,7 +897,6 @@ static inline int test_inside_tile(int x, int y)
 
 static inline int test_tile(int x, int y, int dir)
 {
-    // return 0 for no hit, 1 for solid, -1 for damage
     int index = y*tile_map_width + x;
     uint8_t tile;
     if (index % 2)
@@ -911,10 +909,58 @@ static inline int test_tile(int x, int y, int dir)
     return (info >> (16 + 4*dir))&15;
 }
 
+static inline int damage_sprite(int i, float damage)
+{
+    if (object[i].health_blink&240) // blinking protection
+        return 0;
+
+    if (damage < 1.0f)
+    {
+        // roll for damage
+        if (rand()%16 < (int)(16*damage))
+        {
+            // damage hit!
+            if ((object[i].health_blink&15) <= 1)
+                goto kill_sprite;
+        
+            object[i].health_blink = ((object[i].health_blink&15)-1)|16;
+        }
+        return 0;
+    }
+    if ((object[i].health_blink&15) <= (int)damage)
+    {
+        kill_sprite:
+        object[i].health_blink = 16;
+        object[i].vx = -3.75f+(rand()%16)*0.5f;
+        object[i].vy = -gravity*8.0f -1.875f+(rand()%16)*0.25f;
+        return 1; // sprite is dead
+    }
+    object[i].health_blink = ((object[i].health_blink&15)-(int)damage)|16;
+    return 0; // sprite is ok, but blinking
+}
+
 void object_run_commands(int i) 
 {
     // update position here, too
     object[i].properties |= IN_AIR; // assume you're flying until you're not...
+    if (object[i].health_blink&240)
+    {
+        if (vga_frame % 2)
+            object[i].health_blink += 16;
+        if (!(object[i].health_blink&15)) // no health
+        {
+            if (!object[i].health_blink) // end death blink process
+            {
+                if (camera_index == i)
+                    kill_player();
+                return remove_object(i);
+            }
+            object[i].vy += gravity;
+            object[i].x += object[i].vx;
+            object[i].y += object[i].vy;
+            return;
+        }
+    }
     if (object[i].properties & GHOSTING)
     {
         object[i].y += object[i].vy;
@@ -942,9 +988,12 @@ void object_run_commands(int i)
     //   e.g. if colliding against ground, set vy = 0
 
     // avoid adding in gravity for non-platformers:
-    object[i].vy += gravity;
-    if (object[i].vy > MAX_VY)
-        object[i].vy = MAX_VY;
+    if (gravity)
+    {
+        object[i].vy += gravity;
+        if (object[i].vy > MAX_VY)
+            object[i].vy = MAX_VY;
+    }
     object[i].y += object[i].vy;
     if (object[i].y < -16) {}
     else if (object[i].y > tile_map_height*16 - 32)
@@ -957,6 +1006,7 @@ void object_run_commands(int i)
     else if (object[i].vy == 0.0f || (16.0f*((int)(object[i].y/16)) == object[i].y)) {}
     else if (object[i].vy > 0)
     {
+        // player is falling downwards.
         // test collision onto some tile's UP side.
         int y_tile = object[i].y/16 + 1;
         int x_tile = object[i].x/16;
@@ -968,9 +1018,14 @@ void object_run_commands(int i)
             case Passable:
                 break;
             case Damaging:
+                if (damage_sprite(i, object[i].vy * damage_multiplier))
+                    return;
+                goto up_even_normal;
             case SuperDamaging:
-                message("need to add hurt damage here for %d!\n", i);
+                if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
+                    return;
             case Normal:
+                up_even_normal:
                 object[i].y = 16*(y_tile-1);
                 object[i].vy = 0;
                 object[i].properties &= ~IN_AIR;
@@ -987,10 +1042,22 @@ void object_run_commands(int i)
                 object[i].y = 16*(y_tile-1);
                 if (hit_left)
                 {
-                    // TODO inflict damage if necessary
+                    if (hit_right == SuperDamaging || hit_left == SuperDamaging)
+                    {
+                        if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
+                            return;
+                        
+                    }
+                    else if (hit_right == Damaging || hit_left == Damaging)
+                    {
+                        if (damage_sprite(i, object[i].vy * damage_multiplier))
+                            return;
+                    }
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
+                else if (hit_right/2 == Damaging)
+                    goto maybe_ouch_right;
                 else if (x_delta < 3.0f && object[i].vx < 0)
                 {
                     // about to fall off to the left:
@@ -1046,8 +1113,6 @@ void object_run_commands(int i)
                             object[i].properties &= ~IN_AIR;
                             break;
                         default: // 8 or lower
-                            // here is just simple fall off:
-                            //message("fell off left edge %f\n", object[i].x);
                             object[i].x = x_tile*16.0f;
                             if (object[i].vx > -1.0f)
                                 object[i].vx = 0;
@@ -1055,15 +1120,27 @@ void object_run_commands(int i)
                 }
                 else
                 {
+                    maybe_ouch_right:
+                    if (hit_right == SuperDamaging)
+                    {
+                        if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
+                            return;
+                    }
+                    else if (hit_right == Damaging)
+                    {
+                        if (damage_sprite(i, object[i].vy * damage_multiplier))
+                            return;
+                    }
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
             }
             else if (hit_left)
             {
-                // TODO inflict damage if necessary
                 object[i].y = 16*(y_tile-1);
-                if (x_delta > 13.0f && object[i].vx > 0)
+                if (hit_left/2 == Damaging/2)
+                    goto maybe_ouch_left;
+                else if (x_delta > 13.0f && object[i].vx > 0)
                 {
                     // about to fall off to the right:
                     // decide what to do based on edge behavior
@@ -1073,8 +1150,6 @@ void object_run_commands(int i)
                         case 10:
                         case 11:
                             // turn around
-                            // TODO: this doesn't seem to help a player 
-                            // who is trying to avoid jumping off the ledge...
                             object[i].x = (x_tile+1)*16.0f - 3.0f;
                             object[i].vx *= -1;
                             object[i].sprite_index = (object[i].sprite_index/8)*8 + 
@@ -1120,8 +1195,6 @@ void object_run_commands(int i)
                             object[i].properties &= ~IN_AIR;
                             break;
                         default: // 8 or lower
-                            // here is just simple fall off:
-                            //message("fell off right edge %f\n", object[i].x);
                             object[i].x = (x_tile+1)*16.0f;
                             if (object[i].vx < 1.0f)
                                 object[i].vx = 0;
@@ -1129,13 +1202,20 @@ void object_run_commands(int i)
                 }
                 else
                 {
-                    //if (hit_left < 0)
-                    //    message("need to add hurt damage here\n");
+                    maybe_ouch_left:
+                    if (hit_left == SuperDamaging)
+                    {
+                        if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
+                            return;
+                    }
+                    else if (hit_left == Damaging)
+                    {
+                        if (damage_sprite(i, object[i].vy * damage_multiplier))
+                            return;
+                    }
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
-                if (hit_left > 1)
-                    message("need to add hurt damage here for %d!\n", i);
             }
         }
     }
@@ -1153,9 +1233,14 @@ void object_run_commands(int i)
             case Passable:
                 break;
             case Damaging:
+                if (damage_sprite(i, -object[i].vy * damage_multiplier))
+                    return;
+                goto down_even_normal;
             case SuperDamaging:
-                message("need to add hurt BUMP HEAD damage here to %d!\n", i);
+                if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
+                    return;
             case Normal:
+                down_even_normal:
                 object[i].y = 16*(y_tile+1);
                 object[i].vy = 0;
                 break;
@@ -1170,6 +1255,7 @@ void object_run_commands(int i)
             {
                 if (hit_right)
                 {
+                    float old_vy = -object[i].vy;
                     int hurt = 0;
                     switch (hit_right)
                     {
@@ -1197,9 +1283,8 @@ void object_run_commands(int i)
                         object[i].vy = 0;
                         break;
                     }
-                    // TODO check hurt!
-                    if (hurt)
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (hurt && damage_sprite(i, old_vy*damage_multiplier*(hurt/2+1)))
+                        return;
                 }
                 else if (x_delta > 13.0f)
                 {
@@ -1213,9 +1298,14 @@ void object_run_commands(int i)
                 case Passable:
                     break;
                 case Damaging:
+                    if (damage_sprite(i, -object[i].vy * damage_multiplier))
+                        return;
+                    goto down_left_normal;
                 case SuperDamaging:
-                    message("need to add hurt damage here!\n");
+                    if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
+                        return;
                 case Normal:
+                    down_left_normal:
                     object[i].y = 16*(y_tile+1);
                     object[i].vy = 0;
                     break;
@@ -1235,9 +1325,14 @@ void object_run_commands(int i)
                 case Passable:
                     break;
                 case Damaging:
+                    if (damage_sprite(i, -object[i].vy * damage_multiplier))
+                        return;
+                    goto down_right_normal;
                 case SuperDamaging:
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
+                        return;
                 case Normal:
+                    down_right_normal:
                     object[i].y = 16*(y_tile+1);
                     object[i].vy = 0;
                     break;
@@ -1271,9 +1366,14 @@ void object_run_commands(int i)
             case Passable:
                 break;
             case Damaging:
+                if (damage_sprite(i, object[i].vx * damage_multiplier))
+                    return;
+                goto left_even_normal;
             case SuperDamaging:
-                message("need to add hurt damage here for %d!\n", i);
+                if (damage_sprite(i, object[i].vx * damage_multiplier * 2.0f))
+                    return;
             case Normal:
+                left_even_normal:
                 object[i].x = 16*(x_tile-1);
                 object[i].vx = 0;
                 break;
@@ -1314,24 +1414,25 @@ void object_run_commands(int i)
                         object[i].vx = 0;
                         break;
                     }
-                    // TODO
-                    // make hurt
-                    if (hurt)
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (hurt && damage_sprite(i, old_vx*damage_multiplier*(hurt/2+1)))
+                        return;
                 }
                 else if (y_delta > 13.0f)
-                {
                     object[i].y = 16*(y_tile+1);
-                }
                 else
                 switch (hit_up)
                 {
                 case Passable:
                     break;
                 case Damaging:
+                    if (damage_sprite(i, object[i].vx * damage_multiplier))
+                        return;
+                    goto left_up_normal;
                 case SuperDamaging:
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (damage_sprite(i, object[i].vx * damage_multiplier * 2.0f))
+                        return;
                 case Normal:
+                    left_up_normal:
                     object[i].x = 16*(x_tile-1);
                     object[i].vx = 0;
                     break;
@@ -1349,9 +1450,14 @@ void object_run_commands(int i)
                 case Passable:
                     break;
                 case Damaging:
+                    if (damage_sprite(i, object[i].vx * damage_multiplier))
+                        return;
+                    goto left_down_normal;
                 case SuperDamaging:
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (damage_sprite(i, object[i].vx * damage_multiplier * 2.0f))
+                        return;
                 case Normal:
+                    left_down_normal:
                     object[i].x = 16*(x_tile-1);
                     object[i].vx = 0;
                     break;
@@ -1392,9 +1498,14 @@ void object_run_commands(int i)
             case Passable:
                 break;
             case Damaging:
+                if (damage_sprite(i, -object[i].vx * damage_multiplier))
+                    return;
+                goto right_even_normal;
             case SuperDamaging:
-                message("need to add hurt damage here for %d!\n", i);
+                if (damage_sprite(i, -object[i].vx * damage_multiplier * 2.0f))
+                    return;
             case Normal:
+                right_even_normal:
                 object[i].x = 16*(x_tile+1);
                 object[i].vx = 0;
                 break;
@@ -1435,24 +1546,25 @@ void object_run_commands(int i)
                         object[i].vx = 0;
                         break;
                     }
-                    // TODO
-                    // make hurt
-                    if (hurt)
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (hurt && damage_sprite(i, -old_vx*damage_multiplier*(hurt/2+1)))
+                        return;
                 }
                 else if (y_delta > 13.0f)
-                {
                     object[i].y = 16*(y_tile+1);
-                }
                 else
                 switch (hit_up)
                 {
                 case Passable:
                     break;
                 case Damaging:
+                    if (damage_sprite(i, -object[i].vx * damage_multiplier))
+                        return;
+                    goto right_up_normal;
                 case SuperDamaging:
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (damage_sprite(i, -object[i].vx * damage_multiplier * 2.0f))
+                        return;
                 case Normal:
+                    right_up_normal:
                     object[i].x = 16*(x_tile+1);
                     object[i].vx = 0;
                     break;
@@ -1461,18 +1573,21 @@ void object_run_commands(int i)
             else if (hit_down)
             {
                 if (y_delta < 3.0f)
-                {
                     object[i].y = 16*(y_tile);
-                }
                 else
                 switch (hit_down)
                 {
                 case Passable:
                     break;
                 case Damaging:
+                    if (damage_sprite(i, -object[i].vx * damage_multiplier))
+                        return;
+                    goto right_down_normal;
                 case SuperDamaging:
-                    message("need to add hurt damage here for %d!\n", i);
+                    if (damage_sprite(i, -object[i].vx * damage_multiplier * 2.0f))
+                        return;
                 case Normal:
+                    right_down_normal:
                     object[i].x = 16*(x_tile+1);
                     object[i].vx = 0;
                     break;
@@ -1605,8 +1720,8 @@ void object_run_commands(int i)
                 case UP:
                     object[i].vy = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                     object[i].vx = 0;
-                    // TODO: in platformer only:
-                    object[i].properties |= IN_AIR;
+                    if (gravity)
+                        object[i].properties |= IN_AIR;
                     break;
                 case LEFT:
                     object[i].vy = 0;
@@ -1651,7 +1766,7 @@ void object_run_commands(int i)
                 if (!(gamepad_buttons[p] & (gamepad_up | gamepad_down | gamepad_left | gamepad_right)))
                 {
                     object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                    if ((object[i].properties & GHOSTING) || 0) // for non-platformer
+                    if ((object[i].properties & GHOSTING) || !gravity) // for non-platformer
                     {
                         object[i].vy /= DECELERATION_MULTIPLIER*(1 + (object[i].edge_accel>>6));
                     }
@@ -1678,7 +1793,7 @@ void object_run_commands(int i)
                         break;
                     }
                     case 2:
-                    if ((object[i].properties & GHOSTING) || 0) // 0 = non-platformer
+                    if ((object[i].properties & GHOSTING) || !gravity) // non-platformer
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
@@ -1693,7 +1808,7 @@ void object_run_commands(int i)
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
-                        if ((object[i].properties & GHOSTING) || 0)
+                        if ((object[i].properties & GHOSTING) || !gravity)
                         {
                             float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                             if (object[i].vy > vy_limit)
@@ -1755,7 +1870,7 @@ void object_run_commands(int i)
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))*ACCELERATION_MULTIPLIER;
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
-                        if ((object[i].properties & GHOSTING) || 0) // check for non-platformer
+                        if ((object[i].properties & GHOSTING) || !gravity) // check for non-platformer
                         {
                             float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                             if (object[i].vy < vy_limit)
@@ -1768,7 +1883,7 @@ void object_run_commands(int i)
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
-                        if ((object[i].properties & GHOSTING) || 0)
+                        if ((object[i].properties & GHOSTING) || !gravity)
                         {
                             float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                             if (object[i].vy > vy_limit)
@@ -1776,7 +1891,7 @@ void object_run_commands(int i)
                         }
                     }
                 }
-                else if ((object[i].properties & GHOSTING) || 0) // 0 = non-platformer
+                else if ((object[i].properties & GHOSTING) || !gravity) // non-platformer
                 {
                     object[i].vy /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
                 }
@@ -1890,7 +2005,7 @@ void object_run_commands(int i)
                         break;
                     j = create_object(8*param + RIGHT*2, object[i].x+16, object[i].y, 1);
                     vx += (object[i].speed_jump&15)*THROW_MULTIPLIER;
-                    if (!0) // platformer
+                    if (gravity) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
                     break;
                 case UP:
@@ -1903,7 +2018,7 @@ void object_run_commands(int i)
                         break;
                     j = create_object(8*param + UP*2, object[i].x, object[i].y-16, 1);
                     vy -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
-                    if (!0) // platformer
+                    if (gravity) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER/2;
                     break;
                 case LEFT:
@@ -1916,7 +2031,7 @@ void object_run_commands(int i)
                         break;
                     j = create_object(8*param + LEFT*2, object[i].x-16, object[i].y, 1);
                     vx -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
-                    if (!0) // platformer
+                    if (gravity) // platformer
                         vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
                     break;
                 case DOWN:

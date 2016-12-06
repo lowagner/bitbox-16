@@ -6,8 +6,6 @@
 
 #include <stdlib.h> // rand
 
-float gravity CCM_MEMORY;
-
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[128][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
 uint8_t sprite_pattern[16][32] CCM_MEMORY; 
@@ -49,12 +47,10 @@ void sprites_init()
     first_free_object_index = 0;
     first_used_object_index = 255;
 
-    gravity = 1.0f;
-    
     drawing_count = 0;
 }
 
-void make_unseen_object_viewable(uint8_t i)
+void make_unseen_object_viewable(int i)
 {
     // object is viewable, but hasn't gone on the drawing list:
     object[i].iy = object[i].y - tile_map_y;
@@ -94,6 +90,7 @@ uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z)
 
     // add in object properties
     object[i].sprite_index = sprite_index;
+    object[i].health_blink = 15;
     object[i].y = y;
     object[i].x = x;
     object[i].z = z;
@@ -174,11 +171,11 @@ void update_object_image(int i)
     }
 }
 
-void remove_object(uint8_t index)
+void remove_object(int index)
 {
     // free the object by linking previous indices to next indices and vice versa:
-    uint8_t previous_index = object[index].previous_object_index;
-    uint8_t next_index = object[index].next_object_index;
+    int previous_index = object[index].previous_object_index;
+    int next_index = object[index].next_object_index;
     if (previous_index == 255)
         // we were at the head of the list, update root:
         first_used_object_index = next_index;
@@ -196,7 +193,7 @@ void remove_object(uint8_t index)
         remove_object_from_view(index);
 }
 
-void remove_object_from_view(uint8_t i)
+void remove_object_from_view(int i)
 {
     for (int k=object[i].draw_order_index+1; k<drawing_count; ++k)
     {
@@ -215,11 +212,12 @@ void remove_object_from_view(uint8_t i)
 
 void update_objects()
 {
-    int index = first_used_object_index;
-    while (index < 255)
+    int index;
+    int next_index = first_used_object_index;
+    while ((index=next_index) < 255)
     {
+        next_index = object[index].next_object_index;
         update_object(index);
-        index = object[index].next_object_index;
     }
 }
 
@@ -257,17 +255,18 @@ void sprites_line()
         uint8_t *U8 = U8row + 15 + o->ix;
         uint8_t *src = &sprite_draw[o->sprite_index][sprite_draw_row][0]-1;
         int invisible_color = sprite_info[o->sprite_index] & 31;
+        int offset = ((o->health_blink&240) && (vga_frame/8%2)) ? 16 : 0;
         for (int pxl=0; pxl<8; ++pxl)
         {
             int two_color = *(++src);
             int color = two_color&15;
             if (color != invisible_color)
-                *++U8 = color; // &65535; // unnecessary...
+                *++U8 = color | offset; 
             else
                 ++U8; 
             color = two_color>>4;
             if (color != invisible_color)
-                *++U8 = color; // &65535; // unnecessary...
+                *++U8 = color | offset;
             else
                 ++U8; 
         }

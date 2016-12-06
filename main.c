@@ -15,6 +15,7 @@
 #include "run.h"
 #include "io.h"
 #include "go-sprite.h"
+#include "unlocks.h"
 
 #include "string.h" // memcpy
 
@@ -49,6 +50,7 @@ void game_init()
     verse_init();
     chip_init();
     instrument_init();
+    unlocks_init();
 
     // now load everything else
     if (io_get_recent_filename())

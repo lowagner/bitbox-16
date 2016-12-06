@@ -25,7 +25,10 @@ typedef enum {
     Unlock3=13,
     Checkpoint=14,
     Win=15,
-    Warp=16 // don't try to pack this in yourself, used in hit testing
+    Warp1=16, // don't try to pack this in yourself, used in hit testing
+    Warp2=17, // same here, and for the rest of the enum..
+    Warp3=18, 
+    Jump=19
 } SideType; // no more than 16 total types
 
 #include "tiles.h"
