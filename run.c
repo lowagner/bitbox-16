@@ -115,14 +115,16 @@ void run_controls()
     {
         // pause mode
         if (camera_index == 255)
-            goto load_main_menu;
+        {
+            run_paused = 0;
+            return;
+        }
         game_message[0] = 0;
         run_paused = 1 - run_paused;
         return;
     }
     if (GAMEPAD_PRESS(0, select))
     {
-        load_main_menu:
         game_message[0] = 0;
         previous_visual_mode = None;
         game_switch(SaveLoadScreen);

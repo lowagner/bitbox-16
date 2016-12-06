@@ -44,6 +44,13 @@ void go_reset()
 {
 }
 
+void set_checkpoint(int i)
+{
+    if (i != camera_index)
+        return;
+    message("checkpoint reached... TODO: do something\n");
+}
+
 void go_short_command_message(uint8_t *buffer, uint8_t cmd)
 {
     switch (cmd&15)
@@ -941,10 +948,141 @@ static inline int damage_sprite(int i, float damage)
     return 0; // sprite is ok, but blinking
 }
 
+int hit_topside(int i, int hit)
+{
+    switch (hit)
+    {
+        case Slippery:
+            object[i].properties |= SLIPPING;
+            break;
+        case SuperSlippery:
+            object[i].properties |= SUPER_SLIPPING;
+            break;
+        case Sticky:
+            object[i].vx /= (1.0f + 0.5f*object[i].vy);
+            object[i].properties |= STICKING;
+            break;
+        case SuperSticky:
+            object[i].vx /= (1.0f + object[i].vy);
+            object[i].properties |= SUPER_STICKING;
+            break;
+        case Bouncy:
+            object[i].vy *= -0.5;
+            return 0;
+        case SuperBouncy:
+            object[i].vy *= -1;
+            return 0;
+        case Damaging:
+            if (damage_sprite(i, object[i].vy * damage_multiplier))
+                return -1;
+            break;
+        case SuperDamaging:
+            if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
+                return -1;
+            break;
+        case Unlock0:
+            set_unlock(i, 0);
+            break;
+        case Unlock1:
+            set_unlock(i, 1);
+            break;
+        case Unlock2:
+            set_unlock(i, 2);
+            break;
+        case Unlock3:
+            set_unlock(i, 3);
+            break;
+        case Checkpoint:
+            set_checkpoint(i);
+            break;
+        case Win:
+            unlocks_win(i);
+            break;
+        default:
+            break;
+    }
+    return 1;
+}
+
+static inline int compare_hit_top_on_left_right(int i, float x_delta, int hit_left, int hit_right)
+{
+    // return 1 if you want to cancel y momentum, otherwise 0 (for bounces), -1 for death
+    if (x_delta < 8.0f)
+        return hit_topside(i, hit_left);
+    else
+        return hit_topside(i, hit_right);
+}
+
+int hit_bottomside(int i, int hit)
+{
+    switch (hit)
+    {
+        case Slippery:
+            object[i].properties |= SLIPPING;
+            break;
+        case SuperSlippery:
+            object[i].properties |= SUPER_SLIPPING;
+            break;
+        case Sticky:
+            object[i].vx /= (1.0f + 0.5f*object[i].vy);
+            object[i].properties |= STICKING;
+            break;
+        case SuperSticky:
+            object[i].vx /= (1.0f + object[i].vy);
+            object[i].properties |= SUPER_STICKING;
+            break;
+        case Bouncy:
+            object[i].vy *= -0.5;
+            return 0;
+        case SuperBouncy:
+            object[i].vy *= -1;
+            return 0;
+        case Damaging:
+            if (damage_sprite(i, -object[i].vy * damage_multiplier))
+                return -1;
+            break;
+        case SuperDamaging:
+            if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
+                return -1;
+            break;
+        case Unlock0:
+            set_unlock(i, 0);
+            break;
+        case Unlock1:
+            set_unlock(i, 1);
+            break;
+        case Unlock2:
+            set_unlock(i, 2);
+            break;
+        case Unlock3:
+            set_unlock(i, 3);
+            break;
+        case Checkpoint:
+            set_checkpoint(i);
+            break;
+        case Win:
+            unlocks_win(i);
+            break;
+        default:
+            break;
+    }
+    return 1;
+}
+
+static inline int compare_hit_bottom_on_left_right(int i, float x_delta, int hit_left, int hit_right)
+{
+    // return 1 if you want to cancel y momentum, otherwise 0 (for bounces), -1 for death
+    if (x_delta < 8.0f)
+        return hit_bottomside(i, hit_left);
+    else
+        return hit_bottomside(i, hit_right);
+}
+
 void object_run_commands(int i) 
 {
     // update position here, too
     object[i].properties |= IN_AIR; // assume you're flying until you're not...
+    object[i].properties &= ~(SLIPPING|SUPER_SLIPPING|STICKING|SUPER_STICKING); // assume you're not slipping or sticking, until we find out as much
     if (object[i].health_blink&240)
     {
         if (vga_frame % 2)
@@ -1013,208 +1151,187 @@ void object_run_commands(int i)
         int y_tile = object[i].y/16 + 1;
         int x_tile = object[i].x/16;
         float x_delta = object[i].x - 16.0f*x_tile;
+        int hit_left = test_tile(x_tile, y_tile, UP);
+        int hit_right;
         if (x_delta == 0.0f)
         {
-            switch (test_tile(x_tile, y_tile, UP))
+            hit_right = Passable;
+            if (hit_left)
             {
-            case Passable:
-                break;
-            case Damaging:
-                if (damage_sprite(i, object[i].vy * damage_multiplier))
-                    return;
-                goto up_even_normal;
-            case SuperDamaging:
-                if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
-                    return;
-            case Normal:
-                up_even_normal:
                 object[i].y = 16*(y_tile-1);
-                object[i].vy = 0;
-                object[i].properties &= ~IN_AIR;
-                break;
+                goto test_top_left_block_only;
             }
         }
-        else
+        // else gotta test left and right tiles
+        else if ((hit_right = test_tile(x_tile+1, y_tile, UP)))
         {
-            // gotta test left and right tiles
-            int hit_left = test_tile(x_tile, y_tile, UP);
-            int hit_right = test_tile(x_tile+1, y_tile, UP);
-            if (hit_right)
+            object[i].y = 16*(y_tile-1);
+            if (hit_left)
             {
-                object[i].y = 16*(y_tile-1);
-                if (hit_left)
+                switch (compare_hit_top_on_left_right(i, x_delta, hit_left, hit_right))
                 {
-                    if (hit_right == SuperDamaging || hit_left == SuperDamaging)
-                    {
-                        if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
-                            return;
-                        
-                    }
-                    else if (hit_right == Damaging || hit_left == Damaging)
-                    {
-                        if (damage_sprite(i, object[i].vy * damage_multiplier))
-                            return;
-                    }
-                    object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
-                }
-                else if (hit_right/2 == Damaging)
-                    goto maybe_ouch_right;
-                else if (x_delta < 3.0f && object[i].vx < 0)
-                {
-                    // about to fall off to the left:
-                    // decide what to do based on edge behavior
-                    switch (object[i].edge_accel&15)
-                    {
-                        case 9:
-                        case 10:
-                        case 11:
-                            // turn around
-                            object[i].x = x_tile*16.0f + 3.0f;
-                            object[i].vx *= -1;
-                            object[i].sprite_index = (object[i].sprite_index/8)*8 + 
-                                (object[i].sprite_index + 4)%8;
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        case 12:
-                            // jump
-                            object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
-                            break;
-                        case 13:
-                            // turn around if low enough speed
-                            if (object[i].vx > -SPEED_MULTIPLIER)
-                            {
-                                object[i].x = x_tile*16.0f + 3.0f;
-                                object[i].vx *= -1; 
-                                object[i].sprite_index = (object[i].sprite_index/8)*8 + 
-                                    (object[i].sprite_index + 4)%8;
-                            }
-                            else
-                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        case 14:
-                            // stop if small enough speed
-                            if (object[i].vx > -SPEED_MULTIPLIER)
-                            {
-                                object[i].x = x_tile*16.0f + 3.0f;
-                                object[i].vx = 0; 
-                            }
-                            else
-                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        case 15:
-                            // stop no matter what
-                            object[i].x = x_tile*16.0f + 3.0f;
-                            object[i].vx = 0;
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        default: // 8 or lower
-                            object[i].x = x_tile*16.0f;
-                            if (object[i].vx > -1.0f)
-                                object[i].vx = 0;
-                    }
-                }
-                else
-                {
-                    maybe_ouch_right:
-                    if (hit_right == SuperDamaging)
-                    {
-                        if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
-                            return;
-                    }
-                    else if (hit_right == Damaging)
-                    {
-                        if (damage_sprite(i, object[i].vy * damage_multiplier))
-                            return;
-                    }
-                    object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    case -1:
+                        return;
+                    case 1:
+                        object[i].vy = 0;
+                        object[i].properties &= ~IN_AIR;
+                    // else do nothing, player bounced
                 }
             }
-            else if (hit_left)
+            else if (x_delta < 3.0f && object[i].vx < 0)
+            // about to fall off to the left:
+            // decide what to do based on edge behavior
+            switch (object[i].edge_accel&15)
             {
-                object[i].y = 16*(y_tile-1);
-                if (hit_left/2 == Damaging/2)
-                    goto maybe_ouch_left;
-                else if (x_delta > 13.0f && object[i].vx > 0)
-                {
-                    // about to fall off to the right:
-                    // decide what to do based on edge behavior
-                    switch (object[i].edge_accel&15)
+                case 9:
+                case 10:
+                case 11:
+                    // turn around, if the current field doesn't look terrible
+                    if (hit_right/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_left;
+                    object[i].x = x_tile*16.0f + 3.0f;
+                    object[i].vx *= -1;
+                    object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                        (object[i].sprite_index + 4)%8;
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                case 12:
+                    // jump
+                    object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                    break;
+                case 13:
+                    // turn around if low enough speed
+                    if (hit_right/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_left;
+                    if (object[i].vx > -SPEED_MULTIPLIER)
                     {
-                        case 9:
-                        case 10:
-                        case 11:
-                            // turn around
+                        object[i].x = x_tile*16.0f + 3.0f;
+                        object[i].vx *= -1; 
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                            (object[i].sprite_index + 4)%8;
+                    }
+                    else
+                        object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                case 14:
+                    // stop if small enough speed
+                    if (hit_right/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_left;
+                    if (object[i].vx > -SPEED_MULTIPLIER)
+                    {
+                        object[i].x = x_tile*16.0f + 3.0f;
+                        object[i].vx = 0; 
+                    }
+                    else
+                        object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                case 15:
+                    if (hit_right/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_left;
+                    // stop no matter what
+                    object[i].x = x_tile*16.0f + 3.0f;
+                    object[i].vx = 0;
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                default: // 8 or lower
+                    fall_through_left:
+                    object[i].x = x_tile*16.0f;
+                    if (object[i].vx > -1.0f)
+                        object[i].vx = 0;
+            }
+            else switch (hit_topside(i, hit_right))
+            {
+                case -1:
+                    return;
+                case 1:
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+            }
+        }
+        else if (hit_left) // but not hit_right
+        {
+            object[i].y = 16*(y_tile-1);
+            if (x_delta > 13.0f && object[i].vx > 0)
+            {
+                // about to fall off to the right:
+                // decide what to do based on edge behavior, and what is currently here
+                switch (object[i].edge_accel&15)
+                {
+                    case 9:
+                    case 10:
+                    case 11:
+                        // turn around, if not in a damage field
+                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                            goto fall_through_right;
+                        object[i].x = (x_tile+1)*16.0f - 3.0f;
+                        object[i].vx *= -1;
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                            (object[i].sprite_index + 4)%8;
+                        object[i].vy = 0;
+                        object[i].properties &= ~IN_AIR;
+                        break;
+                    case 12:
+                        // jump
+                        object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                        break;
+                    case 13:
+                        // turn around if low enough speed
+                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                            goto fall_through_right;
+                        if (object[i].vx < SPEED_MULTIPLIER)
+                        {
                             object[i].x = (x_tile+1)*16.0f - 3.0f;
-                            object[i].vx *= -1;
+                            object[i].vx *= -1; 
                             object[i].sprite_index = (object[i].sprite_index/8)*8 + 
                                 (object[i].sprite_index + 4)%8;
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        case 12:
-                            // jump
-                            object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
-                            break;
-                        case 13:
-                            // turn around if low enough speed
-                            if (object[i].vx < SPEED_MULTIPLIER)
-                            {
-                                object[i].x = (x_tile+1)*16.0f - 3.0f;
-                                object[i].vx *= -1; 
-                                object[i].sprite_index = (object[i].sprite_index/8)*8 + 
-                                    (object[i].sprite_index + 4)%8;
-                            }
-                            else
-                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        case 14:
-                            // stop if small enough speed
-                            if (object[i].vx < SPEED_MULTIPLIER)
-                            {
-                                object[i].x = (x_tile+1)*16.0f - 3.0f;
-                                object[i].vx = 0; 
-                            }
-                            else
-                                object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        case 15:
-                            // stop no matter what
+                        }
+                        else
+                            object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                        object[i].vy = 0;
+                        object[i].properties &= ~IN_AIR;
+                        break;
+                    case 14:
+                        // stop if small enough speed
+                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                            goto fall_through_right;
+                        if (object[i].vx < SPEED_MULTIPLIER)
+                        {
                             object[i].x = (x_tile+1)*16.0f - 3.0f;
+                            object[i].vx = 0; 
+                        }
+                        else
+                            object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                        object[i].vy = 0;
+                        object[i].properties &= ~IN_AIR;
+                        break;
+                    case 15:
+                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                            goto fall_through_right;
+                        // stop no matter what
+                        object[i].x = (x_tile+1)*16.0f - 3.0f;
+                        object[i].vx = 0;
+                        object[i].vy = 0;
+                        object[i].properties &= ~IN_AIR;
+                        break;
+                    default: // 8 or lower
+                        fall_through_right:
+                        object[i].x = (x_tile+1)*16.0f;
+                        if (object[i].vx < 1.0f)
                             object[i].vx = 0;
-                            object[i].vy = 0;
-                            object[i].properties &= ~IN_AIR;
-                            break;
-                        default: // 8 or lower
-                            object[i].x = (x_tile+1)*16.0f;
-                            if (object[i].vx < 1.0f)
-                                object[i].vx = 0;
-                    }
                 }
-                else
+            }
+            else
+            {
+                test_top_left_block_only:
+                if (hit_topside(i, hit_left))
                 {
-                    maybe_ouch_left:
-                    if (hit_left == SuperDamaging)
-                    {
-                        if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
-                            return;
-                    }
-                    else if (hit_left == Damaging)
-                    {
-                        if (damage_sprite(i, object[i].vy * damage_multiplier))
-                            return;
-                    }
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                 }
@@ -1228,116 +1345,63 @@ void object_run_commands(int i)
         int y_tile = object[i].y/16;
         int x_tile = object[i].x/16;
         float x_delta = object[i].x - 16.0f*x_tile;
+        
+        int hit_left = test_tile(x_tile, y_tile, DOWN);
+        int hit_right;
         if (x_delta == 0.0f)
         {
-            switch (test_tile(x_tile, y_tile, DOWN))
-            {
-            case Passable:
-                break;
-            case Damaging:
-                if (damage_sprite(i, -object[i].vy * damage_multiplier))
-                    return;
-                goto down_even_normal;
-            case SuperDamaging:
-                if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
-                    return;
-            case Normal:
-                down_even_normal:
-                object[i].y = 16*(y_tile+1);
-                object[i].vy = 0;
-                break;
-            }
-        }
-        else
-        {
-            // gotta test left and right tiles
-            int hit_left = test_tile(x_tile, y_tile, DOWN);
-            int hit_right = test_tile(x_tile+1, y_tile, DOWN);
+            hit_right = Passable;
             if (hit_left)
             {
-                if (hit_right)
+                object[i].y = 16*(y_tile+1);
+                goto test_bottom_left_block_only;
+            }
+        }
+        // gotta test left and right tiles
+        else if ((hit_right = test_tile(x_tile+1, y_tile, DOWN)))
+        {
+            object[i].y = 16*(y_tile+1);
+            if (hit_left)
+            {
+                switch (compare_hit_bottom_on_left_right(i, x_delta, hit_left, hit_right))
                 {
-                    float old_vy = -object[i].vy;
-                    int hurt = 0;
-                    switch (hit_right)
-                    {
-                    case Passable:
-                        break;
-                    case SuperDamaging:
-                        hurt |= 2;
-                    case Damaging:
-                        hurt |= 1;
-                    case Normal:
-                        object[i].y = 16*(y_tile+1);
+                    case -1:
+                        return;
+                    case 1:
                         object[i].vy = 0;
-                        break;
-                    }
-                    switch (hit_left)
-                    {
-                    case Passable:
-                        break;
-                    case SuperDamaging:
-                        hurt |= 2;
-                    case Damaging:
-                        hurt |= 1;
-                    case Normal:
-                        object[i].y = 16*(y_tile+1);
-                        object[i].vy = 0;
-                        break;
-                    }
-                    if (hurt && damage_sprite(i, old_vy*damage_multiplier*(hurt/2+1)))
-                        return;
-                }
-                else if (x_delta > 13.0f)
-                {
-                    // be nice, jump into hole
-                    object[i].x = 16.0f*(x_tile+1);
-                    message("jumping up into hole\n");
-                }
-                else // just hit left
-                switch (hit_left)
-                {
-                case Passable:
-                    break;
-                case Damaging:
-                    if (damage_sprite(i, -object[i].vy * damage_multiplier))
-                        return;
-                    goto down_left_normal;
-                case SuperDamaging:
-                    if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
-                        return;
-                case Normal:
-                    down_left_normal:
-                    object[i].y = 16*(y_tile+1);
-                    object[i].vy = 0;
-                    break;
+                    // else do nothing, player bounced
                 }
             }
-            else if (hit_right)
+            else if (x_delta < 3.0f)
             {
-                if (x_delta < 3.0f)
-                {
-                    // be nice, jump into hole
-                    object[i].x = 16.0f*x_tile;
-                    message("jumping up into hole\n");
-                }
-                else
-                switch (hit_right)
-                {
-                case Passable:
-                    break;
-                case Damaging:
-                    if (damage_sprite(i, -object[i].vy * damage_multiplier))
-                        return;
-                    goto down_right_normal;
-                case SuperDamaging:
-                    if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
-                        return;
-                case Normal:
-                    down_right_normal:
-                    object[i].y = 16*(y_tile+1);
+                // be nice, jump into hole
+                object[i].x = 16.0f*x_tile;
+                message("jumping up into hole\n");
+            }
+            else switch (hit_bottomside(i, hit_right))
+            {
+                case -1:
+                    return;
+                case 1:
                     object[i].vy = 0;
                     break;
+            }
+        }
+        else if (hit_left) // but not hit_right
+        {
+            object[i].y = 16*(y_tile+1);
+            if (x_delta > 13.0f)
+            {
+                // be nice, jump up into hole
+                object[i].x = 16.0f*(x_tile+1);
+                message("jumping up into hole\n");
+            }
+            else
+            {
+                test_bottom_left_block_only:
+                if (hit_bottomside(i, hit_left))
+                {
+                    object[i].vy = 0;
                 }
             }
         }
