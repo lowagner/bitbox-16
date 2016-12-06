@@ -911,6 +911,8 @@ static inline int test_tile(int x, int y, int dir)
 
 static inline int damage_sprite(int i, float damage)
 {
+    if (object[i].properties & PROJECTILE)
+        goto kill_sprite;
     if (object[i].health_blink&240) // blinking protection
         return 0;
 
