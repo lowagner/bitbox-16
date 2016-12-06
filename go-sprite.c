@@ -948,8 +948,10 @@ static inline int damage_sprite(int i, float damage)
     return 0; // sprite is ok, but blinking
 }
 
-int hit_topside(int i, int hit)
+int hit_tile(int i, float momentum, int hit)
 {
+    // return 0 if you want to cancel momentum, otherwise 1 or 2 (for bounce/superbounce), -1 for death
+    float old_vx;
     switch (hit)
     {
         case Slippery:
@@ -959,25 +961,29 @@ int hit_topside(int i, int hit)
             object[i].properties |= SUPER_SLIPPING;
             break;
         case Sticky:
+            old_vx = object[i].vx;
             object[i].vx /= (1.0f + 0.5f*object[i].vy);
+            object[i].vy /= (1.0f + 0.5f*old_vx);
             object[i].properties |= STICKING;
             break;
         case SuperSticky:
+            old_vx = object[i].vx;
             object[i].vx /= (1.0f + object[i].vy);
+            object[i].vy /= (1.0f + old_vx);
             object[i].properties |= SUPER_STICKING;
             break;
         case Bouncy:
-            object[i].vy *= -0.5;
-            return 0;
+            message("got bouncy\n");
+            return 1;
         case SuperBouncy:
-            object[i].vy *= -1;
-            return 0;
+            message("got super bouncy\n");
+            return 2;
         case Damaging:
-            if (damage_sprite(i, object[i].vy * damage_multiplier))
+            if (damage_sprite(i, momentum * damage_multiplier))
                 return -1;
             break;
         case SuperDamaging:
-            if (damage_sprite(i, object[i].vy * damage_multiplier * 2.0f))
+            if (damage_sprite(i, momentum * damage_multiplier * 2.0f))
                 return -1;
             break;
         case Unlock0:
@@ -1001,81 +1007,16 @@ int hit_topside(int i, int hit)
         default:
             break;
     }
-    return 1;
+    return 0;
 }
 
-static inline int compare_hit_top_on_left_right(int i, float x_delta, int hit_left, int hit_right)
+static inline int compare_hit(int i, float y_momentum, float x_delta, int hit_left, int hit_right)
 {
-    // return 1 if you want to cancel y momentum, otherwise 0 (for bounces), -1 for death
+    // return 0 if you want to cancel y momentum, otherwise 1 or 2 (for bounce/superbounce), -1 for death
     if (x_delta < 8.0f)
-        return hit_topside(i, hit_left);
+        return hit_tile(i, y_momentum, hit_left);
     else
-        return hit_topside(i, hit_right);
-}
-
-int hit_bottomside(int i, int hit)
-{
-    switch (hit)
-    {
-        case Slippery:
-            object[i].properties |= SLIPPING;
-            break;
-        case SuperSlippery:
-            object[i].properties |= SUPER_SLIPPING;
-            break;
-        case Sticky:
-            object[i].vx /= (1.0f + 0.5f*object[i].vy);
-            object[i].properties |= STICKING;
-            break;
-        case SuperSticky:
-            object[i].vx /= (1.0f + object[i].vy);
-            object[i].properties |= SUPER_STICKING;
-            break;
-        case Bouncy:
-            object[i].vy *= -0.5;
-            return 0;
-        case SuperBouncy:
-            object[i].vy *= -1;
-            return 0;
-        case Damaging:
-            if (damage_sprite(i, -object[i].vy * damage_multiplier))
-                return -1;
-            break;
-        case SuperDamaging:
-            if (damage_sprite(i, -object[i].vy * damage_multiplier * 2.0f))
-                return -1;
-            break;
-        case Unlock0:
-            set_unlock(i, 0);
-            break;
-        case Unlock1:
-            set_unlock(i, 1);
-            break;
-        case Unlock2:
-            set_unlock(i, 2);
-            break;
-        case Unlock3:
-            set_unlock(i, 3);
-            break;
-        case Checkpoint:
-            set_checkpoint(i);
-            break;
-        case Win:
-            unlocks_win(i);
-            break;
-        default:
-            break;
-    }
-    return 1;
-}
-
-static inline int compare_hit_bottom_on_left_right(int i, float x_delta, int hit_left, int hit_right)
-{
-    // return 1 if you want to cancel y momentum, otherwise 0 (for bounces), -1 for death
-    if (x_delta < 8.0f)
-        return hit_bottomside(i, hit_left);
-    else
-        return hit_bottomside(i, hit_right);
+        return hit_tile(i, y_momentum, hit_right);
 }
 
 void object_run_commands(int i) 
@@ -1167,16 +1108,20 @@ void object_run_commands(int i)
         {
             object[i].y = 16*(y_tile-1);
             if (hit_left)
+            switch (compare_hit(i, object[i].vy, x_delta, hit_left, hit_right))
             {
-                switch (compare_hit_top_on_left_right(i, x_delta, hit_left, hit_right))
-                {
-                    case -1:
-                        return;
-                    case 1:
-                        object[i].vy = 0;
-                        object[i].properties &= ~IN_AIR;
-                    // else do nothing, player bounced
-                }
+                case -1:
+                    return;
+                case 0:
+                    object[i].vy = 0.0f;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                case 1: // bounce
+                    object[i].vy *= -0.5f;
+                    break;
+                default: // super bounce
+                    object[i].vy *= -1.0f;
+                    break;
             }
             else if (x_delta < 3.0f && object[i].vx < 0)
             // about to fall off to the left:
@@ -1245,13 +1190,19 @@ void object_run_commands(int i)
                     if (object[i].vx > -1.0f)
                         object[i].vx = 0;
             }
-            else switch (hit_topside(i, hit_right))
+            else switch (hit_tile(i, object[i].vy, hit_right))
             {
                 case -1:
                     return;
-                case 1:
-                    object[i].vy = 0;
+                case 0:
+                    object[i].vy = 0.0f;
                     object[i].properties &= ~IN_AIR;
+                    break;
+                case 1: // bounce
+                    object[i].vy *= -0.5f;
+                    break;
+                default: // super bounce
+                    object[i].vy *= -1.0f;
                     break;
             }
         }
@@ -1259,81 +1210,89 @@ void object_run_commands(int i)
         {
             object[i].y = 16*(y_tile-1);
             if (x_delta > 13.0f && object[i].vx > 0)
+            // about to fall off to the right:
+            // decide what to do based on edge behavior, and what is currently here
+            switch (object[i].edge_accel&15)
             {
-                // about to fall off to the right:
-                // decide what to do based on edge behavior, and what is currently here
-                switch (object[i].edge_accel&15)
-                {
-                    case 9:
-                    case 10:
-                    case 11:
-                        // turn around, if not in a damage field
-                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
-                            goto fall_through_right;
+                case 9:
+                case 10:
+                case 11:
+                    // turn around, if not in a damage field
+                    if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_right;
+                    object[i].x = (x_tile+1)*16.0f - 3.0f;
+                    object[i].vx *= -1;
+                    object[i].sprite_index = (object[i].sprite_index/8)*8 + 
+                        (object[i].sprite_index + 4)%8;
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                case 12:
+                    // jump
+                    object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
+                    break;
+                case 13:
+                    // turn around if low enough speed
+                    if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_right;
+                    if (object[i].vx < SPEED_MULTIPLIER)
+                    {
                         object[i].x = (x_tile+1)*16.0f - 3.0f;
-                        object[i].vx *= -1;
+                        object[i].vx *= -1; 
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 
                             (object[i].sprite_index + 4)%8;
-                        object[i].vy = 0;
-                        object[i].properties &= ~IN_AIR;
-                        break;
-                    case 12:
-                        // jump
-                        object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER;
-                        break;
-                    case 13:
-                        // turn around if low enough speed
-                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
-                            goto fall_through_right;
-                        if (object[i].vx < SPEED_MULTIPLIER)
-                        {
-                            object[i].x = (x_tile+1)*16.0f - 3.0f;
-                            object[i].vx *= -1; 
-                            object[i].sprite_index = (object[i].sprite_index/8)*8 + 
-                                (object[i].sprite_index + 4)%8;
-                        }
-                        else
-                            object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                        object[i].vy = 0;
-                        object[i].properties &= ~IN_AIR;
-                        break;
-                    case 14:
-                        // stop if small enough speed
-                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
-                            goto fall_through_right;
-                        if (object[i].vx < SPEED_MULTIPLIER)
-                        {
-                            object[i].x = (x_tile+1)*16.0f - 3.0f;
-                            object[i].vx = 0; 
-                        }
-                        else
-                            object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
-                        object[i].vy = 0;
-                        object[i].properties &= ~IN_AIR;
-                        break;
-                    case 15:
-                        if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
-                            goto fall_through_right;
-                        // stop no matter what
+                    }
+                    else
+                        object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                case 14:
+                    // stop if small enough speed
+                    if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_right;
+                    if (object[i].vx < SPEED_MULTIPLIER)
+                    {
                         object[i].x = (x_tile+1)*16.0f - 3.0f;
+                        object[i].vx = 0; 
+                    }
+                    else
+                        object[i].vx /= (1 + DECELERATION_MULTIPLIER*(object[i].edge_accel>>6));
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                case 15:
+                    if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
+                        goto fall_through_right;
+                    // stop no matter what
+                    object[i].x = (x_tile+1)*16.0f - 3.0f;
+                    object[i].vx = 0;
+                    object[i].vy = 0;
+                    object[i].properties &= ~IN_AIR;
+                    break;
+                default: // 8 or lower
+                    fall_through_right:
+                    object[i].x = (x_tile+1)*16.0f;
+                    if (object[i].vx < 1.0f)
                         object[i].vx = 0;
-                        object[i].vy = 0;
-                        object[i].properties &= ~IN_AIR;
-                        break;
-                    default: // 8 or lower
-                        fall_through_right:
-                        object[i].x = (x_tile+1)*16.0f;
-                        if (object[i].vx < 1.0f)
-                            object[i].vx = 0;
-                }
             }
             else
             {
                 test_top_left_block_only:
-                if (hit_topside(i, hit_left))
+                switch (hit_tile(i, object[i].vy, hit_left))
                 {
-                    object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    case -1:
+                        return;
+                    case 0:
+                        object[i].vy = 0.0f;
+                        object[i].properties &= ~IN_AIR;
+                        break;
+                    case 1: // bounce
+                        object[i].vy *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vy *= -1.0f;
+                        break;
                 }
             }
         }
@@ -1352,56 +1311,79 @@ void object_run_commands(int i)
         {
             hit_right = Passable;
             if (hit_left)
-            {
-                object[i].y = 16*(y_tile+1);
                 goto test_bottom_left_block_only;
-            }
         }
         // gotta test left and right tiles
         else if ((hit_right = test_tile(x_tile+1, y_tile, DOWN)))
         {
-            object[i].y = 16*(y_tile+1);
             if (hit_left)
             {
-                switch (compare_hit_bottom_on_left_right(i, x_delta, hit_left, hit_right))
+                object[i].y = 16*(y_tile+1);
+                switch (compare_hit(i, -object[i].vy, x_delta, hit_left, hit_right))
                 {
                     case -1:
                         return;
-                    case 1:
-                        object[i].vy = 0;
-                    // else do nothing, player bounced
+                    case 0:
+                        object[i].vy = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vy *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vy *= -1.0f;
+                        break;
                 }
             }
-            else if (x_delta < 3.0f)
+            else if (x_delta < 3.0f) // hit right but not left
             {
                 // be nice, jump into hole
                 object[i].x = 16.0f*x_tile;
-                message("jumping up into hole\n");
+                message("jumping up into left hole\n");
             }
-            else switch (hit_bottomside(i, hit_right))
+            else 
             {
-                case -1:
-                    return;
-                case 1:
-                    object[i].vy = 0;
-                    break;
+                object[i].y = 16*(y_tile+1);
+                switch (hit_tile(i, -object[i].vy, hit_right))
+                {
+                    case -1:
+                        return;
+                    case 0:
+                        object[i].vy = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vy *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vy *= -1.0f;
+                        break;
+                }
             }
         }
         else if (hit_left) // but not hit_right
         {
-            object[i].y = 16*(y_tile+1);
             if (x_delta > 13.0f)
             {
                 // be nice, jump up into hole
                 object[i].x = 16.0f*(x_tile+1);
-                message("jumping up into hole\n");
+                message("jumping up into right hole\n");
             }
             else
             {
                 test_bottom_left_block_only:
-                if (hit_bottomside(i, hit_left))
+                object[i].y = 16*(y_tile+1);
+                switch (hit_tile(i, -object[i].vy, hit_left))
                 {
-                    object[i].vy = 0;
+                    case -1:
+                        return;
+                    case 0:
+                        object[i].vy = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vy *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vy *= -1.0f;
+                        break;
                 }
             }
         }
@@ -1425,108 +1407,76 @@ void object_run_commands(int i)
         int x_tile = object[i].x/16 + 1;
         int y_tile = object[i].y/16;
         float y_delta = object[i].y - 16.0f*y_tile;
+        int hit_up = test_tile(x_tile, y_tile, LEFT);
+        int hit_down;
         if (y_delta == 0.0f)
         {
-            switch (test_tile(x_tile, y_tile, LEFT))
-            {
-            case Passable:
-                break;
-            case Damaging:
-                if (damage_sprite(i, object[i].vx * damage_multiplier))
-                    return;
-                goto left_even_normal;
-            case SuperDamaging:
-                if (damage_sprite(i, object[i].vx * damage_multiplier * 2.0f))
-                    return;
-            case Normal:
-                left_even_normal:
-                object[i].x = 16*(x_tile-1);
-                object[i].vx = 0;
-                break;
-            }
+            hit_down = Passable;
+            if (hit_up)
+                goto test_right_top_block_only;
         }
-        else
+        else if ((hit_down = test_tile(x_tile, y_tile+1, LEFT)))
         {
-            int hit_up = test_tile(x_tile, y_tile, LEFT);
-            int hit_down = test_tile(x_tile, y_tile+1, LEFT);
             if (hit_up)
             {
-                if (hit_down)
+                object[i].x = 16*(x_tile-1);
+                switch (compare_hit(i, object[i].vx, y_delta, hit_up, hit_down))
                 {
-                    int hurt = 0;
-                    switch (hit_up)
-                    {
-                    case Passable:
-                        break;
-                    case SuperDamaging:
-                        hurt |= 2;
-                    case Damaging:
-                        hurt |= 1;
-                    case Normal:
-                        object[i].x = 16*(x_tile-1);
-                        object[i].vx = 0;
-                        break;
-                    }
-                    switch (hit_down)
-                    {
-                    case Passable:
-                        break;
-                    case SuperDamaging:
-                        hurt |= 2;
-                    case Damaging:
-                        hurt |= 1;
-                    case Normal:
-                        object[i].x = 16*(x_tile-1);
-                        object[i].vx = 0;
-                        break;
-                    }
-                    if (hurt && damage_sprite(i, old_vx*damage_multiplier*(hurt/2+1)))
+                    case -1:
                         return;
-                }
-                else if (y_delta > 13.0f)
-                    object[i].y = 16*(y_tile+1);
-                else
-                switch (hit_up)
-                {
-                case Passable:
-                    break;
-                case Damaging:
-                    if (damage_sprite(i, object[i].vx * damage_multiplier))
-                        return;
-                    goto left_up_normal;
-                case SuperDamaging:
-                    if (damage_sprite(i, object[i].vx * damage_multiplier * 2.0f))
-                        return;
-                case Normal:
-                    left_up_normal:
-                    object[i].x = 16*(x_tile-1);
-                    object[i].vx = 0;
-                    break;
+                    case 0:
+                        object[i].vx = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vx *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vx *= -1.0f;
+                        break;
                 }
             }
-            else if (hit_down)
+            else if (y_delta < 3.0f) // nothing above, squeeze up there
+                object[i].y = 16*(y_tile);
+            else 
             {
-                if (y_delta < 3.0f)
+                object[i].x = 16*(x_tile-1);
+                switch (hit_tile(i, object[i].vx, hit_down))
                 {
-                    object[i].y = 16*(y_tile);
+                    case -1:
+                        return;
+                    case 0:
+                        object[i].vx = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vx *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vx *= -1.0f;
+                        break;
                 }
-                else
-                switch (hit_down)
+            }
+        }
+        else if (hit_up)
+        {
+            if (y_delta > 13.0f) // nothing below, squeeze down there
+                object[i].y = 16*(y_tile+1);
+            else
+            {
+                test_right_top_block_only:
+                object[i].x = 16*(x_tile-1);
+                switch (hit_tile(i, object[i].vx, hit_up))
                 {
-                case Passable:
-                    break;
-                case Damaging:
-                    if (damage_sprite(i, object[i].vx * damage_multiplier))
+                    case -1:
                         return;
-                    goto left_down_normal;
-                case SuperDamaging:
-                    if (damage_sprite(i, object[i].vx * damage_multiplier * 2.0f))
-                        return;
-                case Normal:
-                    left_down_normal:
-                    object[i].x = 16*(x_tile-1);
-                    object[i].vx = 0;
-                    break;
+                    case 0:
+                        object[i].vx = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vx *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vx *= -1.0f;
+                        break;
                 }
             }
         }
@@ -1557,108 +1507,79 @@ void object_run_commands(int i)
         int x_tile = object[i].x/16;
         int y_tile = object[i].y/16;
         float y_delta = object[i].y - 16.0f*y_tile;
+        int hit_up = test_tile(x_tile, y_tile, RIGHT);
+        int hit_down;
         if (y_delta == 0.0f)
         {
-            switch (test_tile(x_tile, y_tile, RIGHT))
-            {
-            case Passable:
-                break;
-            case Damaging:
-                if (damage_sprite(i, -object[i].vx * damage_multiplier))
-                    return;
-                goto right_even_normal;
-            case SuperDamaging:
-                if (damage_sprite(i, -object[i].vx * damage_multiplier * 2.0f))
-                    return;
-            case Normal:
-                right_even_normal:
-                object[i].x = 16*(x_tile+1);
-                object[i].vx = 0;
-                break;
-            }
+            hit_down = Passable;
+            if (hit_up)
+                goto test_left_top_block_only;
         }
-        else
+        else if ((hit_down = test_tile(x_tile, y_tile+1, RIGHT)))
         {
-            int hit_up = test_tile(x_tile, y_tile, RIGHT);
-            int hit_down = test_tile(x_tile, y_tile+1, RIGHT);
             if (hit_up)
             {
-                if (hit_down)
+                object[i].x = 16*(x_tile+1);
+                switch (compare_hit(i, -object[i].vx, y_delta, hit_up, hit_down))
                 {
-                    int hurt = 0;
-                    switch (hit_up)
-                    {
-                    case Passable:
-                        break;
-                    case SuperDamaging:
-                        hurt |= 2;
-                    case Damaging:
-                        hurt |= 1;
-                    case Normal:
-                        object[i].x = 16*(x_tile+1);
-                        object[i].vx = 0;
-                        break;
-                    }
-                    switch (hit_down)
-                    {
-                    case Passable:
-                        break;
-                    case SuperDamaging:
-                        hurt |= 2;
-                    case Damaging:
-                        hurt |= 1;
-                    case Normal:
-                        object[i].x = 16*(x_tile+1);
-                        object[i].vx = 0;
-                        break;
-                    }
-                    if (hurt && damage_sprite(i, -old_vx*damage_multiplier*(hurt/2+1)))
+                    case -1:
                         return;
-                }
-                else if (y_delta > 13.0f)
-                    object[i].y = 16*(y_tile+1);
-                else
-                switch (hit_up)
-                {
-                case Passable:
-                    break;
-                case Damaging:
-                    if (damage_sprite(i, -object[i].vx * damage_multiplier))
-                        return;
-                    goto right_up_normal;
-                case SuperDamaging:
-                    if (damage_sprite(i, -object[i].vx * damage_multiplier * 2.0f))
-                        return;
-                case Normal:
-                    right_up_normal:
-                    object[i].x = 16*(x_tile+1);
-                    object[i].vx = 0;
-                    break;
+                    case 0:
+                        object[i].vx = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vx *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vx *= -1.0f;
+                        break;
                 }
             }
-            else if (hit_down)
+            else if (y_delta < 3.0f)
+                object[i].y = 16*(y_tile);
+            else
             {
-                if (y_delta < 3.0f)
-                    object[i].y = 16*(y_tile);
-                else
-                switch (hit_down)
+                object[i].x = 16*(x_tile+1);
+                switch (hit_tile(i, -object[i].vx, hit_down))
                 {
-                case Passable:
-                    break;
-                case Damaging:
-                    if (damage_sprite(i, -object[i].vx * damage_multiplier))
+                    case -1:
                         return;
-                    goto right_down_normal;
-                case SuperDamaging:
-                    if (damage_sprite(i, -object[i].vx * damage_multiplier * 2.0f))
-                        return;
-                case Normal:
-                    right_down_normal:
-                    object[i].x = 16*(x_tile+1);
-                    object[i].vx = 0;
-                    break;
+                    case 0:
+                        object[i].vx = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vx *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vx *= -1.0f;
+                        break;
                 }
             }
+        }
+        else if (hit_up)
+        {
+            if (y_delta > 13.0f)
+                object[i].y = 16*(y_tile+1);
+            else
+            {
+                test_left_top_block_only:
+                object[i].x = 16*(x_tile+1);
+                switch (hit_tile(i, object[i].vx, hit_up))
+                {
+                    case -1:
+                        return;
+                    case 0:
+                        object[i].vx = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vx *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vx *= -1.0f;
+                        break;
+                }
+            }
+
         }
         if (object[i].vx == 0.0f)
         switch (object[i].edge_accel&15)
