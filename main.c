@@ -122,9 +122,11 @@ void game_frame()
     {
     case GameOn:
         run_controls();
+        sprites_frame();
         break;
     case EditMap:
         map_controls();
+        sprites_frame();
         break;
     case EditTileOrSprite:
         edit_controls();
@@ -193,13 +195,9 @@ void graph_line()
     switch (visual_mode)
     {
         case GameOn:
-            if (vga_line == 0)
-                sprites_frame();
             run_line();
             break;
         case EditMap:
-            if (vga_line == 0)
-                sprites_frame();
             map_line();
             break;
         case EditTileOrSprite:
