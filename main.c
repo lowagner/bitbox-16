@@ -118,7 +118,6 @@ void game_init()
 
 void game_frame()
 {
-    kbd_emulate_gamepad();
     switch (visual_mode)
     {
     case GameOn:
@@ -170,8 +169,10 @@ void game_frame()
         --gamepad_press_wait;
 }
 
-void graph_frame() 
+void graph_vsync()
 {
+/*
+    if (vga_odd || vga_line != VGA_V_PIXELS) return;
     switch (visual_mode)
     {
     case GameOn:
@@ -181,18 +182,24 @@ void graph_frame()
     default:
         break;
     }
+*/
 }
 
 void graph_line() 
 {
     if (vga_odd)
         return;
+
     switch (visual_mode)
     {
         case GameOn:
+            if (vga_line == 0)
+                sprites_frame();
             run_line();
             break;
         case EditMap:
+            if (vga_line == 0)
+                sprites_frame();
             map_line();
             break;
         case EditTileOrSprite:

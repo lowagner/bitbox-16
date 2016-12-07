@@ -230,7 +230,10 @@ void sprites_line()
     while (last_drawing_index < drawing_count)
     {
         if (object[draw_order[last_drawing_index]].iy <= vga16) 
+        {
+            message("adding sprite %d at %d\n", last_drawing_index, object[draw_order[last_drawing_index]].ix);
             ++last_drawing_index;
+        }
         else
             break;
     }
