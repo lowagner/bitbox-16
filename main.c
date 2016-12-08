@@ -170,17 +170,8 @@ void game_frame()
         --gamepad_press_wait;
 }
 
-void graph_frame() 
+void graph_frame()
 {
-    switch (visual_mode)
-    {
-    case GameOn:
-    case EditMap:
-        sprites_frame();
-        break;
-    default:
-        break;
-    }
 }
 
 void graph_line() 
@@ -191,9 +182,11 @@ void graph_line()
     {
         case GameOn:
             run_line();
+            sprites_frame();
             break;
         case EditMap:
             map_line();
+            sprites_frame();
             break;
         case EditTileOrSprite:
             edit_line();
