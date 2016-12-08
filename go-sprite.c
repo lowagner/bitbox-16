@@ -960,8 +960,8 @@ int hit_tile(int i, float momentum, int hit)
             object[i].properties |= SUPER_SLIPPING;
             break;
         case Sticky:
-            object[i].vx /= (1.0f + momentum);
-            object[i].vy /= (1.0f + momentum);
+            object[i].vx /= (1.0f + 0.5f*momentum);
+            object[i].vy /= (1.0f + 0.5f*momentum);
             object[i].properties |= STICKING;
             object[i].properties &= (~IN_AIR)&(~RUNNING);
             break;
@@ -1143,7 +1143,7 @@ void object_run_commands(int i)
                 case 12:
                     // jump
                     object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
-                        (1.0f+0.5f*((object[i].properties&(STICKING|SUPER_STICKING))>>6));
+                        (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
                 case 13:
                     // turn around if low enough speed
@@ -1158,7 +1158,7 @@ void object_run_commands(int i)
                     }
                     else
                         object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
-                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                     break;
@@ -1173,7 +1173,7 @@ void object_run_commands(int i)
                     }
                     else
                         object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
-                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                     break;
@@ -1232,7 +1232,7 @@ void object_run_commands(int i)
                 case 12:
                     // jump
                     object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
-                        (1.0f+0.5f*((object[i].properties&(STICKING|SUPER_STICKING))>>6));
+                        (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
                 case 13:
                     // turn around if low enough speed
@@ -1247,7 +1247,7 @@ void object_run_commands(int i)
                     }
                     else
                         object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
-                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                     break;
@@ -1262,7 +1262,7 @@ void object_run_commands(int i)
                     }
                     else
                         object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
-                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
                     break;
@@ -1733,7 +1733,7 @@ void object_run_commands(int i)
                 break;
             case 6: // do a jump
                 object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
-                    (1.0f+0.5f*((object[i].properties&(STICKING|SUPER_STICKING))>>6));
+                    (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                 object[i].properties |= IN_AIR;
                 break;
             case 7: // toggle ghost
@@ -1759,11 +1759,11 @@ void object_run_commands(int i)
                 if (!(gamepad_buttons[p] & (gamepad_up | gamepad_down | gamepad_left | gamepad_right)))
                 {
                     object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
-                        (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                        (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     if ((object[i].properties & GHOSTING) || !gravity) // for non-platformer
                     {
                         object[i].vy /= (1.0f + (object[i].edge_accel>>6)/
-                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                            (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     }
                     break;
                 }
@@ -1772,7 +1772,7 @@ void object_run_commands(int i)
                     case 0:
                     {
                         object[i].vx -= (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT;
                         float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
@@ -1782,7 +1782,7 @@ void object_run_commands(int i)
                     case 1:
                     {
                         object[i].vx += (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT;
                         float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
@@ -1793,7 +1793,7 @@ void object_run_commands(int i)
                     if ((object[i].properties & GHOSTING) || !gravity) // non-platformer
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
                         float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
                         if (object[i].vy < vy_limit)
@@ -1803,7 +1803,7 @@ void object_run_commands(int i)
                     case 3:
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
@@ -1834,7 +1834,7 @@ void object_run_commands(int i)
                     if (motion < 0)
                     {
                         object[i].vx -= (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
                         float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
@@ -1843,7 +1843,7 @@ void object_run_commands(int i)
                     else
                     {
                         object[i].vx += (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
                         float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
@@ -1853,7 +1853,7 @@ void object_run_commands(int i)
                 else
                 {
                     object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
-                        (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                        (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                 }
             }
             if (param & 2)
@@ -1871,7 +1871,7 @@ void object_run_commands(int i)
                     if (motion < 0)
                     {
                         object[i].vy -= (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                         if ((object[i].properties & GHOSTING) || !gravity) // check for non-platformer
                         {
@@ -1883,7 +1883,7 @@ void object_run_commands(int i)
                     else
                     {
                         object[i].vy += (1+((object[i].edge_accel>>4)&3))/
-                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1));
+                            (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
@@ -1898,7 +1898,7 @@ void object_run_commands(int i)
                 else if ((object[i].properties & GHOSTING) || !gravity) // non-platformer
                 {
                     object[i].vy /= (1.0f + (object[i].edge_accel>>6)/
-                        (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING))>>1)));
+                        (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                 }
             }
             break;
@@ -1918,7 +1918,7 @@ void object_run_commands(int i)
                 if (GAMEPAD_PRESSED(p, B))
                 {
                     object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
-                        (1.0f+0.5f*((object[i].properties&(STICKING|SUPER_STICKING))>>6));
+                        (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     object[i].properties |= IN_AIR;
                 }
             }
