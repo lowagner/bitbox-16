@@ -486,7 +486,97 @@ void map_controls()
             {
                 if (((tile_map_height)*(tile_map_width+1)+1)/2 <= TILE_MAP_MEMORY)
                 {
-                    ++tile_map_width;
+                    // copy tiles over nicely
+                    if (tile_map_width++ % 2)
+                    {
+                        /*
+                        if tile_map_width was odd:
+                        bytes:
+                            0 1 1.5     0 1 2
+                        map:
+                            01234       01234_
+                            56789  ->   56789_
+                            abcde       abcde_
+                        linear, split on bytes:
+                            row 0  row 1   row 2
+                        src 01 23 45 67 89 ab cd e ->
+                            row 0    row 1    row 2
+                        dst 01 23 4_ 56 78 9_ ab cd e_
+                        */
+                        for (int row=tile_map_height-1; row>0; --row)
+                        {
+                            // to start, row = 2,
+                            // tile_map_width = 6, so (6*3/2-1) = 8
+                            uint8_t *dst = &tile_map[tile_map_width*(row+1)/2-1];
+                            if (row % 2)
+                            {
+                                // this works for row=1, not row=2
+                                // so (5*2/2) = 5, start at "ab", steal the a.
+                                uint8_t *src = &tile_map[(tile_map_width-1)*(row+1)/2];
+                                // need to shift bytes down a nibble
+                                for (int i=tile_map_width/2; i>0; --i)
+                                {
+                                    uint8_t new_byte = (*src)<<4;
+                                    new_byte |= (*--src)>>4;
+                                    *dst-- = new_byte;
+                                }
+                            }
+                            else
+                            {
+                                // if row=2, (5*3/2) = 7,
+                                // can copy tile_map_width/2 bytes from src to dst, easy
+                                uint8_t *src = &tile_map[(tile_map_width-1)*(row+1)/2];
+                                for (int i=tile_map_width/2; i>0; --i)
+                                    *dst-- = *src--;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        /*
+                        if tile_map_width was even:
+                        bytes:
+                            0 1       0 1 1.5
+                        map:
+                            0123      0123_
+                            4567  ->  4567_
+                            89ab      89ab_
+                        linear:
+                            row 0 row 1 row 2
+                        src 01 23 45 67 89 ab ->
+                            row 0  row 1   row 2
+                        dst 01 23 _4 56 7_ 89 ab _
+                        */
+                        for (int row=tile_map_height-1; row>0; --row)
+                        {
+                            // to start, row = 2,
+                            // tile_map_width = 5, so (4*3/2-1) = 5
+                            if (row % 2)
+                            {
+                                // this only works for row=1
+                                // so (5*2/2-1) = 4
+                                uint8_t *dst = &tile_map[(tile_map_width)*(row+1)/2-1];
+                                // src is at (4*2/2)=4, start at 89, steal the 8
+                                uint8_t *src = &tile_map[(tile_map_width-1)*(row+1)/2];
+                                // need to shift bytes down a nibble
+                                for (int i=tile_map_width/2; i>0; --i)
+                                {
+                                    uint8_t new_byte = (*src)<<4;
+                                    new_byte |= (*--src)>>4;
+                                    *dst-- = new_byte;
+                                }
+                            }
+                            else
+                            {
+                                uint8_t *src = &tile_map[(tile_map_width-1)*(row+1)/2-1];
+                                // if row=2, (5*3/2-1) = 6,
+                                // can copy tile_map_width/2 bytes from src to dst, easy
+                                uint8_t *dst = &tile_map[(tile_map_width)*(row+1)/2-1];
+                                for (int i=tile_map_width/2; i>0; --i)
+                                    *dst-- = *src--;
+                            }
+                        }
+                    }
                     map_modified = 1;
                 }
             }
@@ -507,7 +597,97 @@ void map_controls()
             {
                 if (tile_map_width > 22) // 320/16 = 20, but we want left and right a tile
                 {
-                    --tile_map_width;
+                    // copy tiles over nicely
+                    if (tile_map_width-- % 2)
+                    {
+                        /*
+                        if tile_map_width was odd:
+                        bytes:
+                            0 1 1.5     0 1
+                        map:          
+                            01234       0123
+                            56789  ->   5678
+                            abcde       abcd
+                        linear, split on bytes:
+                            row 0  row 1   row 2
+                        src 01 23 45 67 89 ab cd e ->
+                            row 0 row 1 row 2
+                        dst 01 23 56 78 ab cd
+                        */
+                        for (int row=1; row<tile_map_height; ++row)
+                        {
+                            // to start, row = 1,
+                            // tile_map_width = 4, so (4*1/2) = 2
+                            uint8_t *dst = &tile_map[tile_map_width*row/2];
+                            // so src starts at (5*1/2) = 2, start at 45, take the 5 down
+                            uint8_t *src = &tile_map[(tile_map_width+1)*row/2];
+                            if (row % 2)
+                            {
+                                // need to shift bytes down a nibble
+                                for (int i=tile_map_width/2; i>0; --i)
+                                {
+                                    uint8_t new_byte = (*src)>>4;
+                                    new_byte |= (*++src)<<4;
+                                    *dst++ = new_byte;
+                                }
+                            }
+                            else
+                            {
+                                // if row=2, src starts at index (5*2/2) = 5,
+                                // can copy tile_map_width/2 bytes from src to dst, easy
+                                for (int i=tile_map_width/2; i>0; --i)
+                                    *dst++ = *src++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        /*
+                        if tile_map_width was even:
+                        bytes:
+                            0 1 2      0 1 1.5
+                        map:
+                            012345      01234
+                            6789ab  ->  6789a
+                            cdefgh      cdefg
+                        linear:
+                            row 0    row 1    row 2    row 3
+                        src 01 23 45 67 89 ab cd ef gh ij kl mn
+                            row 0  row 1   row 2  row 3
+                        dst 01 23 46 78 9a cd ef gi jk lm
+                        */
+                        for (int row=1; row<tile_map_height; ++row)
+                        {
+                            // to start, row = 1, tile_map_width = 5, dst starts at 2:
+                            uint8_t *dst = &tile_map[tile_map_width*row/2];
+                            uint8_t *src = &tile_map[(tile_map_width+1)*row/2];
+                            if (row % 2)
+                            {
+                                // dst starts at (5*1/2) = 2, start at 46, keep the 4.
+                                // src starts at (6*1/2)=3 for row 1, 6*3/2=9 for row 3
+                                // need to shift bytes down a nibble
+                                *dst &= 15; // keep the 4
+                                *dst++ |= (*src)<<4; // 6
+                                for (int i=tile_map_width/2; i>0; --i)
+                                {
+                                    *dst = (*src++)>>4;
+                                    *dst++ |= (*src)<<4;
+                                }
+                            }
+                            else
+                            {
+                                // if row=2, src starts at index (6*2/2) = 6,
+                                // can copy tile_map_width/2 bytes from src to dst, easy
+                                for (int i=(tile_map_width+1)/2; i>0; --i)
+                                    *dst++ = *src++;
+                            }
+                        }
+                    }
+                    if (map_tile_x >= tile_map_width || map_tile_x + 20 >= tile_map_width)
+                    {
+                        --map_tile_x;
+                        tile_map_x -= 16;
+                    }
                     map_modified = 1;
                 }
             }
