@@ -90,6 +90,81 @@ void run_line()
 {
     tiles_line();
     sprites_line();
+    // collision detection between sprites
+    for (int i=first_drawing_index; i<last_drawing_index-1; ++i)
+    for (int j=i+1; j<last_drawing_index; ++j)
+    {
+        // object i and j are being drawn on the same line, but are they overlapping?
+        struct object *o = &object[draw_order[i]];
+        struct object *p = &object[draw_order[j]];
+        if (o->ix < p->ix)
+        {
+            if (o->ix + 16 <= p->ix)
+                continue;
+            // p is lower than o (since j > i, and larger indices are lower on screen)
+            if (p->iy - o->iy > 8) // large difference in y, collide vertically
+            {
+                if (o->vy > p->vy)
+                {
+
+                }
+                float avg = (p->y+o->y)/2;
+                float rel = (p->y-o->y)/2 - 8;
+                o->y = avg-8;
+                o->iy += rel;
+                p->y = avg+8;
+                p->iy -= rel;
+            }
+            else
+            {
+                if (o->vx > p->vx)
+                {
+                    // collision time
+
+                }
+                float avg = (p->x+o->x)/2;
+                float rel = (p->x-o->x)/2-8;
+                o->x = avg-8;
+                o->ix += rel;
+                p->x = avg+8;
+                p->ix -= rel;
+            }
+        }
+        else // p.x < o.x
+        {
+            if (p->ix + 16 <= o->ix)
+                continue;
+
+            if (p->iy - o->iy > 8) // large difference in y, collide vertically
+            {
+                if (o->vy > p->vy)
+                {
+
+                }
+                float avg = (p->y+o->y)/2;
+                float rel = (p->y-o->y)/2 - 8;
+                o->y = avg-8;
+                o->iy += rel;
+                p->y = avg+8;
+                p->iy -= rel;
+            }
+            else
+            {
+                if (p->vx > o->vx)
+                {
+                    // collision time
+
+                }
+                float avg = (p->x+o->x)/2;
+                float rel = (p->x-o->x)/2+8;
+                o->x = avg+8;
+                o->ix += rel;
+                p->x = avg-8;
+                p->ix -= rel;
+            }
+        }
+
+    }
     uint16_t *U16 = (uint16_t *)(U8row+16) - 1;
     uint32_t *dst = (uint32_t *)draw_buffer - 1;
     const uint32_t *final_dst = dst + SCREEN_W/2;
