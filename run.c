@@ -13,12 +13,16 @@
 uint8_t run_paused CCM_MEMORY;
 int camera_index CCM_MEMORY; // which sprite has the camera on it
 int camera_shake CCM_MEMORY;
+float camera_y CCM_MEMORY;
+float camera_x CCM_MEMORY;
 
 void run_init()
 {
     run_paused = 0;
     camera_index = 255;
     camera_shake = 0;
+    camera_y = 16.0f;
+    camera_x = 16.0f;
 }
 
 void run_reset()
@@ -74,6 +78,9 @@ void run_switch()
     else if (tile_map_y + SCREEN_H + 16 >= tile_map_height*16)
         tile_map_y = tile_map_height*16 - SCREEN_H - 16;
     
+    camera_y = tile_map_y;
+    camera_x = tile_map_x;
+
     update_object_images();
     run_paused = 0;
     chip_play_init(0);
@@ -138,39 +145,39 @@ void run_controls()
     {
         if (object[camera_index].ix < 9*16)
         {
-            if (object[camera_index].vx < -1)
-                tile_map_x += object[camera_index].vx;
+            if (object[camera_index].vx < -1.0f)
+                camera_x += object[camera_index].vx;
             else
-                --tile_map_x;
-            if (tile_map_x < 16)
-                tile_map_x = 16;
+                --camera_x;
+            if (camera_x < 16.0f)
+                camera_x = 16.0f;
         }
         else if (object[camera_index].ix >= (20-9)*16)
         {
-            if (object[camera_index].vx > 1)
-                tile_map_x += object[camera_index].vx;
+            if (object[camera_index].vx > 1.0f)
+                camera_x += object[camera_index].vx;
             else
-                ++tile_map_x;
-            if (tile_map_x > 16*(tile_map_width - 1 - 20))
-                tile_map_x = 16*(tile_map_width - 1 - 20);
+                ++camera_x;
+            if (camera_x > 16.0f*(tile_map_width - 1 - 20))
+                camera_x = 16.0f*(tile_map_width - 1 - 20);
         }
         if (object[camera_index].iy < 5*16)
         {
-            if (object[camera_index].vy < -1)
-                tile_map_y += object[camera_index].vy;
+            if (object[camera_index].vy < -1.0f)
+                camera_y += object[camera_index].vy;
             else
-                --tile_map_y;
-            if (tile_map_y < 16)
-                tile_map_y = 16;
+                --camera_y;
+            if (camera_y < 16.0f)
+                camera_y = 16.0f;
         }
         else if (object[camera_index].iy >= (15-5)*16)
         {
-            if (object[camera_index].vy > 1)
-                tile_map_y += object[camera_index].vy;
+            if (object[camera_index].vy > 1.0f)
+                camera_y += object[camera_index].vy;
             else
-                ++tile_map_y;
-            if (tile_map_y > 16*(tile_map_height - 1 - 15))
-                tile_map_y = 16*(tile_map_height - 1 - 15);
+                ++camera_y;
+            if (camera_y > 16.0f*(tile_map_height - 1 - 15))
+                camera_y = 16.0f*(tile_map_height - 1 - 15);
         }
     }
 
@@ -209,28 +216,30 @@ void run_controls()
         }
         if (sx)
         {
-            tile_map_x -= mvx;
-            if (tile_map_x < 0)
-                tile_map_x = 0;
+            camera_x -= mvx;
+            if (camera_x < 0)
+                camera_x = 0;
         }
         else
         {
-            tile_map_x += mvx;
-            if (tile_map_x > tile_map_width*16 - SCREEN_W)
-                tile_map_x = tile_map_width*16 - SCREEN_W;
+            camera_x += mvx;
+            if (camera_x > tile_map_width*16 - SCREEN_W)
+                camera_x = tile_map_width*16 - SCREEN_W;
         }
         if (sy)
         {
-            tile_map_y -= mvy;
-            if (tile_map_y < 0)
-                tile_map_y = 0;
+            camera_y -= mvy;
+            if (camera_y < 0)
+                camera_y = 0;
         }
         else
         {
-            tile_map_y += mvy;
-            if (tile_map_y > tile_map_height*16 - SCREEN_H)
-                tile_map_y = tile_map_height*16 - SCREEN_H;
+            camera_y += mvy;
+            if (camera_y > tile_map_height*16 - SCREEN_H)
+                camera_y = tile_map_height*16 - SCREEN_H;
         }
     }
+    tile_map_y = camera_y;
+    tile_map_x = camera_x;
     update_objects();
 }

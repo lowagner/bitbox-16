@@ -1142,6 +1142,7 @@ void object_run_commands(int i)
                     break;
                 case 12:
                     // jump
+                    message("oh jump left!\n");
                     object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
@@ -1231,6 +1232,7 @@ void object_run_commands(int i)
                     break;
                 case 12:
                     // jump
+                    message("oh jump right!\n");
                     object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
