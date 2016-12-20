@@ -1117,9 +1117,11 @@ void object_run_commands(int i)
                     break;
                 case 1: // bounce
                     object[i].vy *= -0.5f;
+                    object[i].properties &= ~IN_AIR;
                     break;
                 default: // super bounce
                     object[i].vy *= -1.0f;
+                    object[i].properties &= ~IN_AIR;
                     break;
             }
             else if (x_delta < 3.0f && object[i].vx < 0)
@@ -1143,7 +1145,7 @@ void object_run_commands(int i)
                 case 12:
                     // jump
                     message("oh jump left!\n");
-                    object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
+                    object[i].vy -= (object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
                 case 13:
@@ -1202,9 +1204,11 @@ void object_run_commands(int i)
                     object[i].properties &= ~IN_AIR;
                     break;
                 case 1: // bounce
+                    object[i].properties &= ~IN_AIR;
                     object[i].vy *= -0.5f;
                     break;
                 default: // super bounce
+                    object[i].properties &= ~IN_AIR;
                     object[i].vy *= -1.0f;
                     break;
             }
@@ -1233,7 +1237,7 @@ void object_run_commands(int i)
                 case 12:
                     // jump
                     message("oh jump right!\n");
-                    object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
+                    object[i].vy -= (object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
                 case 13:
@@ -1296,9 +1300,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
+                        object[i].properties &= ~IN_AIR;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
+                        object[i].properties &= ~IN_AIR;
                         break;
                 }
             }
@@ -1734,7 +1740,7 @@ void object_run_commands(int i)
                     object[i].properties |= RUNNING;
                 break;
             case 6: // do a jump
-                object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
+                object[i].vy -= (object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
                     (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                 object[i].properties |= IN_AIR;
                 break;

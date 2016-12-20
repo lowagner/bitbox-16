@@ -16,5 +16,6 @@ void tiles_reset();
 
 int tile_is_block(uint8_t t);
 int tile_xy_is_block(int16_t x, int16_t y);
+void tiles_translate();
 
 #endif

@@ -438,3 +438,25 @@ void tiles_reset()
     for (int i=1; i<16; ++i)
         tile_info[i] = pack_block_info(i, 0, 0, sides);
 }
+
+void tiles_translate()
+{
+    if (vga_frame%32 == 0)
+    {
+        int frame = vga_frame/32;
+        for (int i=0; i<16; ++i)
+        {
+            int timing = tile_info[i]>>4;
+            int translation = timing&15;
+            timing = (timing>>4)&15;
+            if (!timing)
+                timing = 16;
+            if (frame % timing)
+                continue;
+            if ((frame/timing)%2)
+                tile_translator[i] = translation;
+            else
+                tile_translator[i] = i;
+        }
+    }
+}

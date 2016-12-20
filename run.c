@@ -216,6 +216,8 @@ void run_controls()
     if (run_paused)
         return;
 
+    tiles_translate();
+
     if (camera_index < 255)
     {
         if (object[camera_index].ix < 9*16)

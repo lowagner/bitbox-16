@@ -35,6 +35,10 @@ void map_init()
 
 void map_switch()
 {
+    // reset the tile translations
+    for (int j=0; j<16; ++j)
+        tile_translator[j] = j;
+
     update_palette2();
 
     if (map_tile_x*16 < tile_map_x)
