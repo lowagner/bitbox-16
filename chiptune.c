@@ -465,7 +465,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             if (param < 7)
                 chip_player[i].octave = param;
             else if (param == 7)
-                chip_player[i].octave = instrument[chip_player[i].instrument].octave;
+                chip_player[i].octave = instrument[load_instrument[i]].octave;
             else if (param < 12)
             {
                 chip_player[i].octave += (param-6)/2;
