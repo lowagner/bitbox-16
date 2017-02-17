@@ -1106,6 +1106,7 @@ void object_run_commands(int i)
             if (hit_left)
             {
                 object[i].y = 16*(y_tile-1);
+                object[i].properties |= CAN_JUMP;
                 object[i].blocked |= BLOCKED_DOWN;
                 goto test_top_left_block_only;
             }
@@ -1114,6 +1115,7 @@ void object_run_commands(int i)
         else if ((hit_right = test_tile(x_tile+1, y_tile, UP)))
         {
             object[i].y = 16*(y_tile-1);
+            object[i].properties |= CAN_JUMP;
             object[i].blocked |= BLOCKED_DOWN;
             if (hit_left)
             switch (compare_hit(i, object[i].vy, x_delta, hit_left, hit_right))
@@ -1122,15 +1124,12 @@ void object_run_commands(int i)
                     return;
                 case 0:
                     object[i].vy = 0.0f;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 1: // bounce
                     object[i].vy *= -0.5f;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 default: // super bounce
                     object[i].vy *= -1.0f;
-                    object[i].properties |= CAN_JUMP;
                     break;
             }
             else if (x_delta < 3.0f && object[i].vx < 0)
@@ -1149,7 +1148,6 @@ void object_run_commands(int i)
                     object[i].sprite_index = (object[i].sprite_index/8)*8 + 
                         (object[i].sprite_index + 4)%8;
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 12:
                     // jump
@@ -1172,7 +1170,6 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 14:
                     // stop if small enough speed
@@ -1187,7 +1184,6 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 15:
                     if (hit_right/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
@@ -1196,7 +1192,6 @@ void object_run_commands(int i)
                     object[i].x = x_tile*16.0f + 3.0f;
                     object[i].vx = 0;
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 default: // 8 or lower
                     fall_through_left:
@@ -1210,14 +1205,11 @@ void object_run_commands(int i)
                     return;
                 case 0:
                     object[i].vy = 0.0f;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 1: // bounce
-                    object[i].properties |= CAN_JUMP;
                     object[i].vy *= -0.5f;
                     break;
                 default: // super bounce
-                    object[i].properties |= CAN_JUMP;
                     object[i].vy *= -1.0f;
                     break;
             }
@@ -1225,6 +1217,7 @@ void object_run_commands(int i)
         else if (hit_left) // but not hit_right
         {
             object[i].y = 16*(y_tile-1);
+            object[i].properties |= CAN_JUMP;
             object[i].blocked |= BLOCKED_DOWN;
             if (x_delta > 13.0f && object[i].vx > 0)
             // about to fall off to the right:
@@ -1242,7 +1235,6 @@ void object_run_commands(int i)
                     object[i].sprite_index = (object[i].sprite_index/8)*8 + 
                         (object[i].sprite_index + 4)%8;
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 12:
                     // jump
@@ -1265,7 +1257,6 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 14:
                     // stop if small enough speed
@@ -1280,7 +1271,6 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 case 15:
                     if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
@@ -1289,7 +1279,6 @@ void object_run_commands(int i)
                     object[i].x = (x_tile+1)*16.0f - 3.0f;
                     object[i].vx = 0;
                     object[i].vy = 0;
-                    object[i].properties |= CAN_JUMP;
                     break;
                 default: // 8 or lower
                     fall_through_right:
@@ -1306,15 +1295,12 @@ void object_run_commands(int i)
                         return;
                     case 0:
                         object[i].vy = 0.0f;
-                        object[i].properties |= CAN_JUMP;
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
-                        object[i].properties |= CAN_JUMP;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
-                        object[i].properties |= CAN_JUMP;
                         break;
                 }
             }
@@ -1686,7 +1672,7 @@ void object_run_commands(int i)
             object[i].cmd_index += param;
             break;
         case GO_NOT_AIR:
-            if (!(object[i].blocked & BLOCKED_DOWN))
+            if (!(object[i].properties & CAN_JUMP))
                 break;
             if (!param)
                 param = 16;
