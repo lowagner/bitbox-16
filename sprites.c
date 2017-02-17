@@ -90,15 +90,19 @@ uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z)
 
     // add in object properties
     object[i].sprite_index = sprite_index;
-    object[i].health_blink = 15;
+    object[i].health = 15;
+    object[i].blink = 0;
     object[i].y = y;
     object[i].x = x;
     object[i].z = z;
     object[i].cmd_index = 0;
     object[i].wait = 0;
-    object[i].edge_accel = 8 | (5<<4);
-    object[i].speed_jump = 4 | (5<<4);
+    object[i].edge_behavior = 8;
+    object[i].acceleration = 5;
+    object[i].speed = 4;
+    object[i].jump_speed = 5;
     object[i].properties = 0;
+    object[i].blocked = 0;
     object[i].firing = 0;
     if (on_screen(object[i].x, object[i].y))
         make_unseen_object_viewable(i);
@@ -255,7 +259,7 @@ void sprites_line()
         uint8_t *U8 = U8row + 15 + o->ix;
         uint8_t *src = &sprite_draw[o->sprite_index][sprite_draw_row][0]-1;
         int invisible_color = sprite_info[o->sprite_index] & 31;
-        int offset = ((o->health_blink&240) && (vga_frame/8%2)) ? 16 : 0;
+        int offset = ((o->blink) && (vga_frame/8%2)) ? 16 : 0;
         for (int pxl=0; pxl<8; ++pxl)
         {
             int two_color = *(++src);

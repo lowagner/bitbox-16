@@ -63,6 +63,11 @@ extern VisualMode previous_visual_mode;
 #define LEFT 2
 #define DOWN 3
 
+#define BLOCKED_RIGHT (1<<RIGHT)
+#define BLOCKED_UP (1<<UP)
+#define BLOCKED_LEFT (1<<LEFT)
+#define BLOCKED_DOWN (1<<DOWN)
+
 // the next are bit-masks for sprite/object properties
 #define RUNNING 1
 #define IN_AIR 2

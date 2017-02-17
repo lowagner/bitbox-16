@@ -12,25 +12,29 @@ struct object {
     // first 32 bits:
     int16_t iy, ix;
     // second 32 bits:
+    uint8_t next_object_index; 
+    uint8_t previous_object_index;
     uint8_t draw_order_index;
     uint8_t z; // z = 0 is a hidden object.
-    uint8_t sprite_index;
-    uint8_t health_blink; // blink is invincible
     // third and fourth 32 bits:
     float y, x;
     // fifth and sixth 
     float vy, vx;
     // seventh 
+    uint8_t acceleration;
+    uint8_t jump_speed;
+    uint8_t sprite_index;
+    uint8_t speed;
+    // eighth
     uint8_t cmd_index;
     uint8_t wait;
-    uint8_t edge_accel; // first four bits: edge behavior, second four bits: acceleration
-    uint8_t speed_jump; // first four bits: speed, second four bits: jump speed
-    // eighth
     uint8_t properties; // use bit-masking for RUNNING, IN_AIR, GHOSTING, PROJECTILE
     uint8_t firing;
-    uint8_t next_object_index; 
-    uint8_t previous_object_index;
-
+    // ninth
+    uint8_t blink; // invincibility
+    uint8_t health;
+    uint8_t blocked; // on various sides
+    uint8_t edge_behavior;
 };
 
 extern uint8_t draw_order[MAX_OBJECTS];

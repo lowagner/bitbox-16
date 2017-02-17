@@ -920,31 +920,34 @@ static inline int damage_sprite(int i, float damage)
 {
     if (object[i].properties & PROJECTILE)
         goto kill_sprite;
-    if (object[i].health_blink&240) // blinking protection
+    if (object[i].blink) // blinking protection
         return 0;
-
-    if (damage < 1.0f)
+    
+    int d = (int)damage;
+    if (!d)
     {
         // roll for damage
         if (rand()%16 < (int)(16*damage))
         {
             // damage hit!
-            if ((object[i].health_blink&15) <= 1)
+            if ((--object[i].health) == 0)
                 goto kill_sprite;
         
-            object[i].health_blink = ((object[i].health_blink&15)-1)|16;
+            object[i].blink = 16;
         }
         return 0;
     }
-    if ((object[i].health_blink&15) <= (int)damage)
+    if (object[i].health <= d)
     {
         kill_sprite:
-        object[i].health_blink = 16;
+        object[i].health = 0;
+        object[i].blink = 16;
         object[i].vx = -3.75f+(rand()%16)*0.5f;
         object[i].vy = -gravity*8.0f -1.875f+(rand()%16)*0.25f;
         return 1; // sprite is dead
     }
-    object[i].health_blink = ((object[i].health_blink&15)-(int)damage)|16;
+    object[i].health -= d;
+    object[i].blink = 16 + d/2;
     return 0; // sprite is ok, but blinking
 }
 
@@ -1023,13 +1026,13 @@ void object_run_commands(int i)
     // update position here, too
     object[i].properties |= IN_AIR; // assume you're flying until you're not...
     object[i].properties &= ~(SLIPPING|SUPER_SLIPPING|STICKING|SUPER_STICKING); // assume you're not slipping or sticking, until we find out as much
-    if (object[i].health_blink&240)
+    if (object[i].blink)
     {
         if (vga_frame % 2)
-            object[i].health_blink += 16;
-        if (!(object[i].health_blink&15)) // no health
+            --object[i].blink;
+        if (!object[i].health) // no health
         {
-            if (!object[i].health_blink) // end death blink process
+            if (!object[i].blink) // end death blink process
             {
                 if (camera_index == i)
                     kill_player();
@@ -1127,7 +1130,7 @@ void object_run_commands(int i)
             else if (x_delta < 3.0f && object[i].vx < 0)
             // about to fall off to the left:
             // decide what to do based on edge behavior
-            switch (object[i].edge_accel&15)
+            switch (object[i].edge_behavior)
             {
                 case 9:
                 case 10:
@@ -1145,7 +1148,7 @@ void object_run_commands(int i)
                 case 12:
                     // jump
                     message("oh jump left!\n");
-                    object[i].vy -= (object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
+                    object[i].vy -= object[i].jump_speed*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
                 case 13:
@@ -1160,7 +1163,7 @@ void object_run_commands(int i)
                             (object[i].sprite_index + 4)%8;
                     }
                     else
-                        object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
+                        object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
@@ -1175,7 +1178,7 @@ void object_run_commands(int i)
                         object[i].vx = 0; 
                     }
                     else
-                        object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
+                        object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
@@ -1219,7 +1222,7 @@ void object_run_commands(int i)
             if (x_delta > 13.0f && object[i].vx > 0)
             // about to fall off to the right:
             // decide what to do based on edge behavior, and what is currently here
-            switch (object[i].edge_accel&15)
+            switch (object[i].edge_behavior)
             {
                 case 9:
                 case 10:
@@ -1237,7 +1240,7 @@ void object_run_commands(int i)
                 case 12:
                     // jump
                     message("oh jump right!\n");
-                    object[i].vy -= (object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
+                    object[i].vy -= object[i].jump_speed*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     break;
                 case 13:
@@ -1252,7 +1255,7 @@ void object_run_commands(int i)
                             (object[i].sprite_index + 4)%8;
                     }
                     else
-                        object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
+                        object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
@@ -1267,7 +1270,7 @@ void object_run_commands(int i)
                         object[i].vx = 0; 
                     }
                     else
-                        object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
+                        object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
                     object[i].properties &= ~IN_AIR;
@@ -1494,7 +1497,7 @@ void object_run_commands(int i)
             }
         }
         if (object[i].vx == 0.0f)
-        switch (object[i].edge_accel&15)
+        switch (object[i].edge_behavior)
         {
             case 8: // fall off edges
             case 14: // stop or fall
@@ -1595,7 +1598,7 @@ void object_run_commands(int i)
 
         }
         if (object[i].vx == 0.0f)
-        switch (object[i].edge_accel&15)
+        switch (object[i].edge_behavior)
         {
             case 8: // fall off edges
             case 14: // stop or fall
@@ -1715,20 +1718,20 @@ void object_run_commands(int i)
                 {
                 case RIGHT:
                     object[i].vy = 0;
-                    object[i].vx = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vx = object[i].speed*SPEED_MULTIPLIER;
                     break;
                 case UP:
-                    object[i].vy = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vy = -object[i].speed*SPEED_MULTIPLIER;
                     object[i].vx = 0;
                     if (gravity)
                         object[i].properties |= IN_AIR;
                     break;
                 case LEFT:
                     object[i].vy = 0;
-                    object[i].vx = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vx = -object[i].speed*SPEED_MULTIPLIER;
                     break;
                 case DOWN:
-                    object[i].vy = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                    object[i].vy = object[i].speed*SPEED_MULTIPLIER;
                     object[i].vx = 0;
                     break;
                 }
@@ -1740,7 +1743,7 @@ void object_run_commands(int i)
                     object[i].properties |= RUNNING;
                 break;
             case 6: // do a jump
-                object[i].vy -= (object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
+                object[i].vy -= object[i].jump_speed*JUMP_MULTIPLIER/
                     (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                 object[i].properties |= IN_AIR;
                 break;
@@ -1752,8 +1755,7 @@ void object_run_commands(int i)
                 break;
             default:
                 // the rest are edge behaviors
-                object[i].edge_accel &= 240;
-                object[i].edge_accel |= param;
+                object[i].edge_behavior = param;
             }
             break;
         case GO_LOOK:
@@ -1766,11 +1768,11 @@ void object_run_commands(int i)
                 // need special treatment here, random movement when pressing down
                 if (!(gamepad_buttons[p] & (gamepad_up | gamepad_down | gamepad_left | gamepad_right)))
                 {
-                    object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
+                    object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                         (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     if ((object[i].properties & GHOSTING) || !gravity) // for non-platformer
                     {
-                        object[i].vy /= (1.0f + (object[i].edge_accel>>6)/
+                        object[i].vy /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     }
                     break;
@@ -1779,20 +1781,20 @@ void object_run_commands(int i)
                 {
                     case 0:
                     {
-                        object[i].vx -= (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vx -= (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT;
-                        float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        float vx_limit = -object[i].speed*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
                             object[i].vx = vx_limit;
                         break;
                     }
                     case 1:
                     {
-                        object[i].vx += (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vx += (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT;
-                        float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        float vx_limit = object[i].speed*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
                             object[i].vx = vx_limit;
                         break;
@@ -1800,24 +1802,24 @@ void object_run_commands(int i)
                     case 2:
                     if ((object[i].properties & GHOSTING) || !gravity) // non-platformer
                     {
-                        object[i].vy -= (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vy -= (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
-                        float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                        float vy_limit = -object[i].jump_speed*SPEED_MULTIPLIER;
                         if (object[i].vy < vy_limit)
                             object[i].vy = vy_limit;
-                        break;
                     }
+                    break;
                     case 3:
                     {
-                        object[i].vy += (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vy += (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if ((object[i].properties & GHOSTING) || !gravity)
                         {
-                            float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            float vy_limit = object[i].jump_speed*SPEED_MULTIPLIER;
                             if (object[i].vy > vy_limit)
                                 object[i].vy = vy_limit;
                         }
@@ -1841,26 +1843,26 @@ void object_run_commands(int i)
                         motion *= -1;
                     if (motion < 0)
                     {
-                        object[i].vx -= (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vx -= (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
-                        float vx_limit = -(object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        float vx_limit = -object[i].speed*SPEED_MULTIPLIER;
                         if (object[i].vx < vx_limit)
                             object[i].vx = vx_limit;
                     }
                     else
                     {
-                        object[i].vx += (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vx += (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
-                        float vx_limit = (object[i].speed_jump&15)*SPEED_MULTIPLIER;
+                        float vx_limit = object[i].speed*SPEED_MULTIPLIER;
                         if (object[i].vx > vx_limit)
                             object[i].vx = vx_limit;
                     }
                 }
                 else
                 {
-                    object[i].vx /= (1.0f + (object[i].edge_accel>>6)/
+                    object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                         (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                 }
             }
@@ -1878,26 +1880,26 @@ void object_run_commands(int i)
                         motion *= -1;
                     if (motion < 0)
                     {
-                        object[i].vy -= (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vy -= (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                         if ((object[i].properties & GHOSTING) || !gravity) // check for non-platformer
                         {
-                            float vy_limit = -(object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            float vy_limit = -object[i].jump_speed*SPEED_MULTIPLIER;
                             if (object[i].vy < vy_limit)
                                 object[i].vy = vy_limit;
                         }
                     }
                     else
                     {
-                        object[i].vy += (1+((object[i].edge_accel>>4)&3))/
+                        object[i].vy += (1+(object[i].acceleration&3))/
                             (ACCELERATION_DIVIDEND+((object[i].properties&(SUPER_SLIPPING|SLIPPING))));
                         object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                         // only check this for non-platformer,
                         // a platformer will fix vy automatically
                         if ((object[i].properties & GHOSTING) || !gravity)
                         {
-                            float vy_limit = (object[i].speed_jump>>4)*SPEED_MULTIPLIER;
+                            float vy_limit = object[i].jump_speed*SPEED_MULTIPLIER;
                             if (object[i].vy > vy_limit)
                                 object[i].vy = vy_limit;
                         }
@@ -1905,7 +1907,7 @@ void object_run_commands(int i)
                 }
                 else if ((object[i].properties & GHOSTING) || !gravity) // non-platformer
                 {
-                    object[i].vy /= (1.0f + (object[i].edge_accel>>6)/
+                    object[i].vy /= (1.0f + (object[i].acceleration>>2)/
                         (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                 }
             }
@@ -1925,7 +1927,7 @@ void object_run_commands(int i)
             {
                 if (GAMEPAD_PRESSED(p, B))
                 {
-                    object[i].vy = -(object[i].speed_jump >> 4)*JUMP_MULTIPLIER/
+                    object[i].vy = -object[i].jump_speed*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                     object[i].properties |= IN_AIR;
                 }
@@ -2018,9 +2020,9 @@ void object_run_commands(int i)
                     else if (test_inside_tile(tx+1, ty) || test_inside_tile(tx+1, ty+1))
                         break;
                     j = create_object(8*param + RIGHT*2, object[i].x+16, object[i].y, 1);
-                    vx += (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    vx += object[i].speed*THROW_MULTIPLIER;
                     if (gravity) // platformer
-                        vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
+                        vy -= object[i].jump_speed*THROW_MULTIPLIER;
                     break;
                 case UP:
                     if (16.0f*tx == object[i].x)
@@ -2031,9 +2033,9 @@ void object_run_commands(int i)
                     else if (test_inside_tile(tx, ty-1) || test_inside_tile(tx+1, ty-1))
                         break;
                     j = create_object(8*param + UP*2, object[i].x, object[i].y-16, 1);
-                    vy -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    vy -= object[i].speed*THROW_MULTIPLIER;
                     if (gravity) // platformer
-                        vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER/2;
+                        vy -= object[i].jump_speed*THROW_MULTIPLIER/2;
                     break;
                 case LEFT:
                     if (16.0f*ty == object[i].y)
@@ -2044,9 +2046,9 @@ void object_run_commands(int i)
                     else if (test_inside_tile(tx-1, ty) || test_inside_tile(tx-1, ty+1))
                         break;
                     j = create_object(8*param + LEFT*2, object[i].x-16, object[i].y, 1);
-                    vx -= (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    vx -= object[i].speed*THROW_MULTIPLIER;
                     if (gravity) // platformer
-                        vy -= (object[i].speed_jump>>4)*THROW_MULTIPLIER;
+                        vy -= object[i].jump_speed*THROW_MULTIPLIER;
                     break;
                 case DOWN:
                     if (16.0f*tx == object[i].x)
@@ -2057,7 +2059,7 @@ void object_run_commands(int i)
                     else if (test_inside_tile(tx, ty+1) || test_inside_tile(tx+1, ty+1))
                         break;
                     j = create_object(8*param + DOWN*2, object[i].x, object[i].y+16, 1);
-                    vy += (object[i].speed_jump&15)*THROW_MULTIPLIER;
+                    vy += object[i].speed*THROW_MULTIPLIER;
                     break;
             }
             if (j == 255)
@@ -2072,20 +2074,13 @@ void object_run_commands(int i)
             break;
         }
         case GO_ACCELERATION:
-            object[i].edge_accel &= 15; // keep edge behavior
-            object[i].edge_accel |= param << 4;
+            object[i].acceleration = param;
             break;
         case GO_SPEED:
             if (param & 8) // jump speed
-            {
-                object[i].speed_jump &= 15; // keep run speed
-                object[i].speed_jump |= (param-7) << 4;
-            }
+                object[i].jump_speed = param-7;
             else // run speed
-            {
-                object[i].speed_jump &= 240;
-                object[i].speed_jump |= 1 + param;
-            }
+                object[i].speed = 1 + param;
             break;
         case GO_NOISE:
         {

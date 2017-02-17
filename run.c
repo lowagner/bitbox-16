@@ -49,7 +49,8 @@ void run_switch()
             object[i].z = 0;
             continue;
         }
-        object[i].health_blink = 15;
+        object[i].health = 15;
+        object[i].blink = 0;
         if (tile_xy_is_block(x, y))
             object[i].z = 0;
         else
@@ -185,7 +186,7 @@ void run_line()
             font_render_no_bg_line_doubled(game_message, 16, vga_line-2, 65535);
         else if (camera_index < 255)
         {
-            uint8_t msg[] = { 'H', 'P', ':', hex[object[camera_index].health_blink&15], 0 };
+            uint8_t msg[] = { 'H', 'P', ':', hex[object[camera_index].health/16], hex[object[camera_index].health%16], 0 };
             font_render_no_bg_line_doubled(msg, 16, vga_line-2, 65535);
         }
     }
