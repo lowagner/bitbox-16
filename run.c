@@ -105,16 +105,18 @@ void run_line()
             // p is lower than o (since j > i, and larger indices are lower on screen)
             if (p->iy - o->iy > 8) // large difference in y, collide vertically
             {
-                if (o->vy > 0.0 && p->blocked & BLOCKED_DOWN)
+                if (o->vy > 0.0 && (p->blocked & BLOCKED_DOWN))
                 {
                     o->vy = 0.0;
                     o->iy = p->iy - 16;
+                    o->y = p->y - 16.0;
                     o->blocked |= BLOCKED_DOWN;
                 }
-                else if (p->vy < 0.0 && o->blocked & BLOCKED_UP)
+                else if (p->vy < 0.0 && (o->blocked & BLOCKED_UP))
                 {
                     p->vy = 0.0;
                     p->iy = o->iy + 16;
+                    o->y = p->y + 16.0;
                     p->blocked |= BLOCKED_UP;
                 }
                 else
@@ -132,16 +134,18 @@ void run_line()
             }
             else // colliding horizontally, recall o left of p
             {
-                if (o->vx > 0.0 && p->blocked & BLOCKED_RIGHT)
+                if (o->vx > 0.0 && (p->blocked & BLOCKED_RIGHT))
                 {
                     o->vx = 0.0;
                     o->ix = p->ix - 16;
+                    o->x = p->x - 16.0;
                     o->blocked |= BLOCKED_RIGHT;
                 }
-                else if (p->vx < 0.0 && o->blocked & BLOCKED_LEFT)
+                else if (p->vx < 0.0 && (o->blocked & BLOCKED_LEFT))
                 {
                     p->vx = 0.0;
                     p->ix = o->ix + 16;
+                    p->x = o->x + 16.0;
                     p->blocked |= BLOCKED_LEFT;
                 }
                 else
@@ -164,16 +168,18 @@ void run_line()
 
             if (p->iy - o->iy > 8) // large difference in y, collide vertically
             {
-                if (o->vy > 0.0 && p->blocked & BLOCKED_DOWN)
+                if (o->vy > 0.0 && (p->blocked & BLOCKED_DOWN))
                 {
                     o->vy = 0.0;
                     o->iy = p->iy - 16;
+                    o->y = p->y - 16.0;
                     o->blocked |= BLOCKED_DOWN;
                 }
-                else if (p->vy < 0.0 && o->blocked & BLOCKED_UP)
+                else if (p->vy < 0.0 && (o->blocked & BLOCKED_UP))
                 {
                     p->vy = 0.0;
                     p->iy = o->iy + 16;
+                    p->y = o->y + 16.0;
                     p->blocked |= BLOCKED_UP;
                 }
                 else
@@ -190,16 +196,18 @@ void run_line()
             }
             else // colliding horizontally, p left of o
             {
-                if (o->vx < 0.0 && p->blocked & BLOCKED_LEFT)
+                if (o->vx < 0.0 && (p->blocked & BLOCKED_LEFT))
                 {
                     o->vx = 0.0;
                     o->ix = p->ix + 16;
+                    o->x = p->x + 16.0;
                     o->blocked |= BLOCKED_LEFT;
                 }
-                else if (p->vx > 0.0 && o->blocked & BLOCKED_RIGHT)
+                else if (p->vx > 0.0 && (o->blocked & BLOCKED_RIGHT))
                 {
                     p->vx = 0.0;
                     p->ix = o->ix - 16;
+                    p->x = o->x - 16.0;
                     p->blocked |= BLOCKED_RIGHT;
                 }
                 else
