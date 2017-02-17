@@ -965,14 +965,14 @@ int hit_tile(int i, float momentum, int hit)
         case Sticky:
             object[i].vx /= (1.0f + 0.5f*momentum);
             object[i].vy /= (1.0f + 0.5f*momentum);
-            object[i].properties |= STICKING;
-            object[i].properties &= (~IN_AIR)&(~RUNNING);
+            object[i].properties |= STICKING | CAN_JUMP;
+            object[i].properties &= ~RUNNING;
             break;
         case SuperSticky:
             object[i].vx /= (1.0f + 2.0f*momentum);
             object[i].vy /= (1.0f + 2.0f*momentum);
-            object[i].properties |= SUPER_STICKING;
-            object[i].properties &= (~IN_AIR)&(~RUNNING);
+            object[i].properties |= SUPER_STICKING | CAN_JUMP;
+            object[i].properties &= ~RUNNING;
             break;
         case Bouncy:
             message("got bouncy\n");
@@ -1024,8 +1024,8 @@ static inline int compare_hit(int i, float y_momentum, float x_delta, int hit_le
 void object_run_commands(int i) 
 {
     // update position here, too
-    object[i].properties |= IN_AIR; // assume you're flying until you're not...
-    object[i].properties &= ~(SLIPPING|SUPER_SLIPPING|STICKING|SUPER_STICKING); // assume you're not slipping or sticking, until we find out as much
+    object[i].properties &= ~(CAN_JUMP|SLIPPING|SUPER_SLIPPING|STICKING|SUPER_STICKING); // assume you're not slipping or sticking, until we find out as much
+    object[i].blocked = 0;
     if (object[i].blink)
     {
         if (vga_frame % 2)
@@ -1051,6 +1051,7 @@ void object_run_commands(int i)
         {
             object[i].y = tile_map_height*16 - 32;
             object[i].vy = 0;
+            object[i].blocked |= BLOCKED_DOWN;
         }
         
         object[i].x += object[i].vx;
@@ -1058,11 +1059,13 @@ void object_run_commands(int i)
         {
             object[i].x = 16;
             object[i].vx = 0;
+            object[i].blocked |= BLOCKED_LEFT;
         }
         else if (object[i].x > tile_map_width*16-32)
         {
             object[i].x = tile_map_width*16-32;
             object[i].vx = 0;
+            object[i].blocked |= BLOCKED_RIGHT;
         }
 
         goto object_execute_commands;
@@ -1083,7 +1086,8 @@ void object_run_commands(int i)
     {
         object[i].y = tile_map_height*16 - 32;
         object[i].vy = 0;
-        object[i].properties &= ~IN_AIR;
+        object[i].properties |= CAN_JUMP;
+        object[i].blocked |= BLOCKED_DOWN;
         // TODO: maybe test object right below player here.
     }
     else if (object[i].vy == 0.0f || (16.0f*((int)(object[i].y/16)) == object[i].y)) {}
@@ -1102,6 +1106,7 @@ void object_run_commands(int i)
             if (hit_left)
             {
                 object[i].y = 16*(y_tile-1);
+                object[i].blocked |= BLOCKED_DOWN;
                 goto test_top_left_block_only;
             }
         }
@@ -1109,6 +1114,7 @@ void object_run_commands(int i)
         else if ((hit_right = test_tile(x_tile+1, y_tile, UP)))
         {
             object[i].y = 16*(y_tile-1);
+            object[i].blocked |= BLOCKED_DOWN;
             if (hit_left)
             switch (compare_hit(i, object[i].vy, x_delta, hit_left, hit_right))
             {
@@ -1116,15 +1122,15 @@ void object_run_commands(int i)
                     return;
                 case 0:
                     object[i].vy = 0.0f;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 1: // bounce
                     object[i].vy *= -0.5f;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 default: // super bounce
                     object[i].vy *= -1.0f;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
             }
             else if (x_delta < 3.0f && object[i].vx < 0)
@@ -1143,7 +1149,7 @@ void object_run_commands(int i)
                     object[i].sprite_index = (object[i].sprite_index/8)*8 + 
                         (object[i].sprite_index + 4)%8;
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 12:
                     // jump
@@ -1166,7 +1172,7 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 14:
                     // stop if small enough speed
@@ -1181,7 +1187,7 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 15:
                     if (hit_right/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
@@ -1190,7 +1196,7 @@ void object_run_commands(int i)
                     object[i].x = x_tile*16.0f + 3.0f;
                     object[i].vx = 0;
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 default: // 8 or lower
                     fall_through_left:
@@ -1204,14 +1210,14 @@ void object_run_commands(int i)
                     return;
                 case 0:
                     object[i].vy = 0.0f;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 1: // bounce
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     object[i].vy *= -0.5f;
                     break;
                 default: // super bounce
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     object[i].vy *= -1.0f;
                     break;
             }
@@ -1219,6 +1225,7 @@ void object_run_commands(int i)
         else if (hit_left) // but not hit_right
         {
             object[i].y = 16*(y_tile-1);
+            object[i].blocked |= BLOCKED_DOWN;
             if (x_delta > 13.0f && object[i].vx > 0)
             // about to fall off to the right:
             // decide what to do based on edge behavior, and what is currently here
@@ -1235,7 +1242,7 @@ void object_run_commands(int i)
                     object[i].sprite_index = (object[i].sprite_index/8)*8 + 
                         (object[i].sprite_index + 4)%8;
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 12:
                     // jump
@@ -1258,7 +1265,7 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 14:
                     // stop if small enough speed
@@ -1273,7 +1280,7 @@ void object_run_commands(int i)
                         object[i].vx /= (1.0f + (object[i].acceleration>>2)/
                             (DECELERATION_DIVIDEND + ((object[i].properties&(SUPER_SLIPPING|SLIPPING)))));
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 case 15:
                     if (hit_left/2 == Damaging/2 && !(sprite_info[object[i].sprite_index]&(1<<(12+DOWN))))
@@ -1282,7 +1289,7 @@ void object_run_commands(int i)
                     object[i].x = (x_tile+1)*16.0f - 3.0f;
                     object[i].vx = 0;
                     object[i].vy = 0;
-                    object[i].properties &= ~IN_AIR;
+                    object[i].properties |= CAN_JUMP;
                     break;
                 default: // 8 or lower
                     fall_through_right:
@@ -1299,15 +1306,15 @@ void object_run_commands(int i)
                         return;
                     case 0:
                         object[i].vy = 0.0f;
-                        object[i].properties &= ~IN_AIR;
+                        object[i].properties |= CAN_JUMP;
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
-                        object[i].properties &= ~IN_AIR;
+                        object[i].properties |= CAN_JUMP;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
-                        object[i].properties &= ~IN_AIR;
+                        object[i].properties |= CAN_JUMP;
                         break;
                 }
             }
@@ -1335,6 +1342,7 @@ void object_run_commands(int i)
             if (hit_left)
             {
                 object[i].y = 16*(y_tile+1);
+                object[i].blocked |= BLOCKED_UP;
                 switch (compare_hit(i, -object[i].vy, x_delta, hit_left, hit_right))
                 {
                     case -1:
@@ -1359,6 +1367,7 @@ void object_run_commands(int i)
             else 
             {
                 object[i].y = 16*(y_tile+1);
+                object[i].blocked |= BLOCKED_UP;
                 switch (hit_tile(i, -object[i].vy, hit_right))
                 {
                     case -1:
@@ -1387,6 +1396,7 @@ void object_run_commands(int i)
             {
                 test_bottom_left_block_only:
                 object[i].y = 16*(y_tile+1);
+                object[i].blocked |= BLOCKED_UP;
                 switch (hit_tile(i, -object[i].vy, hit_left))
                 {
                     case -1:
@@ -1409,11 +1419,13 @@ void object_run_commands(int i)
     {
         object[i].x = 16;
         object[i].vx = 0;
+        object[i].blocked |= BLOCKED_LEFT;
     }
     else if (object[i].x > tile_map_width*16-32)
     {
         object[i].x = tile_map_width*16-32;
         object[i].vx = 0;
+        object[i].blocked |= BLOCKED_RIGHT;
     }
     else if (object[i].y < 0 || object[i].vx == 0.0f || ( ((int)(object[i].x/16)*16.0f) == object[i].x)) {}
     else if (object[i].vx > 0)
@@ -1435,6 +1447,7 @@ void object_run_commands(int i)
         {
             if (hit_up)
             {
+                object[i].blocked |= BLOCKED_RIGHT;
                 object[i].x = 16*(x_tile-1);
                 switch (compare_hit(i, object[i].vx, y_delta, hit_up, hit_down))
                 {
@@ -1456,6 +1469,7 @@ void object_run_commands(int i)
             else 
             {
                 object[i].x = 16*(x_tile-1);
+                object[i].blocked |= BLOCKED_RIGHT;
                 switch (hit_tile(i, object[i].vx, hit_down))
                 {
                     case -1:
@@ -1480,6 +1494,7 @@ void object_run_commands(int i)
             {
                 test_right_top_block_only:
                 object[i].x = 16*(x_tile-1);
+                object[i].blocked |= BLOCKED_RIGHT;
                 switch (hit_tile(i, object[i].vx, hit_up))
                 {
                     case -1:
@@ -1536,6 +1551,7 @@ void object_run_commands(int i)
             if (hit_up)
             {
                 object[i].x = 16*(x_tile+1);
+                object[i].blocked |= BLOCKED_LEFT;
                 switch (compare_hit(i, -object[i].vx, y_delta, hit_up, hit_down))
                 {
                     case -1:
@@ -1556,6 +1572,7 @@ void object_run_commands(int i)
             else
             {
                 object[i].x = 16*(x_tile+1);
+                object[i].blocked |= BLOCKED_LEFT;
                 switch (hit_tile(i, -object[i].vx, hit_down))
                 {
                     case -1:
@@ -1580,6 +1597,7 @@ void object_run_commands(int i)
             {
                 test_left_top_block_only:
                 object[i].x = 16*(x_tile+1);
+                object[i].blocked |= BLOCKED_LEFT;
                 switch (hit_tile(i, object[i].vx, hit_up))
                 {
                     case -1:
@@ -1629,7 +1647,7 @@ void object_run_commands(int i)
             object[i].y = 16.0f*(y_tile-1);
             message("internal hit %f\n", object[i].y);
             object[i].vy = 0;
-            object[i].properties &= ~IN_AIR;
+            object[i].properties |= CAN_JUMP;
         }
     }
     */
@@ -1668,7 +1686,7 @@ void object_run_commands(int i)
             object[i].cmd_index += param;
             break;
         case GO_NOT_AIR:
-            if (object[i].properties & IN_AIR)
+            if (!(object[i].blocked & BLOCKED_DOWN))
                 break;
             if (!param)
                 param = 16;
@@ -1724,7 +1742,7 @@ void object_run_commands(int i)
                     object[i].vy = -object[i].speed*SPEED_MULTIPLIER;
                     object[i].vx = 0;
                     if (gravity)
-                        object[i].properties |= IN_AIR;
+                        object[i].properties &= ~CAN_JUMP;
                     break;
                 case LEFT:
                     object[i].vy = 0;
@@ -1745,7 +1763,7 @@ void object_run_commands(int i)
             case 6: // do a jump
                 object[i].vy -= object[i].jump_speed*JUMP_MULTIPLIER/
                     (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
-                object[i].properties |= IN_AIR;
+                object[i].properties &= ~CAN_JUMP;
                 break;
             case 7: // toggle ghost
                 if (object[i].properties & GHOSTING)
@@ -1929,7 +1947,7 @@ void object_run_commands(int i)
                 {
                     object[i].vy = -object[i].jump_speed*JUMP_MULTIPLIER/
                         (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
-                    object[i].properties |= IN_AIR;
+                    object[i].properties &= ~CAN_JUMP;
                 }
             }
             if (param & 4) // fire 

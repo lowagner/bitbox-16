@@ -105,30 +105,56 @@ void run_line()
             // p is lower than o (since j > i, and larger indices are lower on screen)
             if (p->iy - o->iy > 8) // large difference in y, collide vertically
             {
-                if (o->vy > p->vy)
+                if (o->vy > 0.0 && p->blocked & BLOCKED_DOWN)
                 {
-
+                    o->vy = 0.0;
+                    o->iy = p->iy - 16;
+                    o->blocked |= BLOCKED_DOWN;
                 }
-                float avg = (p->y+o->y)/2;
-                float rel = (p->y-o->y)/2 - 8;
-                o->y = avg-8;
-                o->iy += rel;
-                p->y = avg+8;
-                p->iy -= rel;
+                else if (p->vy < 0.0 && o->blocked & BLOCKED_UP)
+                {
+                    p->vy = 0.0;
+                    p->iy = o->iy + 16;
+                    p->blocked |= BLOCKED_UP;
+                }
+                else
+                {
+                    // TODO: use sprite mass?  (or take it out of sprite info)
+                    float avg = (p->y+o->y)/2;
+                    float rel = (p->y-o->y)/2 - 8;
+                    o->y = avg-8;
+                    o->iy += rel;
+                    p->y = avg+8;
+                    p->iy -= rel;
+                    avg = (p->vy + o->vy)/2;
+                    o->vy = p->vy = avg;
+                }
             }
-            else
+            else // colliding horizontally, recall o left of p
             {
-                if (o->vx > p->vx)
+                if (o->vx > 0.0 && p->blocked & BLOCKED_RIGHT)
                 {
-                    // collision time
-
+                    o->vx = 0.0;
+                    o->ix = p->ix - 16;
+                    o->blocked |= BLOCKED_RIGHT;
                 }
-                float avg = (p->x+o->x)/2;
-                float rel = (p->x-o->x)/2-8;
-                o->x = avg-8;
-                o->ix += rel;
-                p->x = avg+8;
-                p->ix -= rel;
+                else if (p->vx < 0.0 && o->blocked & BLOCKED_LEFT)
+                {
+                    p->vx = 0.0;
+                    p->ix = o->ix + 16;
+                    p->blocked |= BLOCKED_LEFT;
+                }
+                else
+                {
+                    float avg = (p->x+o->x)/2;
+                    float rel = (p->x-o->x)/2-8;
+                    o->x = avg-8;
+                    o->ix += rel;
+                    p->x = avg+8;
+                    p->ix -= rel;
+                    avg = (p->vx + o->vx)/2;
+                    o->vx = p->vx = avg;
+                }
             }
         }
         else // p.x < o.x
@@ -138,30 +164,55 @@ void run_line()
 
             if (p->iy - o->iy > 8) // large difference in y, collide vertically
             {
-                if (o->vy > p->vy)
+                if (o->vy > 0.0 && p->blocked & BLOCKED_DOWN)
                 {
-
+                    o->vy = 0.0;
+                    o->iy = p->iy - 16;
+                    o->blocked |= BLOCKED_DOWN;
                 }
-                float avg = (p->y+o->y)/2;
-                float rel = (p->y-o->y)/2 - 8;
-                o->y = avg-8;
-                o->iy += rel;
-                p->y = avg+8;
-                p->iy -= rel;
+                else if (p->vy < 0.0 && o->blocked & BLOCKED_UP)
+                {
+                    p->vy = 0.0;
+                    p->iy = o->iy + 16;
+                    p->blocked |= BLOCKED_UP;
+                }
+                else
+                {
+                    float avg = (p->y+o->y)/2;
+                    float rel = (p->y-o->y)/2 - 8;
+                    o->y = avg-8;
+                    o->iy += rel;
+                    p->y = avg+8;
+                    p->iy -= rel;
+                    avg = (p->vy + o->vy)/2;
+                    o->vy = p->vy = avg;
+                }
             }
-            else
+            else // colliding horizontally, p left of o
             {
-                if (p->vx > o->vx)
+                if (o->vx < 0.0 && p->blocked & BLOCKED_LEFT)
                 {
-                    // collision time
-
+                    o->vx = 0.0;
+                    o->ix = p->ix + 16;
+                    o->blocked |= BLOCKED_LEFT;
                 }
-                float avg = (p->x+o->x)/2;
-                float rel = (p->x-o->x)/2+8;
-                o->x = avg+8;
-                o->ix += rel;
-                p->x = avg-8;
-                p->ix -= rel;
+                else if (p->vx > 0.0 && o->blocked & BLOCKED_RIGHT)
+                {
+                    p->vx = 0.0;
+                    p->ix = o->ix - 16;
+                    p->blocked |= BLOCKED_RIGHT;
+                }
+                else
+                {
+                    float avg = (p->x+o->x)/2;
+                    float rel = (p->x-o->x)/2+8;
+                    o->x = avg+8;
+                    o->ix += rel;
+                    p->x = avg-8;
+                    p->ix -= rel;
+                    avg = (p->vx + o->vx)/2;
+                    o->vx = p->vx = avg;
+                }
             }
         }
 

@@ -70,7 +70,7 @@ extern VisualMode previous_visual_mode;
 
 // the next are bit-masks for sprite/object properties
 #define RUNNING 1
-#define IN_AIR 2
+#define CAN_JUMP 2
 #define GHOSTING 4
 #define PROJECTILE 8
 #define SLIPPING 16

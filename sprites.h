@@ -29,11 +29,11 @@ struct object {
     uint8_t cmd_index;
     uint8_t wait;
     uint8_t properties; // use bit-masking for RUNNING, IN_AIR, GHOSTING, PROJECTILE
-    uint8_t firing;
+    uint8_t blocked; // on various sides
     // ninth
     uint8_t blink; // invincibility
     uint8_t health;
-    uint8_t blocked; // on various sides
+    uint8_t firing;
     uint8_t edge_behavior;
 };
 
