@@ -784,6 +784,21 @@ void object_run_commands(int i)
     object_execute_commands:
     if (object[i].wait)
     {
+        switch (object[i].sprite_index%8/2)
+        {
+            case RIGHT:
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
+                break;
+            case UP:
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
+                break;
+            case LEFT:
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
+                break;
+            case DOWN:
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
+                break;
+        }
         --object[i].wait;
         return;
     }
@@ -866,20 +881,24 @@ void object_run_commands(int i)
                 case RIGHT:
                     object[i].vy = 0;
                     object[i].vx = object[i].speed*SPEED_MULTIPLIER;
+                    object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
                     break;
                 case UP:
                     object[i].vy = -object[i].speed*SPEED_MULTIPLIER;
                     object[i].vx = 0;
                     if (gravity)
                         object[i].properties &= ~CAN_JUMP;
+                    object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                     break;
                 case LEFT:
                     object[i].vy = 0;
                     object[i].vx = -object[i].speed*SPEED_MULTIPLIER;
+                    object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT + ((int)object[i].x/(8+8*(object[i].properties&RUNNING)))%2;
                     break;
                 case DOWN:
                     object[i].vy = object[i].speed*SPEED_MULTIPLIER;
                     object[i].vx = 0;
+                    object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN + ((int)object[i].y/(8+8*(object[i].properties&RUNNING)))%2;
                     break;
                 }
                 break;
