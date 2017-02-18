@@ -16,9 +16,9 @@ info about a sprite (first frame, frame 0):
         4 bits ignored (what could we put here?) // could require all sprites to have some invisible color, no matter what...
     else:
         4 bits for "what color is invisible in this sprite"
-    3 bits for inverse weight
-    4 bits for vulnerability, must have (attack & vulnerability) > 0 to destroy it.
-    1 bit for impervious, x 4 sides.  some sides can be impervious to damage...
+    3 bits for attack bits
+    1+3 bits for invulnerability, must have (attack & (~invulnerability)) > 0 to destroy it.
+    1 bit for side invincibility, x 4 sides.  some sides can be impervious to damage...
     4 bits for surface property, x 4 sides 
       see common.h for information
 */

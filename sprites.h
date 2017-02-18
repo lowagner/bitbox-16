@@ -65,4 +65,24 @@ void sprites_reset();
 
 void update_object_images();
 
+static inline int get_sprite_vulnerability(struct object *o, int side)
+{
+    int info = sprite_info[o->sprite_index];
+    if ((info>>(12+side))&1) 
+        return 0; // invulnerability on this side
+    return ~((info>>8)&7);
+}
+
+static inline int get_sprite_property(struct object *o, int side)
+{
+    int info = sprite_info[o->sprite_index];
+    return (info>>(16+4*side))&15;
+}
+
+static inline int get_sprite_attack(struct object *o)
+{
+    int info = sprite_info[o->sprite_index];
+    return (info>>5)&7;
+}
+
 #endif

@@ -6,6 +6,7 @@
 #include "chiptune.h"
 #include "run.h"
 
+#include <math.h>
 #include <stdlib.h> // rand
 
 #define FIRE_COUNT 32 // number of times GO_NOT_FIRE needs to be called before you can fire again
@@ -58,11 +59,11 @@ static inline int test_tile(int x, int y, int dir)
     return (info >> (16 + 4*dir))&15;
 }
 
-static inline int damage_sprite(int i, float damage)
+static inline int damage_sprite(struct object *o, float damage)
 {
-    if (object[i].properties & PROJECTILE)
+    if (o->properties & PROJECTILE)
         goto kill_sprite;
-    if (object[i].blink) // blinking protection
+    if (o->blink) // blinking protection
         return 0;
     
     int d = (int)damage;
@@ -72,24 +73,24 @@ static inline int damage_sprite(int i, float damage)
         if (rand()%16 < (int)(16*damage))
         {
             // damage hit!
-            if ((--object[i].health) == 0)
+            if ((--o->health) == 0)
                 goto kill_sprite;
         
-            object[i].blink = 16;
+            o->blink = 16;
         }
         return 0;
     }
-    if (object[i].health <= d)
+    if (o->health <= d)
     {
         kill_sprite:
-        object[i].health = 0;
-        object[i].blink = 16;
-        object[i].vx = -3.75f+(rand()%16)*0.5f;
-        object[i].vy = -gravity*8.0f -1.875f+(rand()%16)*0.25f;
+        o->health = 0;
+        o->blink = 16 - (o->properties & PROJECTILE);
+        o->vx = -3.75f+(rand()%16)*0.5f;
+        o->vy = -gravity*8.0f -1.875f+(rand()%16)*0.25f;
         return 1; // sprite is dead
     }
-    object[i].health -= d;
-    object[i].blink = 16 + d/2;
+    o->health -= d;
+    o->blink = 16 + d/2;
     return 0; // sprite is ok, but blinking
 }
 
@@ -123,11 +124,11 @@ int hit_tile(int i, float momentum, int hit)
             message("got super bouncy\n");
             return 2;
         case Damaging:
-            if (damage_sprite(i, momentum * damage_multiplier))
+            if (damage_sprite(&object[i], momentum * damage_multiplier))
                 return -1;
             break;
         case SuperDamaging:
-            if (damage_sprite(i, momentum * damage_multiplier * 2.0f))
+            if (damage_sprite(&object[i], momentum * damage_multiplier * 2.0f))
                 return -1;
             break;
         case Unlock0:
@@ -1257,26 +1258,157 @@ void object_run_commands(int i)
     object[i].cmd_index = 0;
 }
 
-static inline int collide_vertically(struct object *o, struct object *p)
+int combine_properties(int prop1, int prop2)
+{
+    switch (prop1)
+    {
+        case Slippery:
+            switch (prop2)
+            {
+                case SuperSlippery:
+                    return SuperSlippery;
+                case Sticky:
+                    return Normal;
+                case SuperSticky:
+                    return Sticky;
+                case Bouncy:
+                    return Bouncy;
+                case SuperBouncy:
+                    return SuperBouncy;
+                default:
+                    return Slippery;
+            }
+        case SuperSlippery:
+            switch (prop2)
+            {
+                case Sticky:
+                    return Slippery;
+                case SuperSticky:
+                    return Normal;
+                case Bouncy:
+                    return Bouncy;
+                case SuperBouncy:
+                    return SuperBouncy;
+                default:
+                    return SuperSlippery;
+            }
+        case Sticky:
+            switch (prop2)
+            {
+                case Slippery:
+                case Bouncy:
+                    return Normal;
+                case SuperSlippery:
+                    return Slippery;
+                case SuperBouncy:
+                    return Bouncy;
+                default:
+                    return Sticky;
+            }
+        case SuperSticky:
+            switch (prop2)
+            {
+                case Slippery:
+                case Bouncy:
+                    return Sticky;
+                case SuperSlippery:
+                case SuperBouncy:
+                    return Normal;
+                default:
+                    return SuperSticky;
+            }
+        case Bouncy:
+            switch (prop2)
+            {
+                case Sticky:
+                    return Normal;
+                case SuperSticky:
+                    return Sticky;
+                case SuperBouncy:
+                    return SuperBouncy;
+                default:
+                    return Bouncy;
+            }
+        case SuperBouncy:
+            switch (prop2)
+            {
+                case Sticky:
+                    return Bouncy;
+                case SuperSticky:
+                    return Normal;
+                default:
+                    return SuperBouncy;
+            }
+        default:
+            return prop2;
+    }
+}
+
+void collide_vertically(struct object *o, struct object *p)
 {
     // REQUIRED: o.y < p.y
-    if (o->vy > 0.0 && (p->blocked & BLOCKED_DOWN))
+    const float rel_velocity = o->vy - p->vy;
+    if (rel_velocity == 0.0)
+        return;
+    int o_bottom = get_sprite_property(o, DOWN);
+    int p_top = get_sprite_property(p, UP);
+    int op_combined = combine_properties(o_bottom, p_top); 
+    if (rel_velocity > 0.0 && (p->blocked & BLOCKED_DOWN))
     {
-        o->vy = 0.0;
         o->iy = p->iy - 16;
         o->y = p->y - 16.0;
         o->blocked |= BLOCKED_DOWN;
+        switch (op_combined)
+        {
+            case Bouncy:
+                o->vy *= -0.5;
+                break;
+            case SuperBouncy:
+                o->vy *= -1.0;
+                break;
+            case Sticky:
+                p->vx += 0.5*o->vx;
+                o->vx *= 0.5;
+                o->vy = 0.0;
+                break;
+            case SuperSticky:
+                p->vx += 0.25*o->vx;
+                o->vx *= 0.75;
+                o->vy = 0.0;
+                break;
+            default:
+                o->vy = 0.0;    
+        }
     }
-    else if (p->vy < 0.0 && (o->blocked & BLOCKED_UP))
+    else if (rel_velocity < 0.0 && (o->blocked & BLOCKED_UP))
     {
-        p->vy = 0.0;
         p->iy = o->iy + 16;
         o->y = p->y + 16.0;
         p->blocked |= BLOCKED_UP;
+        switch (op_combined)
+        {
+            case Bouncy:
+                p->vy *= -0.5;
+                break;
+            case SuperBouncy:
+                p->vy *= -1.0;
+                break;
+            case Sticky:
+                o->vx += 0.5*p->vx;
+                p->vx *= 0.5;
+                p->vy = 0.0;
+                break;
+            case SuperSticky:
+                o->vx += 0.25*p->vx;
+                p->vx *= 0.75;
+                p->vy = 0.0;
+                break;
+            default:
+                p->vy = 0.0;    
+        }
     }
     else
     {
-        // TODO: use sprite mass?  (or take it out of sprite info)
         float avg = (p->y+o->y)/2;
         float rel = (p->y-o->y)/2 - 8;
         o->y = avg-8;
@@ -1285,25 +1417,97 @@ static inline int collide_vertically(struct object *o, struct object *p)
         p->iy -= rel;
         avg = (p->vy + o->vy)/2;
         o->vy = p->vy = avg;
+        switch (op_combined)
+        {
+            case Bouncy:
+                o->vy -= 0.25*rel_velocity;
+                p->vy += 0.25*rel_velocity;
+                break;
+            case SuperBouncy:
+                o->vy -= 0.5*rel_velocity;
+                p->vy += 0.5*rel_velocity;
+                break;
+            case Sticky:
+                rel = 0.25*(o->vx - p->vx);
+                o->vx = p->vx = 0.5*(o->vx + p->vx);
+                o->vx += rel;
+                p->vx -= rel;
+                break;
+            case SuperSticky:
+                o->vx = p->vx = 0.5*(o->vx + p->vx);
+                break;
+        }
     }
+    if ((o->blink | p->blink)) // can't do/take damage if you're blinking
+        return;
+    if (o_bottom/2 == Damaging/2 && (get_sprite_vulnerability(p, UP) & get_sprite_attack(o)))
+        damage_sprite(p, fabs(rel_velocity)*damage_multiplier*(o_bottom-Damaging+1));
+    if (p_top/2 == Damaging/2 && (get_sprite_vulnerability(o, DOWN) & get_sprite_attack(p)))
+        damage_sprite(o, fabs(rel_velocity)*damage_multiplier*(p_top-Damaging+1));
 }
 
-static inline void collide_horizontally(struct object *o, struct object *p)
+void collide_horizontally(struct object *o, struct object *p)
 {
     // REQUIRED: o.x < p.x
-    if (o->vx > 0.0 && (p->blocked & BLOCKED_RIGHT))
+    const float rel_velocity = o->vx - p->vx;
+    if (rel_velocity == 0.0)
+        return;
+    int o_right = get_sprite_property(o, RIGHT);
+    int p_left = get_sprite_property(p, LEFT);
+    int op_combined = combine_properties(o_right, p_left); 
+    if (rel_velocity > 0.0 && (p->blocked & BLOCKED_RIGHT))
     {
-        o->vx = 0.0;
         o->ix = p->ix - 16;
         o->x = p->x - 16.0;
         o->blocked |= BLOCKED_RIGHT;
+        switch (op_combined)
+        {
+            case Bouncy:
+                o->vx *= -0.5;
+                break;
+            case SuperBouncy:
+                o->vx *= -1.0;
+                break;
+            case Sticky:
+                p->vy += 0.5*o->vy;
+                o->vy *= 0.5;
+                o->vx = 0.0;
+                break;
+            case SuperSticky:
+                p->vy += 0.25*o->vy;
+                o->vy *= 0.75;
+                o->vx = 0.0;
+                break;
+            default:
+                o->vx = 0.0;    
+        }
     }
-    else if (p->vx < 0.0 && (o->blocked & BLOCKED_LEFT))
+    else if (rel_velocity < 0.0 && (o->blocked & BLOCKED_LEFT))
     {
-        p->vx = 0.0;
         p->ix = o->ix + 16;
         p->x = o->x + 16.0;
         p->blocked |= BLOCKED_LEFT;
+        switch (op_combined)
+        {
+            case Bouncy:
+                p->vx *= -0.5;
+                break;
+            case SuperBouncy:
+                p->vx *= -1.0;
+                break;
+            case Sticky:
+                o->vy += 0.5*p->vy;
+                p->vy *= 0.5;
+                p->vx = 0.0;
+                break;
+            case SuperSticky:
+                o->vy += 0.25*p->vy;
+                p->vy *= 0.75;
+                p->vx = 0.0;
+                break;
+            default:
+                p->vx = 0.0;    
+        }
     }
     else
     {
@@ -1315,7 +1519,33 @@ static inline void collide_horizontally(struct object *o, struct object *p)
         p->ix -= rel;
         avg = (p->vx + o->vx)/2;
         o->vx = p->vx = avg;
+        switch (op_combined)
+        {
+            case Bouncy:
+                o->vx -= 0.25*rel_velocity;
+                p->vx += 0.25*rel_velocity;
+                break;
+            case SuperBouncy:
+                o->vx -= 0.5*rel_velocity;
+                p->vx += 0.5*rel_velocity;
+                break;
+            case Sticky:
+                rel = 0.25*(o->vy - p->vy);
+                o->vy = p->vy = 0.5*(o->vy + p->vy);
+                o->vy += rel;
+                p->vy -= rel;
+                break;
+            case SuperSticky:
+                o->vy = p->vy = 0.5*(o->vy + p->vy);
+                break;
+        }
     }
+    if ((o->blink | p->blink)) // can't do/take damage if you're blinking
+        return;
+    if (o_right/2 == Damaging/2 && (get_sprite_vulnerability(p, LEFT) & get_sprite_attack(o)))
+        damage_sprite(p, fabs(rel_velocity)*damage_multiplier*(o_right-Damaging+1));
+    if (p_left/2 == Damaging/2 && (get_sprite_vulnerability(o, RIGHT) & get_sprite_attack(p)))
+        damage_sprite(o, fabs(rel_velocity)*damage_multiplier*(p_left-Damaging+1));
 }
 
 void sprite_collide(struct object *o, struct object *p)
@@ -1337,7 +1567,6 @@ void sprite_collide(struct object *o, struct object *p)
     {
         if (p->ix + 16 <= o->ix)
             return;
-
         if (p->iy - o->iy > 8) // large difference in y
             collide_vertically(o, p);
         else // colliding horizontally, p left of o

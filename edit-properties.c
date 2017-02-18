@@ -146,11 +146,11 @@ void edit2_line()
             else
                 strcpy((char *)msg, "invis ");
             msg[6] = hex[info&15];
-            strcpy((char *)msg+7,   "   1/m=");
+            strcpy((char *)msg+7,   " attck ");
             msg[14] = hex[(info>>5)&7];
-            strcpy((char *)msg+15,  " vulnr ");
-            msg[22] = hex[(info>>8)&15];
-            strcpy((char *)msg+23, " imprv ");
+            strcpy((char *)msg+15,  " invln ");
+            msg[22] = hex[(info>>8)&7];
+            strcpy((char *)msg+23, " sInvc ");
             msg[30] = hex[(info>>12)&15];
             msg[31] = 0;
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
@@ -231,8 +231,11 @@ void edit2_line()
             switch ((info>>(16+4*edit2_side))&15)
             {
                 case Passable:
-                    strcpy((char *)msg+7, "passable");
-                    break;
+                    if (!edit_sprite_not_tile)
+                    {
+                        strcpy((char *)msg+7, "passable");
+                        break;
+                    }
                 case Normal:
                     strcpy((char *)msg+7, "normal");
                     break;
