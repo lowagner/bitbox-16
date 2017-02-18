@@ -8,8 +8,6 @@ void go_reset();
 void go_controls();
 void go_line();
 
-void object_run_commands(int i);
-
 #define GO_BREAK 0
 #define GO_NOT_MOVE 1
 #define GO_NOT_RUN 2

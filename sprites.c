@@ -1,6 +1,6 @@
 #include "bitbox.h"
 #include "sprites.h"
-#include "go-sprite.h"
+#include "hit.h"
 #include "run.h"
 #include "tiles.h"
 
