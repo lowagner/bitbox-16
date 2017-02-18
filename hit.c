@@ -1257,3 +1257,90 @@ void object_run_commands(int i)
     object[i].cmd_index = 0;
 }
 
+static inline int collide_vertically(struct object *o, struct object *p)
+{
+    // REQUIRED: o.y < p.y
+    if (o->vy > 0.0 && (p->blocked & BLOCKED_DOWN))
+    {
+        o->vy = 0.0;
+        o->iy = p->iy - 16;
+        o->y = p->y - 16.0;
+        o->blocked |= BLOCKED_DOWN;
+    }
+    else if (p->vy < 0.0 && (o->blocked & BLOCKED_UP))
+    {
+        p->vy = 0.0;
+        p->iy = o->iy + 16;
+        o->y = p->y + 16.0;
+        p->blocked |= BLOCKED_UP;
+    }
+    else
+    {
+        // TODO: use sprite mass?  (or take it out of sprite info)
+        float avg = (p->y+o->y)/2;
+        float rel = (p->y-o->y)/2 - 8;
+        o->y = avg-8;
+        o->iy += rel;
+        p->y = avg+8;
+        p->iy -= rel;
+        avg = (p->vy + o->vy)/2;
+        o->vy = p->vy = avg;
+    }
+}
+
+static inline void collide_horizontally(struct object *o, struct object *p)
+{
+    // REQUIRED: o.x < p.x
+    if (o->vx > 0.0 && (p->blocked & BLOCKED_RIGHT))
+    {
+        o->vx = 0.0;
+        o->ix = p->ix - 16;
+        o->x = p->x - 16.0;
+        o->blocked |= BLOCKED_RIGHT;
+    }
+    else if (p->vx < 0.0 && (o->blocked & BLOCKED_LEFT))
+    {
+        p->vx = 0.0;
+        p->ix = o->ix + 16;
+        p->x = o->x + 16.0;
+        p->blocked |= BLOCKED_LEFT;
+    }
+    else
+    {
+        float avg = (p->x+o->x)/2;
+        float rel = (p->x-o->x)/2-8;
+        o->x = avg-8;
+        o->ix += rel;
+        p->x = avg+8;
+        p->ix -= rel;
+        avg = (p->vx + o->vx)/2;
+        o->vx = p->vx = avg;
+    }
+}
+
+void sprite_collide(struct object *o, struct object *p)
+{
+    if (o->health * p->health == 0) // if either sprite is dead, don't collide them.
+        return;
+
+    // p is lower than o, i.e. p.iy > o.iy.
+    if (o->ix < p->ix)
+    {
+        if (o->ix + 16 <= p->ix)
+            return;
+        if (p->iy - o->iy > 8) // large difference in y, collide vertically
+            collide_vertically(o, p);
+        else // colliding horizontally, recall o left of p
+            collide_horizontally(o, p);
+    }
+    else // p.x < o.x
+    {
+        if (p->ix + 16 <= o->ix)
+            return;
+
+        if (p->iy - o->iy > 8) // large difference in y
+            collide_vertically(o, p);
+        else // colliding horizontally, p left of o
+            collide_horizontally(p, o);
+    }
+}

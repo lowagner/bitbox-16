@@ -3,6 +3,7 @@
 #include "chiptune.h"
 #include "sprites.h"
 #include "tiles.h"
+#include "hit.h"
 #include "edit.h"
 #include "save.h"
 #include "font.h"
@@ -98,132 +99,7 @@ void run_line()
         // object i and j are being drawn on the same line, but are they overlapping?
         struct object *o = &object[draw_order[i]];
         struct object *p = &object[draw_order[j]];
-        if (o->ix < p->ix)
-        {
-            if (o->ix + 16 <= p->ix)
-                continue;
-            // p is lower than o (since j > i, and larger indices are lower on screen)
-            if (p->iy - o->iy > 8) // large difference in y, collide vertically
-            {
-                if (o->vy > 0.0 && (p->blocked & BLOCKED_DOWN))
-                {
-                    o->vy = 0.0;
-                    o->iy = p->iy - 16;
-                    o->y = p->y - 16.0;
-                    o->blocked |= BLOCKED_DOWN;
-                }
-                else if (p->vy < 0.0 && (o->blocked & BLOCKED_UP))
-                {
-                    p->vy = 0.0;
-                    p->iy = o->iy + 16;
-                    o->y = p->y + 16.0;
-                    p->blocked |= BLOCKED_UP;
-                }
-                else
-                {
-                    // TODO: use sprite mass?  (or take it out of sprite info)
-                    float avg = (p->y+o->y)/2;
-                    float rel = (p->y-o->y)/2 - 8;
-                    o->y = avg-8;
-                    o->iy += rel;
-                    p->y = avg+8;
-                    p->iy -= rel;
-                    avg = (p->vy + o->vy)/2;
-                    o->vy = p->vy = avg;
-                }
-            }
-            else // colliding horizontally, recall o left of p
-            {
-                if (o->vx > 0.0 && (p->blocked & BLOCKED_RIGHT))
-                {
-                    o->vx = 0.0;
-                    o->ix = p->ix - 16;
-                    o->x = p->x - 16.0;
-                    o->blocked |= BLOCKED_RIGHT;
-                }
-                else if (p->vx < 0.0 && (o->blocked & BLOCKED_LEFT))
-                {
-                    p->vx = 0.0;
-                    p->ix = o->ix + 16;
-                    p->x = o->x + 16.0;
-                    p->blocked |= BLOCKED_LEFT;
-                }
-                else
-                {
-                    float avg = (p->x+o->x)/2;
-                    float rel = (p->x-o->x)/2-8;
-                    o->x = avg-8;
-                    o->ix += rel;
-                    p->x = avg+8;
-                    p->ix -= rel;
-                    avg = (p->vx + o->vx)/2;
-                    o->vx = p->vx = avg;
-                }
-            }
-        }
-        else // p.x < o.x
-        {
-            if (p->ix + 16 <= o->ix)
-                continue;
-
-            if (p->iy - o->iy > 8) // large difference in y, collide vertically
-            {
-                if (o->vy > 0.0 && (p->blocked & BLOCKED_DOWN))
-                {
-                    o->vy = 0.0;
-                    o->iy = p->iy - 16;
-                    o->y = p->y - 16.0;
-                    o->blocked |= BLOCKED_DOWN;
-                }
-                else if (p->vy < 0.0 && (o->blocked & BLOCKED_UP))
-                {
-                    p->vy = 0.0;
-                    p->iy = o->iy + 16;
-                    p->y = o->y + 16.0;
-                    p->blocked |= BLOCKED_UP;
-                }
-                else
-                {
-                    float avg = (p->y+o->y)/2;
-                    float rel = (p->y-o->y)/2 - 8;
-                    o->y = avg-8;
-                    o->iy += rel;
-                    p->y = avg+8;
-                    p->iy -= rel;
-                    avg = (p->vy + o->vy)/2;
-                    o->vy = p->vy = avg;
-                }
-            }
-            else // colliding horizontally, p left of o
-            {
-                if (o->vx < 0.0 && (p->blocked & BLOCKED_LEFT))
-                {
-                    o->vx = 0.0;
-                    o->ix = p->ix + 16;
-                    o->x = p->x + 16.0;
-                    o->blocked |= BLOCKED_LEFT;
-                }
-                else if (p->vx > 0.0 && (o->blocked & BLOCKED_RIGHT))
-                {
-                    p->vx = 0.0;
-                    p->ix = o->ix - 16;
-                    p->x = o->x - 16.0;
-                    p->blocked |= BLOCKED_RIGHT;
-                }
-                else
-                {
-                    float avg = (p->x+o->x)/2;
-                    float rel = (p->x-o->x)/2+8;
-                    o->x = avg+8;
-                    o->ix += rel;
-                    p->x = avg-8;
-                    p->ix -= rel;
-                    avg = (p->vx + o->vx)/2;
-                    o->vx = p->vx = avg;
-                }
-            }
-        }
-
+        sprite_collide(o, p);
     }
     uint16_t *U16 = (uint16_t *)(U8row+16) - 1;
     uint32_t *dst = (uint32_t *)draw_buffer - 1;
