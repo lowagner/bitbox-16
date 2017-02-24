@@ -816,12 +816,10 @@ void object_run_commands(int i)
             return;
         case GO_NOT_MOVE:
             if (object[i].vx || object[i].vy)
-            {
-                if (!param)
-                    param = 16;
-                object[i].cmd_index += param;
-            }
-            break;
+                break;
+            if (!param)
+                param = 16;
+            object[i].cmd_index += param;
         case GO_NOT_RUN:
             if (object[i].properties & RUNNING)
                 break;
@@ -837,12 +835,9 @@ void object_run_commands(int i)
             object[i].cmd_index += param;
             break;
         case GO_NOT_FIRE:
-            if (object[i].firing)
-            {
-                if (--object[i].firing == FIRE_COUNT-1)
-                    // continue executing at next index if firing was FIRE_COUNT
-                    break;
-            }
+            if (object[i].firing && (--object[i].firing == FIRE_COUNT-1))
+                // continue executing at next index if firing was FIRE_COUNT
+                break;
             // otherwise, jump forward a few indices:
             if (!param)
                 param = 16;

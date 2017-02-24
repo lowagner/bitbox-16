@@ -11,14 +11,12 @@ game.c
         warn if map is not saved
 
 run.c:
-    tile translation
     hide sprites which are completely set inside another block with zero velocity.
         - compute a "hidden" property (set z=0 to hide) when transitioning to run mode
         - reset when going to map mode (always z=1 or higher)
         BUG HERE, not sure why not everything is hiding
     
-    sprites:
-        collisions, damage tacking
+    trigger edge behavior when hitting the edge of the map
 
     sprite attacks on tiles, too.
     
