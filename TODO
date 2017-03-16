@@ -1,20 +1,17 @@
 16 roadmap
 
+2nd player, is it working
 
-map:
-    copy tiles when changing map dimensions
+win/lose screen, after run.c
 
-game.c
-    game edit menu, also set to play
-    goes before map edit in SELECT route.  
-    press START to play
-        warn if map is not saved
+select file-name menu:
+    depends on the context, look for song files if in song mode, for tiles if in tile mode, etc.
+    alphabetical list (from sd card), also load previous game.  (swap whenever loading a different game.)
+    switch to file name editor
 
 run.c:
     hide sprites which are completely set inside another block with zero velocity.
-        - compute a "hidden" property (set z=0 to hide) when transitioning to run mode
-        - reset when going to map mode (always z=1 or higher)
-        BUG HERE, not sure why not everything is hiding
+        pop them out when tiles are destroyed
     
     trigger edge behavior when hitting the edge of the map
 
@@ -22,10 +19,16 @@ run.c:
     
     do we want to allow for connected sprites?  (e.g. swinging a sword sprite, attached to player or enemy, or power-up makes you twice as tall, etc.)
 
+        not at this time.
+
 sprite pattern commands:  no loops are possible, march through commands
-
+GO_LOOK:
     look for closest player, change direction based on argument
+    also "fires" shot if player is within range.
 
+song 
+    make some of the combined commands easier to parse:
+    add extra info line showing e.g. for NX the wait and note delta explicitly.
 
 allow for 8 unlock commands, 
     4 tied to tiles, 
@@ -35,18 +38,20 @@ allow for 8 unlock commands,
     one for dead,
 
 unlock pattern commands:
-    wait
-    set damage multiplier -- start every sprite with 15 health, you can have single or double damage hits, but if the damage multiplier is f, even a single hit is fatal.
-    heal player
-    set letter box -- add black lines above/below the play field
-    set letter box delta
-    set spawn location x, y (needs 14 bits total for both x,y)
-    spawn sprite
-    spawn tile (this can also destroy a tile if you spawn an "air" tile)
-    randomize command
-    set spawn location to player location (2 bits for offset in each direction)
-    set spawn location delta x, y
-    shake screen
-    make noise
-    set game-type (platformer, top-down adventure) via GRAVITY
+    0 wait / end.  for the win unlock, this will stop the game when "end"ing.
+    1 heal player (1 bit which player, 3 bits how much.  0->8)
+    2 hurt player (1 bit which player, 3 bits how much.)
+    3 set damage multiplier -- start every sprite with 15 health, you can have single or double damage hits, but if the damage multiplier is f, even a single hit is fatal.
+    4 set game-type (platformer, top-down adventure) via GRAVITY
         determine platformer or not by GRAVITY only.  don't have separate variable.
+    5 set spawn location to player 0 location (2 bits for offset in each direction)
+    6 set spawn location to player 1 location (2 bits for offset in each direction)
+    7 move spawn location +-x; note spawn location starts at unlock tile/sprite position
+    8 move spawn location +-y
+    9 spawn sprite
+    a spawn tile (this can also destroy a tile if you spawn an "air" tile)
+    b 
+    c repeat next few commands.  first 2 bits for how many times to repeat, second 2 bits for how many commands get repeated
+    d make noise
+    e randomize command
+    f shake screen
