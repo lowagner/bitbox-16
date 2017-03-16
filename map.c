@@ -77,6 +77,9 @@ void map_reset()
    
     for (int k=0; k<MAX_OBJECTS/4; ++k)
         create_object((k%16)*8 + rand()%8, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), 2+rand()%128);
+
+    // this is the only thing that gets confusing if you try to replay the level
+    io_save_map();
 }
 
 void map_line()
