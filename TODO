@@ -16,19 +16,11 @@ run.c:
     trigger edge behavior when hitting the edge of the map
 
     sprite attacks on tiles, too.
-    
-    do we want to allow for connected sprites?  (e.g. swinging a sword sprite, attached to player or enemy, or power-up makes you twice as tall, etc.)
-
-        not at this time.
 
 sprite pattern commands:  no loops are possible, march through commands
 GO_LOOK:
     look for closest player, change direction based on argument
     also "fires" shot if player is within range.
-
-song 
-    make some of the combined commands easier to parse:
-    add extra info line showing e.g. for NX the wait and note delta explicitly.
 
 allow for 8 unlock commands, 
     4 tied to tiles, 

@@ -744,7 +744,7 @@ void instrument_line()
                     strcpy((char *)buffer, "note inertia");
                     break;
                 case VIBRATO:
-                    strcpy((char *)buffer, "vibrato");
+                    strcpy((char *)buffer, "vibrato rate, depth");
                     break;
                 case BEND:
                     strcpy((char *)buffer, "bend");
@@ -769,7 +769,27 @@ void instrument_line()
             goto maybe_show_instrument;
         case 4:
             if ((instrument[instrument_i].cmd[instrument_j]&15) == VIBRATO)
-                font_render_line_doubled((uint8_t *)"depth 0-3 + rate 4,8,c", 108, internal_line, 65535, BG_COLOR*257);
+            {
+                uint8_t msg[16];
+                switch ((instrument[instrument_i].cmd[instrument_j]/16)/4) // rate
+                {
+                    case 0:
+                        strcpy((char *)msg, "  slow, ");
+                        break;
+                    case 1:
+                        strcpy((char *)msg, "medium, ");
+                        break;
+                    case 2:
+                        strcpy((char *)msg, "  fast, ");
+                        break;
+                    case 3:
+                        strcpy((char *)msg, " gamma, ");
+                        break;
+                }
+                msg[8] = hex[(instrument[instrument_i].cmd[instrument_j]/16)%4];
+                msg[9] = 0;
+                font_render_line_doubled(msg, 156, internal_line, 65535, BG_COLOR*257);
+            }
             goto maybe_show_instrument;
         case 5:
             font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257); 

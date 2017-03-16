@@ -511,7 +511,7 @@ void verse_line()
                     strcpy((char *)buffer, "wait");
                     break;
                 case TRACK_NOTE_WAIT:
-                    strcpy((char *)buffer, "wait-1 + note 0,+,++,-");
+                    strcpy((char *)buffer, "delta note, then wait");
                     break;
                 case TRACK_FADE_IN:
                     strcpy((char *)buffer, "fade in");
@@ -523,7 +523,7 @@ void verse_line()
                     strcpy((char *)buffer, "note inertia");
                     break;
                 case TRACK_VIBRATO:
-                    strcpy((char *)buffer, "vibrato depth + rate");
+                    strcpy((char *)buffer, "vibrato rate, depth");
                     break;
                 case TRACK_TRANSPOSE:
                     strcpy((char *)buffer, "global song transpose");
@@ -547,9 +547,51 @@ void verse_line()
             switch (chip_track[verse_track][verse_player][verse_track_pos]&15)
             {
                 case TRACK_VIBRATO:
-                case TRACK_NOTE_WAIT:
-                    font_render_line_doubled((uint8_t *)"0-3 + 0,4,8,c", 112, internal_line, 65535, BG_COLOR*257);
+                {
+                    uint8_t msg[16];
+                    switch ((chip_track[verse_track][verse_player][verse_track_pos]/16)/4) // rate
+                    {
+                        case 0:
+                            strcpy((char *)msg, "  slow, ");
+                            break;
+                        case 1:
+                            strcpy((char *)msg, "medium, ");
+                            break;
+                        case 2:
+                            strcpy((char *)msg, "  fast, ");
+                            break;
+                        case 3:
+                            strcpy((char *)msg, " gamma, ");
+                            break;
+                    }
+                    msg[8] = hex[(chip_track[verse_track][verse_player][verse_track_pos]/16)%4];
+                    msg[9] = 0;
+                    font_render_line_doubled(msg, 156, internal_line, 65535, BG_COLOR*257);
                     break;
+                }
+                case TRACK_NOTE_WAIT:
+                {
+                    uint8_t msg[16];
+                    switch ((chip_track[verse_track][verse_player][verse_track_pos]/16)/4) // note
+                    {
+                        case 0:
+                            strcpy((char *)msg, "same, wait ");
+                            break;
+                        case 1:
+                            strcpy((char *)msg, "   +, wait ");
+                            break;
+                        case 2:
+                            strcpy((char *)msg, "  ++, wait ");
+                            break;
+                        case 3:
+                            strcpy((char *)msg, "   -, wait ");
+                            break;
+                    }
+                    msg[11] = hex[1+(chip_track[verse_track][verse_player][verse_track_pos]/16)%4];
+                    msg[12] = 0;
+                    font_render_line_doubled(msg, 156, internal_line, 65535, BG_COLOR*257);
+                    break;
+                }
             }
             goto maybe_show_track;
         case 5:
