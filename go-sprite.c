@@ -402,7 +402,7 @@ void go_line()
                     strcpy((char *)buffer, "set acc/deceleration");
                     break;
                 case GO_SPEED:
-                    strcpy((char *)buffer, "set move/jump speed");
+                    strcpy((char *)buffer, "set move or jump speed");
                     break;
                 case GO_NOISE:
                     strcpy((char *)buffer, "make noise w/ inst.");
@@ -538,13 +538,27 @@ void go_line()
                     break;
                 }
                 case GO_ACCELERATION:
-                    strcpy((char *)buffer, "0,1,2,3 / 0,4,8,c");
+                {
+                    uint8_t *b = buffer;
+                    *b = ' ';
+                    *++b = ' ';
+                    *++b = ' ';
+                    *++b = ' ';
+                    *++b = hex[(sprite_pattern[edit_sprite/8][go_pattern_pos]>>4)%4];
+                    *++b = ' ';
+                    *++b = '/';
+                    *++b = ' ';
+                    *++b = hex[(sprite_pattern[edit_sprite/8][go_pattern_pos]>>4)/4];
+                    *++b = 0;
                     break;
+                }
                 case GO_SPEED:
                     if ((sprite_pattern[edit_sprite/8][go_pattern_pos]>>4) < 8)
-                        strcpy((char *)buffer, "move speed");
+                        strcpy((char *)buffer, "move speed ");
                     else
-                        strcpy((char *)buffer, "jump speed");
+                        strcpy((char *)buffer, "jump speed ");
+                    buffer[11] = '0'+(sprite_pattern[edit_sprite/8][go_pattern_pos]>>4)%8;
+                    buffer[12] = 0;
                     break;
                 default:
                     buffer[0] = 0;
