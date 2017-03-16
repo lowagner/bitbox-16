@@ -68,19 +68,14 @@ void map_switch()
 
 void map_reset()
 {
-    tile_map_width = 26;
-    tile_map_height = 20;
+    tile_map_width = 260;
+    tile_map_height = 60;
 
-    for (int j=0; j<tile_map_height; ++j)
-    for (int i=0; i<tile_map_width/2; ++i)
-    {
-        if (j <= (tile_map_height-16))
-            tile_map[j*(tile_map_width/2)+i] = 0;
-        else
-            tile_map[j*(tile_map_width/2)+i] = ((j - tile_map_height + 16)%16)|(((j - tile_map_height + 16)%16)<<4);
-    }
+    memset(tile_map, 0, (tile_map_height-20)*tile_map_width/2);
+    for (int j=tile_map_height-20; j<tile_map_height; ++j)
+        memset(tile_map + j*tile_map_width/2, (j%16)*17, tile_map_width/2);
    
-    for (int k=0; k<MAX_OBJECTS; ++k)
+    for (int k=0; k<MAX_OBJECTS/4; ++k)
         create_object((k%16)*8 + rand()%8, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), 2+rand()%128);
 }
 

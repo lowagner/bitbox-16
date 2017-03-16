@@ -5,6 +5,7 @@
 #include "tiles.h"
 
 #include <stdlib.h> // rand
+#include <string.h> // memset
 
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[128][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
@@ -312,29 +313,31 @@ void sprites_reset()
 {
     // create some random sprites...
     uint8_t *sc = sprite_draw[0][0];
-    int color_index = 0;
-    for (int tile=0; tile<15; ++tile)
+    for (int tile=0; tile<16; ++tile)
     {
+        memset(sc, tile*17, 128*8);
+        int alt_color = ((tile+1)&15)*17;
         for (int frame=0; frame<8; ++frame)
         {
             sprite_info[8*tile+frame] = 16;
-            int forward = frame % 2;
-            for (int line=0; line<16; ++line)
-            {
-                for (int col=0; col<8; ++col)
-                    *sc++ = (((color_index+1)>>(tile/4))&15)|((((color_index - forward)>>(tile/4))&15)<<4);
-                ++color_index;
+            switch (frame/2) {
+                case RIGHT:
+                    for (int row=0; row<16; ++row)
+                        sc[row*8 + 7] = alt_color;
+                    break;
+                case UP:
+                    memset(sc, alt_color, 8*2);
+                    break;
+                case LEFT:
+                    for (int row=0; row<16; ++row)
+                        sc[row*8] = alt_color;
+                    break;
+                case DOWN:
+                    memset(sc+14*8, alt_color, 8*2);
+                    break;
             }
-            color_index -= 16;
+            sc += 128;
         }
-        ++color_index;
-    }
-    // 16th sprite is random
-    for (int l=0; l<8; ++l)
-    {
-        sprite_info[15*8+l] = 0; // with black as invisible for all frames
-        for (int k=0; k<256/2; ++k)
-            *sc++ = rand()%256;
     }
 }
 

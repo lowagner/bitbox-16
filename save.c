@@ -304,6 +304,11 @@ void save_controls()
         switch (save_only)
         {
         case 0:
+            if (map_modified)
+            {
+                strcpy((char *)game_message, "map modified, save first!");
+                return;
+            }
             game_switch(GameOn);
             break;
         case 1:

@@ -33,6 +33,32 @@ void go_init()
 
 void go_reset()
 {
+    int index = -1;
+    sprite_pattern[0][++index] = GO_NOT_FIRE | (4<<4);
+    sprite_pattern[0][++index] = GO_RANDOMIZE | (8<<4);
+    sprite_pattern[0][++index] = GO_SPAWN_TILE;
+    sprite_pattern[0][++index] = GO_NOISE | (0<<4);
+    sprite_pattern[0][++index] = GO_BREAK;
+    sprite_pattern[0][++index] = GO_NOT_AIR | (5<<4);
+    sprite_pattern[0][++index] = GO_SPEED | (7<<4);
+    sprite_pattern[0][++index] = GO_ACCELERATION | (1<<4);
+    sprite_pattern[0][++index] = GO_DIRECTION | (3<<4);
+    sprite_pattern[0][++index] = GO_SPECIAL_INPUT | (5<<4);
+    sprite_pattern[0][++index] = BREAK;
+    sprite_pattern[0][++index] = GO_NOT_RUN | (7<<4);
+    sprite_pattern[0][++index] = GO_ACCELERATION | (7<<4);
+    sprite_pattern[0][++index] = GO_SPEED | ((8+6)<<4);
+    sprite_pattern[0][++index] = GO_SPEED | (5<<4);
+    sprite_pattern[0][++index] = BREAK | (2<<4);
+    sprite_pattern[0][++index] = GO_DIRECTION | (3<<4);
+    sprite_pattern[0][++index] = GO_SPECIAL_INPUT | (7<<4);
+    sprite_pattern[0][++index] = BREAK;
+    sprite_pattern[0][++index] = GO_ACCELERATION | (9<<4);
+    sprite_pattern[0][++index] = GO_SPEED | (3<<4);
+    sprite_pattern[0][++index] = GO_SPEED | ((8+4)<<4);
+    sprite_pattern[0][++index] = GO_DIRECTION | (3<<4);
+    sprite_pattern[0][++index] = GO_SPECIAL_INPUT | (7<<4);
+    sprite_pattern[0][++index] = BREAK;
 }
 
 void go_short_command_message(uint8_t *buffer, uint8_t cmd)
