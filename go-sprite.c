@@ -84,7 +84,7 @@ void go_short_command_message(uint8_t *buffer, uint8_t cmd)
             strcpy((char *)buffer, "execute");
             break;
         case GO_SET_PROPERTY:
-            strcpy((char *)buffer, "look");
+            strcpy((char *)buffer, "set property");
             break;
         case GO_DIRECTION:
             strcpy((char *)buffer, "handle input");
@@ -207,7 +207,7 @@ void go_render_command(int j, int y)
             param = hex[param];
             break;
         case GO_SET_PROPERTY:
-            cmd = 'L';
+            cmd = 'P';
             param = hex[param];
             break;
         case GO_DIRECTION:
@@ -459,16 +459,16 @@ void go_line()
                             strcpy((char *)buffer, "look down");
                             break;
                         case 12:
-                            strcpy((char *)buffer, "may add 1 HP");
-                            break;
-                        case 13:
-                            strcpy((char *)buffer, "may remove 1 HP");
-                            break;
-                        case 14:
                             strcpy((char *)buffer, "look 4 player 1");
                             break;
-                        case 15:
+                        case 13:
                             strcpy((char *)buffer, "look 4 player 2");
+                            break;
+                        case 14:
+                            strcpy((char *)buffer, "may add 1 HP");
+                            break;
+                        case 15:
+                            strcpy((char *)buffer, "may remove 1 HP");
                             break;
                     }
                     break;

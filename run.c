@@ -12,7 +12,7 @@
 #include <string.h> // memset
 
 uint8_t run_paused CCM_MEMORY;
-int camera_index CCM_MEMORY; // which sprite has the camera on it
+int player_index[2] CCM_MEMORY; // which sprite has the camera on it, and second player
 int camera_shake CCM_MEMORY;
 float camera_y CCM_MEMORY;
 float camera_x CCM_MEMORY;
@@ -20,7 +20,8 @@ float camera_x CCM_MEMORY;
 void run_init()
 {
     run_paused = 0;
-    camera_index = 255;
+    player_index[0] = 255;
+    player_index[1] = 255;
     camera_shake = 0;
     camera_y = 16.0f;
     camera_x = 16.0f;
@@ -35,7 +36,8 @@ void run_switch()
     update_palette2();
 
     camera_shake = 0;
-    camera_index = 255;
+    player_index[0] = 255;
+    player_index[1] = 255;
     // hide any sprites in objects by setting z = 0
     tile_map_x = 16*tile_map_width;
     tile_map_y = 16*tile_map_height;
@@ -57,16 +59,25 @@ void run_switch()
         else
         {
             object[i].z = 1;
-            // find the leftmost player 0 (hero) sprite, to make camera follow
-            if (object[i].sprite_index/8 == 0)
+            // find the leftmost player 0 (hero) and player 1 (sidekick) sprites, to make camera follow
+            switch (object[i].sprite_index/8)
             {
-                if ((int)object[i].x/16 < tile_map_x + 10)
-                {
-                    tile_map_x = ((int)object[i].x/16 - 10)*16;
-                    tile_map_y = (int)object[i].y - 8*16;
-                    camera_index = i;
-                    message("found player at %f, %f\n", object[i].x, object[i].y);
-                }
+                case 0:
+                    if ((int)object[i].x/16 < tile_map_x + 10)
+                    {
+                        tile_map_x = ((int)object[i].x/16 - 10)*16;
+                        tile_map_y = (int)object[i].y - 8*16;
+                        player_index[0] = i;
+                        message("found hero at %f, %f\n", object[i].x, object[i].y);
+                    }
+                    break;
+                case 1:
+                    if (player_index[1] == 255 || object[i].x < object[player_index[1]].x)
+                    {
+                        player_index[1] = i;
+                        message("found sidekick at %f, %f\n", object[i].x, object[i].y);
+                    }
+                    break;
             }
         }
     }
@@ -119,9 +130,9 @@ void run_line()
         }
         else if (game_message[0])
             font_render_no_bg_line_doubled(game_message, 16, vga_line-2, 65535);
-        else if (camera_index < 255)
+        else if (player_index[0] < 255)
         {
-            uint8_t msg[] = { 'H', 'P', ':', hex[object[camera_index].health/16], hex[object[camera_index].health%16], 0 };
+            uint8_t msg[] = { 'H', 'P', ':', hex[object[player_index[0]].health/16], hex[object[player_index[0]].health%16], 0 };
             font_render_no_bg_line_doubled(msg, 16, vga_line-2, 65535);
         }
     }
@@ -132,7 +143,7 @@ void run_controls()
     if (GAMEPAD_PRESS(0, start))
     {
         // pause mode
-        if (camera_index == 255)
+        if (player_index[0] == 255)
         {
             run_paused = 0;
             return;
@@ -154,39 +165,39 @@ void run_controls()
 
     tiles_translate();
 
-    if (camera_index < 255)
+    if (player_index[0] < 255)
     {
-        if (object[camera_index].ix < 9*16)
+        if (object[player_index[0]].ix < 9*16)
         {
-            if (object[camera_index].vx < -1.0f)
-                camera_x += object[camera_index].vx;
+            if (object[player_index[0]].vx < -1.0f)
+                camera_x += object[player_index[0]].vx;
             else
                 --camera_x;
             if (camera_x < 16.0f)
                 camera_x = 16.0f;
         }
-        else if (object[camera_index].ix >= (20-9)*16)
+        else if (object[player_index[0]].ix >= (20-9)*16)
         {
-            if (object[camera_index].vx > 1.0f)
-                camera_x += object[camera_index].vx;
+            if (object[player_index[0]].vx > 1.0f)
+                camera_x += object[player_index[0]].vx;
             else
                 ++camera_x;
             if (camera_x > 16.0f*(tile_map_width - 1 - 20))
                 camera_x = 16.0f*(tile_map_width - 1 - 20);
         }
-        if (object[camera_index].iy < 5*16)
+        if (object[player_index[0]].iy < 5*16)
         {
-            if (object[camera_index].vy < -1.0f)
-                camera_y += object[camera_index].vy;
+            if (object[player_index[0]].vy < -1.0f)
+                camera_y += object[player_index[0]].vy;
             else
                 --camera_y;
             if (camera_y < 16.0f)
                 camera_y = 16.0f;
         }
-        else if (object[camera_index].iy >= (15-5)*16)
+        else if (object[player_index[0]].iy >= (15-5)*16)
         {
-            if (object[camera_index].vy > 1.0f)
-                camera_y += object[camera_index].vy;
+            if (object[player_index[0]].vy > 1.0f)
+                camera_y += object[player_index[0]].vy;
             else
                 ++camera_y;
             if (camera_y > 16.0f*(tile_map_height - 1 - 15))

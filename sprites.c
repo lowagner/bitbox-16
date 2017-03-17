@@ -118,7 +118,7 @@ void update_object(int i)
 {
     if (object[i].draw_order_index < 255) // object was visible...
     {
-        if (on_screen(object[i].x, object[i].y) || i == camera_index)
+        if (on_screen(object[i].x, object[i].y) || i == player_index[0])
         {
             // object is still visible, need to sort draw_order.. but do it later!
             object[i].iy = object[i].y - tile_map_y;
@@ -179,7 +179,7 @@ void update_object_image(int i)
 
 void remove_object(int index)
 {
-    if (camera_index == index)
+    if (player_index[0] == index)
         kill_player();
     // free the object by linking previous indices to next indices and vice versa:
     int previous_index = object[index].previous_object_index;

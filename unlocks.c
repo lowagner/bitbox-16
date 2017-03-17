@@ -14,21 +14,21 @@ void unlocks_init()
 
 void kill_player()
 {
-    camera_index = 255;
+    player_index[0] = 255;
     strcpy((char *)game_message, "you died...");
 }
 
 void unlocks_win(int i)
 {
-    if (i != camera_index)
+    if (i != player_index[0])
         return;
-    camera_index = 255;
+    player_index[0] = 255;
     strcpy((char *)game_message, "you won!");
 }
 
 void set_unlock(int i, int j)
 {
-    if (i != camera_index)
+    if (i != player_index[0])
         return;
     message("unlock work to do %d\n", j);
 }

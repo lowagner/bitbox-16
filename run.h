@@ -3,6 +3,7 @@
 
 extern int camera_shake;
 extern int camera_index;
+extern int player_index[2];
 
 void run_init();
 void run_reset();

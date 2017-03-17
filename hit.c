@@ -20,7 +20,7 @@
 
 void set_checkpoint(int i)
 {
-    if (i != camera_index)
+    if (i != player_index[0])
         return;
     message("checkpoint reached... TODO: do something\n");
 }
@@ -922,7 +922,41 @@ void object_run_commands(int i)
             case 11: // look down
                 object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
                 break;
-            case 12: // maybe add HP
+            case 12:
+            case 13:
+            {
+                int p = player_index[param-12];
+                if (p == 255)
+                    break;
+                float delta_x = fabs(object[i].x - object[p].x);
+                float delta_y = fabs(object[i].y - object[p].y);
+                if (i == p)
+                    break;
+                if (delta_x >= 16*11.0 || delta_y >= 16*8.0)
+                {
+                    // too far away, unsuccessful, break from loop
+                    object[i].cmd_index = 0;
+                    return;
+                }
+                if (delta_x > delta_y)
+                {
+                    if (object[i].x < object[p].x)
+                        // look right
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT;
+                    else // look left
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT;
+                }
+                else // y > x
+                {
+                    if (object[i].y < object[p].y)
+                        // look down
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
+                    else // look up
+                        object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
+                }
+                break;
+            }
+            case 14: // maybe add HP
                 if (object[i].health < 255 && (rand() % 4 == 0))
                 {
                     ++object[i].health;
@@ -931,7 +965,7 @@ void object_run_commands(int i)
                     return;
                 }
                 break;
-            case 13: // maybe subtract HP
+            case 15: // maybe subtract HP
             {
                 int health = object[i].health;
                 damage_sprite(&object[i], 0.25);
@@ -942,14 +976,6 @@ void object_run_commands(int i)
                 }
                 break;
             }
-            case 14:
-                message("look for first player\n");
-                // if unsuccessful, break from loop.
-                break;
-            case 15:
-                message("look for second player\n");
-                // if unsuccessful, break from loop.
-                break;
             }
             break;
         case GO_SET_PROPERTY:
@@ -1157,11 +1183,18 @@ void object_run_commands(int i)
             }
             if (param & 4) // fire 
             {
-                if (GAMEPAD_PRESSED(p, X))
+                if (GAMEPAD_PRESSED(p, X) || GAMEPAD_PRESSED(p, L))
                 {
                     if (!object[i].firing)
                         object[i].firing = FIRE_COUNT;
                 }
+                /*  TODO:  something awesome with a second firing action...
+                else if (GAMEPAD_PRESSED(p, A) || GAMEPAD_PRESSED(p, R))
+                {
+                    if (!object[i].firing)
+                        object[i].firing = FIRE_COUNT+1;
+                }
+                */
                 else if (object[i].firing == FIRE_COUNT)
                 {
                     // haven't encountered a "GO_NOT_FIRE" yet,
