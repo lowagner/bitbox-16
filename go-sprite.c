@@ -419,6 +419,17 @@ void go_line()
         case 4:
             switch (sprite_pattern[edit_sprite/8][go_pattern_pos]&15)
             {
+                case GO_NOT_FIRE:
+                {
+                    int p = (sprite_pattern[edit_sprite/8][go_pattern_pos]>>4);
+                    if (!p)
+                        p = 16;
+                    strcpy((char *)buffer, "fire: X/L next, A/R ");
+
+                    buffer[20] = hex[1 + go_pattern_pos + p/2];
+                    buffer[21] = 0;
+                    break;
+                }
                 case GO_EXECUTE:
                     switch (sprite_pattern[edit_sprite/8][go_pattern_pos]>>4)
                     {
@@ -441,10 +452,10 @@ void go_line()
                             strcpy((char *)buffer, "do a jump");
                             break;
                         case 6:
-                            strcpy((char *)buffer, "fire!!");
+                            strcpy((char *)buffer, "fire X/L!!");
                             break;
                         case 7:
-                            strcpy((char *)buffer, "roulette");
+                            strcpy((char *)buffer, "fire A/R!!");
                             break;
                         case 8:
                             strcpy((char *)buffer, "look right");
@@ -494,10 +505,10 @@ void go_line()
                             strcpy((char *)buffer, "become real");
                             break;
                         case 6:
-                            strcpy((char *)buffer, "???");
+                            strcpy((char *)buffer, "swap player 1<->2");
                             break;
                         case 7:
-                            strcpy((char *)buffer, "???");
+                            strcpy((char *)buffer, "make player 1");
                             break;
                         case 8:
                             strcpy((char *)buffer, "fall off edges");

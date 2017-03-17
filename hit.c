@@ -9,7 +9,7 @@
 #include <math.h>
 #include <stdlib.h> // rand
 
-#define FIRE_COUNT 32 // number of times GO_NOT_FIRE needs to be called before you can fire again
+#define FIRE_COUNT 32 // number of EVEN times GO_NOT_FIRE needs to be called before you can fire again.
 #define SPEED_MULTIPLIER 0.5f
 #define THROW_MULTIPLIER 0.6f
 #define JUMP_MULTIPLIER 1.75f
@@ -831,12 +831,20 @@ void object_run_commands(int i)
             object[i].cmd_index += param;
             break;
         case GO_NOT_FIRE:
-            if (object[i].firing && (--object[i].firing == FIRE_COUNT-1))
-                // continue executing at next index if firing was FIRE_COUNT
-                break;
-            // otherwise, jump forward a few indices:
             if (!param)
                 param = 16;
+            if (object[i].firing && (--object[i].firing >= FIRE_COUNT-1))
+            {
+                // continue executing at next index if firing was FIRE_COUNT,
+                // or go half the param distance
+                if (object[i].firing % 2 == 0)
+                {
+                    --object[i].firing;
+                    object[i].cmd_index += param/2;
+                }
+                break;
+            }
+            // otherwise, jump forward a few indices:
             object[i].cmd_index += param;
             break;
         case GO_EXECUTE:
@@ -898,17 +906,18 @@ void object_run_commands(int i)
                     (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                 object[i].properties &= ~CAN_JUMP;
                 break;
-            case 6: // fire
+            case 6: // fire primary
                 if (!object[i].firing)
                     object[i].firing = FIRE_COUNT;
                 else
                     object[i].firing /= 2;
                 break;
-            case 7: // roulette:  kill sprite if unlucky
-                if (rand()%6 == 0)
-                    damage_sprite(&object[i], 1024);
+            case 7: // fire secondary
+                if (!object[i].firing)
+                    object[i].firing = FIRE_COUNT+1;
                 else
-                    object[i].cmd_index = 0;
+                    object[i].firing /= 2;
+                break;
                 break; 
             case 8: // look right 
                 object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT;
@@ -933,11 +942,8 @@ void object_run_commands(int i)
                 if (i == p)
                     break;
                 if (delta_x >= 16*11.0 || delta_y >= 16*8.0)
-                {
                     // too far away, unsuccessful, break from loop
-                    object[i].cmd_index = 0;
-                    return;
-                }
+                    goto end_run_commands;
                 if (delta_x > delta_y)
                 {
                     if (object[i].x < object[p].x)
@@ -961,8 +967,7 @@ void object_run_commands(int i)
                 {
                     ++object[i].health;
                     // quit execution
-                    object[i].cmd_index = 0;
-                    return;
+                    goto end_run_commands;
                 }
                 break;
             case 15: // maybe subtract HP
@@ -970,10 +975,7 @@ void object_run_commands(int i)
                 int health = object[i].health;
                 damage_sprite(&object[i], 0.25);
                 if (health == object[i].health) // quit execution if no damage taken
-                {
-                    object[i].cmd_index = 0;
-                    return;
-                }
+                    goto end_run_commands;
                 break;
             }
             }
@@ -996,12 +998,24 @@ void object_run_commands(int i)
             case 4: // become projectile
                 object[i].properties |= PROJECTILE;
                 break;
-            case 5:
+            case 5: // become real
                 object[i].properties &= ~PROJECTILE;
                 break;
-            case 6:
+            case 6: // swap player 1 and 2
+                if (player_index[0] != 255 && player_index[1] != 255)
+                {
+                    int tmp = player_index[1];
+                    player_index[1] = player_index[0];
+                    player_index[0] = tmp;
+                }
+                else
+                    goto end_run_commands;
                 break;
-            case 7:
+            case 7: // make player 1
+                if (player_index[0] != 255)
+                    player_index[0] = i;
+                else
+                    goto end_run_commands;
                 break;
             default:
                 // the rest are edge behaviors
@@ -1167,7 +1181,7 @@ void object_run_commands(int i)
             int p = param/8;
             if (param & 1) // run
             {
-                if ((gamepad_buttons[p] & (gamepad_Y | gamepad_A)))
+                if (gamepad_buttons[p] & gamepad_Y)
                     object[i].properties |= RUNNING;
                 else
                     object[i].properties &= ~RUNNING;
@@ -1188,13 +1202,11 @@ void object_run_commands(int i)
                     if (!object[i].firing)
                         object[i].firing = FIRE_COUNT;
                 }
-                /*  TODO:  something awesome with a second firing action...
                 else if (GAMEPAD_PRESSED(p, A) || GAMEPAD_PRESSED(p, R))
                 {
                     if (!object[i].firing)
                         object[i].firing = FIRE_COUNT+1;
                 }
-                */
                 else if (object[i].firing == FIRE_COUNT)
                 {
                     // haven't encountered a "GO_NOT_FIRE" yet,
@@ -1319,11 +1331,7 @@ void object_run_commands(int i)
                     break;
             }
             if (j == 255)
-            {
-                // reset, couldn't spawn a sprite.
-                object[i].cmd_index = 0;
-                return;
-            }
+                goto end_run_commands;
             object[j].vx = vx;
             object[j].vy = vy;
             object[j].properties |= PROJECTILE;
