@@ -176,11 +176,7 @@ void object_run_commands(int i)
         if (!object[i].health) // no health
         {
             if (!object[i].blink) // end death blink process
-            {
-                if (camera_index == i)
-                    kill_player();
                 return remove_object(i);
-            }
             object[i].vy += gravity;
             object[i].x += object[i].vx;
             object[i].y += object[i].vy;
@@ -870,7 +866,7 @@ void object_run_commands(int i)
                 object[i].vy = vx;
                 break;
             }
-            case 4: // walk
+            case 4: // move forward
                 switch ((object[i].sprite_index%8)/2)
                 {
                 case RIGHT:
@@ -897,29 +893,95 @@ void object_run_commands(int i)
                     break;
                 }
                 break;
-            case 5: // toggle run
-                if (object[i].properties & RUNNING)
-                    object[i].properties &= ~RUNNING;
-                else
-                    object[i].properties |= RUNNING;
-                break;
-            case 6: // do a jump
+            case 5: // do a jump
                 object[i].vy -= object[i].jump_speed*JUMP_MULTIPLIER/
                     (1.0f+((object[i].properties&(STICKING|SUPER_STICKING))>>5));
                 object[i].properties &= ~CAN_JUMP;
                 break;
-            case 7: // toggle ghost
-                if (object[i].properties & GHOSTING)
-                    object[i].properties &= ~GHOSTING;
+            case 6: // fire
+                if (!object[i].firing)
+                    object[i].firing = FIRE_COUNT;
                 else
-                    object[i].properties |= GHOSTING;
+                    object[i].firing /= 2;
+                break;
+            case 7: // roulette:  kill sprite if unlucky
+                if (rand()%6 == 0)
+                    damage_sprite(&object[i], 1024);
+                else
+                    object[i].cmd_index = 0;
+                break; 
+            case 8: // look right 
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*RIGHT;
+                break;
+            case 9: // look up
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*UP;
+                break;
+            case 10: // look left
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*LEFT;
+                break;
+            case 11: // look down
+                object[i].sprite_index = (object[i].sprite_index/8)*8 + 2*DOWN;
+                break;
+            case 12: // maybe add HP
+                if (object[i].health < 255 && (rand() % 4 == 0))
+                {
+                    ++object[i].health;
+                    // quit execution
+                    object[i].cmd_index = 0;
+                    return;
+                }
+                break;
+            case 13: // maybe subtract HP
+            {
+                int health = object[i].health;
+                damage_sprite(&object[i], 0.25);
+                if (health == object[i].health) // quit execution if no damage taken
+                {
+                    object[i].cmd_index = 0;
+                    return;
+                }
+                break;
+            }
+            case 14:
+                message("look for first player\n");
+                // if unsuccessful, break from loop.
+                break;
+            case 15:
+                message("look for second player\n");
+                // if unsuccessful, break from loop.
+                break;
+            }
+            break;
+        case GO_SET_PROPERTY:
+            switch (param)
+            {
+            case 0: // start run
+                object[i].properties |= RUNNING;
+                break;
+            case 1: // stop run
+                object[i].properties &= ~RUNNING;
+                break;
+            case 2: // start ghosting
+                object[i].properties |= GHOSTING;
+                break;
+            case 3: // stop ghosting
+                object[i].properties &= ~GHOSTING;
+                break;
+            case 4: // become projectile
+                object[i].properties |= PROJECTILE;
+                break;
+            case 5:
+                object[i].properties &= ~PROJECTILE;
+                break;
+            case 6:
+                break;
+            case 7:
                 break;
             default:
                 // the rest are edge behaviors
                 object[i].edge_behavior = param;
+                break;
             }
-            break;
-        case GO_LOOK:
             break;
         case GO_DIRECTION:
         {

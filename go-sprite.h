@@ -14,7 +14,7 @@ void go_line();
 #define GO_NOT_AIR 3
 #define GO_NOT_FIRE 4
 #define GO_EXECUTE 5
-#define GO_LOOK 6
+#define GO_SET_PROPERTY 6
 #define GO_DIRECTION 7
 #define GO_SPECIAL_INPUT 8
 #define GO_SPAWN_TILE 9

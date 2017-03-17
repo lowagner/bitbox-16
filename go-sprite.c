@@ -83,7 +83,7 @@ void go_short_command_message(uint8_t *buffer, uint8_t cmd)
         case GO_EXECUTE:
             strcpy((char *)buffer, "execute");
             break;
-        case GO_LOOK:
+        case GO_SET_PROPERTY:
             strcpy((char *)buffer, "look");
             break;
         case GO_DIRECTION:
@@ -206,7 +206,7 @@ void go_render_command(int j, int y)
             cmd = 'E';
             param = hex[param];
             break;
-        case GO_LOOK:
+        case GO_SET_PROPERTY:
             cmd = 'L';
             param = hex[param];
             break;
@@ -383,8 +383,8 @@ void go_line()
                 case GO_EXECUTE:
                     strcpy((char *)buffer, "execute:");
                     break;
-                case GO_LOOK:
-                    strcpy((char *)buffer, "look for player");
+                case GO_SET_PROPERTY:
+                    strcpy((char *)buffer, "set property:");
                     break;
                 case GO_DIRECTION:
                     strcpy((char *)buffer, "handle directions:");
@@ -435,16 +435,69 @@ void go_line()
                             strcpy((char *)buffer, "turn CW");
                             break;
                         case 4:
-                            strcpy((char *)buffer, "walk");
+                            strcpy((char *)buffer, "move forward");
                             break;
                         case 5:
-                            strcpy((char *)buffer, "toggle run");
-                            break;
-                        case 6:
                             strcpy((char *)buffer, "do a jump");
                             break;
+                        case 6:
+                            strcpy((char *)buffer, "fire!!");
+                            break;
                         case 7:
-                            strcpy((char *)buffer, "toggle ghost");
+                            strcpy((char *)buffer, "roulette");
+                            break;
+                        case 8:
+                            strcpy((char *)buffer, "look right");
+                            break;
+                        case 9:
+                            strcpy((char *)buffer, "look up");
+                            break;
+                        case 10:
+                            strcpy((char *)buffer, "look left");
+                            break;
+                        case 11:
+                            strcpy((char *)buffer, "look down");
+                            break;
+                        case 12:
+                            strcpy((char *)buffer, "may add 1 HP");
+                            break;
+                        case 13:
+                            strcpy((char *)buffer, "may remove 1 HP");
+                            break;
+                        case 14:
+                            strcpy((char *)buffer, "look 4 player 1");
+                            break;
+                        case 15:
+                            strcpy((char *)buffer, "look 4 player 2");
+                            break;
+                    }
+                    break;
+                case GO_SET_PROPERTY:
+                    switch (sprite_pattern[edit_sprite/8][go_pattern_pos]>>4)
+                    {
+                        case 0:
+                            strcpy((char *)buffer, "set run");
+                            break;
+                        case 1:
+                            strcpy((char *)buffer, "stop run");
+                            break;
+                        case 2:
+                            strcpy((char *)buffer, "start ghost");
+                            break;
+                        case 3:
+                            strcpy((char *)buffer, "stop ghost");
+                            break;
+                        case 4:
+                            strcpy((char *)buffer, "become projectile");
+                            break;
+                        case 5:
+                            strcpy((char *)buffer, "become real");
+                            break;
+                        case 6:
+                            strcpy((char *)buffer, "???");
+                            break;
+                        case 7:
+                            strcpy((char *)buffer, "???");
                             break;
                         case 8:
                             strcpy((char *)buffer, "fall off edges");
@@ -472,8 +525,6 @@ void go_line()
                             break;
                     }
                     break;
-                //case GO_LOOK:
-                //    break;
                 case GO_DIRECTION:
                 {
                     char *b = (char *)buffer;

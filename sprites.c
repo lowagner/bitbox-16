@@ -1,4 +1,5 @@
 #include "bitbox.h"
+#include "unlocks.h"
 #include "sprites.h"
 #include "hit.h"
 #include "run.h"
@@ -178,6 +179,8 @@ void update_object_image(int i)
 
 void remove_object(int index)
 {
+    if (camera_index == index)
+        kill_player();
     // free the object by linking previous indices to next indices and vice versa:
     int previous_index = object[index].previous_object_index;
     int next_index = object[index].next_object_index;
