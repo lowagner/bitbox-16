@@ -13,6 +13,7 @@
 
 uint8_t run_paused CCM_MEMORY;
 int player_index[2] CCM_MEMORY; // which sprite has the camera on it, and second player
+int players_swapped CCM_MEMORY;
 int camera_shake CCM_MEMORY;
 float camera_y CCM_MEMORY;
 float camera_x CCM_MEMORY;
@@ -31,6 +32,27 @@ void run_reset()
 {
 }
 
+void set_camera_from_player_position()
+{
+    tile_map_x = (int)object[player_index[0]].x - 10*16;
+    tile_map_y = (int)object[player_index[0]].y - 8*16;
+
+    if (tile_map_x < 16)
+        tile_map_x = 16;
+    else if (tile_map_x + SCREEN_W + 16 >= tile_map_width*16)
+        tile_map_x = tile_map_width*16 - SCREEN_W - 16;
+    
+    if (tile_map_y < 16)
+        tile_map_y = 16;
+    else if (tile_map_y + SCREEN_H + 16 >= tile_map_height*16)
+        tile_map_y = tile_map_height*16 - SCREEN_H - 16;
+    
+    camera_y = tile_map_y;
+    camera_x = tile_map_x;
+
+    update_object_images();
+}
+
 void run_switch()
 {
     update_palette2();
@@ -38,6 +60,7 @@ void run_switch()
     camera_shake = 0;
     player_index[0] = 255;
     player_index[1] = 255;
+    players_swapped = 0;
     // hide any sprites in objects by setting z = 0
     tile_map_x = 16*tile_map_width;
     tile_map_y = 16*tile_map_height;
@@ -60,41 +83,20 @@ void run_switch()
         {
             object[i].z = 1;
             // find the leftmost player 0 (hero) and player 1 (sidekick) sprites, to make camera follow
-            switch (object[i].sprite_index/8)
+            if (object[i].sprite_index/16 == 0)
             {
-                case 0:
-                    if ((int)object[i].x/16 < tile_map_x + 10)
-                    {
-                        tile_map_x = ((int)object[i].x/16 - 10)*16;
-                        tile_map_y = (int)object[i].y - 8*16;
-                        player_index[0] = i;
-                        message("found hero at %f, %f\n", object[i].x, object[i].y);
-                    }
-                    break;
-                case 1:
-                    if (player_index[1] == 255 || object[i].x < object[player_index[1]].x)
-                    {
-                        player_index[1] = i;
-                        message("found sidekick at %f, %f\n", object[i].x, object[i].y);
-                    }
-                    break;
+                int p = object[i].sprite_index/8;
+                if (player_index[p] == 255 || object[i].x < object[player_index[p]].x)
+                {
+                    player_index[p] = i;
+                    message("found player %d at %f, %f\n", p, object[i].x, object[i].y);
+                }
             }
         }
     }
-    if (tile_map_x < 16)
-        tile_map_x = 16;
-    else if (tile_map_x + SCREEN_W + 16 >= tile_map_width*16)
-        tile_map_x = tile_map_width*16 - SCREEN_W - 16;
-    
-    if (tile_map_y < 16)
-        tile_map_y = 16;
-    else if (tile_map_y + SCREEN_H + 16 >= tile_map_height*16)
-        tile_map_y = tile_map_height*16 - SCREEN_H - 16;
-    
-    camera_y = tile_map_y;
-    camera_x = tile_map_x;
 
-    update_object_images();
+    if (player_index[0] != 255)
+        set_camera_from_player_position();
     run_paused = 0;
     chip_play_init(0);
 }
@@ -130,10 +132,18 @@ void run_line()
         }
         else if (game_message[0])
             font_render_no_bg_line_doubled(game_message, 16, vga_line-2, 65535);
-        else if (player_index[0] < 255)
+        else
         {
-            uint8_t msg[] = { 'H', 'P', ':', hex[object[player_index[0]].health/16], hex[object[player_index[0]].health%16], 0 };
-            font_render_no_bg_line_doubled(msg, 16, vga_line-2, 65535);
+            if (player_index[0] < 255)
+            {
+                uint8_t msg[] = { 'H', 'P', ':', hex[object[player_index[0]].health/16], hex[object[player_index[0]].health%16], 0 };
+                font_render_no_bg_line_doubled(msg, 16, vga_line-2, 65535);
+            }
+            if (player_index[1] < 255)
+            {
+                uint8_t msg[] = { 'H', 'P', ':', hex[object[player_index[1]].health/16], hex[object[player_index[1]].health%16], 0 };
+                font_render_no_bg_line_doubled(msg, 156, vga_line-2, 65535);
+            }
         }
     }
 }

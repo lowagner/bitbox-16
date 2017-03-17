@@ -1,6 +1,7 @@
 16 roadmap
 
 2nd player, is it working
+    test switch player sprite pattern, robust off-screen-player camera refocus
 
 win/lose screen, after run.c
 

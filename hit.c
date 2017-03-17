@@ -1007,6 +1007,8 @@ void object_run_commands(int i)
                     int tmp = player_index[1];
                     player_index[1] = player_index[0];
                     player_index[0] = tmp;
+                    players_swapped = 1 - players_swapped;
+                    set_camera_from_player_position();
                 }
                 else
                     goto end_run_commands;
@@ -1025,7 +1027,7 @@ void object_run_commands(int i)
             break;
         case GO_DIRECTION:
         {
-            int p = param/8;
+            int p = (param/8 + players_swapped)%2;
             if (param == 4)
             {
                 // need special treatment here, random movement when pressing down
@@ -1178,7 +1180,7 @@ void object_run_commands(int i)
         }
         case GO_SPECIAL_INPUT:
         {
-            int p = param/8;
+            int p = (param/8 + players_swapped)%2;
             if (param & 1) // run
             {
                 if (gamepad_buttons[p] & gamepad_Y)
