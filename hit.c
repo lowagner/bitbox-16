@@ -1199,17 +1199,23 @@ void object_run_commands(int i)
             }
             if (param & 4) // fire 
             {
-                if (GAMEPAD_PRESSED(p, X) || GAMEPAD_PRESSED(p, L))
+                if (new_gamepad[p] & (gamepad_X|gamepad_L))
                 {
                     if (!object[i].firing)
+                    {
+                        new_gamepad[p] &= ~(gamepad_X|gamepad_L);
                         object[i].firing = FIRE_COUNT;
+                    }
                 }
-                else if (GAMEPAD_PRESSED(p, A) || GAMEPAD_PRESSED(p, R))
+                else if (new_gamepad[p] & (gamepad_A|gamepad_R))
                 {
                     if (!object[i].firing)
+                    {
+                        new_gamepad[p] &= ~(gamepad_A|gamepad_R);
                         object[i].firing = FIRE_COUNT+1;
+                    }
                 }
-                else if (object[i].firing == FIRE_COUNT)
+                else if (object[i].firing >= FIRE_COUNT)
                 {
                     // haven't encountered a "GO_NOT_FIRE" yet,
                     // assume we need to turn off the fire power.

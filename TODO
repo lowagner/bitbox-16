@@ -1,8 +1,5 @@
 16 roadmap
 
-2nd player, is it working
-    test switch player sprite pattern, robust off-screen-player camera refocus
-
 win/lose screen, after run.c
 
 select file-name menu:
@@ -17,11 +14,6 @@ run.c:
     trigger edge behavior when hitting the edge of the map
 
     sprite attacks on tiles, too.
-
-sprite pattern commands:  no loops are possible, march through commands
-GO_LOOK:
-    look for closest player, change direction based on argument
-    also "fires" shot if player is within range.
 
 allow for 8 unlock commands, 
     4 tied to tiles, 

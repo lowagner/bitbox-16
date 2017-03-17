@@ -22,6 +22,7 @@
 VisualMode visual_mode CCM_MEMORY; 
 VisualMode previous_visual_mode CCM_MEMORY;
 VisualMode old_visual_mode CCM_MEMORY;
+uint16_t new_gamepad[2] CCM_MEMORY;
 uint16_t old_gamepad[2] CCM_MEMORY;
 uint8_t gamepad_press_wait CCM_MEMORY;
 uint8_t game_message[32] CCM_MEMORY;
@@ -118,6 +119,9 @@ void game_init()
 
 void game_frame()
 {
+    new_gamepad[0] |= gamepad_buttons[0] & (~old_gamepad[0]);
+    new_gamepad[1] |= gamepad_buttons[1] & (~old_gamepad[1]);
+
     switch (visual_mode)
     {
     case GameOn:
