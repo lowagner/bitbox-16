@@ -11,7 +11,8 @@
 
 #define FIRE_COUNT 32 // number of EVEN times GO_NOT_FIRE needs to be called before you can fire again.
 #define SPEED_MULTIPLIER 0.5f
-#define BREAKING_VELOCITY 5.0f
+#define BREAKING_VELOCITY_Y 6.0f
+#define BREAKING_VELOCITY_X 2.0f
 #define THROW_MULTIPLIER 0.6f
 #define JUMP_MULTIPLIER 1.75f
 #define ACCELERATION_DIVIDEND 4.0f
@@ -188,15 +189,6 @@ int hit_tile(int i, float momentum, int hit)
     return 0;
 }
 
-static inline int compare_hit(int i, float y_momentum, float x_delta, int hit_left, int hit_right)
-{
-    // return 0 if you want to cancel y momentum, otherwise 1 or 2 (for bounce/superbounce), -1 for death
-    if (x_delta < 8.0f)
-        return hit_tile(i, y_momentum, hit_left);
-    else
-        return hit_tile(i, y_momentum, hit_right);
-}
-
 void object_run_commands(int i) 
 {
     // update position here, too
@@ -297,24 +289,23 @@ void object_run_commands(int i)
                 if (x_delta < 8.0f)
                 {
                     hit = hit_tile(i, object[i].vy, hit_left);
-                    if (object[i].vy > BREAKING_VELOCITY && 
+                    if (object[i].vy > BREAKING_VELOCITY_Y && 
                         (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_left)))
                     {
-                        hit |= 3;
+                        hit |= 1;
                         destroy_tile(x_tile, y_tile);
                     }
                 }
                 else
                 {
                     hit = hit_tile(i, object[i].vy, hit_right);
-                    if (object[i].vy > BREAKING_VELOCITY && 
+                    if (object[i].vy > BREAKING_VELOCITY_Y && 
                         (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_right)))
                     {
-                        hit |= 3;
+                        hit |= 1;
                         destroy_tile(x_tile+1, y_tile);
                     }
                 }
-                // compare_hit(i, object[i].vy, x_delta, hit_left, hit_right) 
                 switch (hit)
                 {
                     case -1:
@@ -324,9 +315,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*UP;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*UP;
                         break;
                 }
             }
@@ -400,10 +393,10 @@ void object_run_commands(int i)
             else 
             {
                 hit = hit_tile(i, object[i].vy, hit_right);
-                if (object[i].vy > BREAKING_VELOCITY && 
+                if (object[i].vy > BREAKING_VELOCITY_Y && 
                     (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_right)))
                 {
-                    hit |= 3;
+                    hit |= 1;
                     destroy_tile(x_tile+1, y_tile);
                 }
                 switch (hit)
@@ -415,9 +408,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*UP;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*UP;
                         break;
                 }
             }
@@ -498,10 +493,10 @@ void object_run_commands(int i)
             {
                 test_top_left_block_only:
                 hit = hit_tile(i, object[i].vy, hit_left);
-                if (object[i].vy > BREAKING_VELOCITY && 
+                if (object[i].vy > BREAKING_VELOCITY_Y && 
                     (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_left)))
                 {
-                    hit |= 3;
+                    hit |= 1;
                     destroy_tile(x_tile, y_tile);
                 }
                 switch (hit)
@@ -513,9 +508,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*UP;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*UP;
                         break;
                 }
             }
@@ -528,8 +525,10 @@ void object_run_commands(int i)
         int y_tile = object[i].y/16;
         int x_tile = object[i].x/16;
         float x_delta = object[i].x - 16.0f*x_tile;
-        
-        int hit_left = test_tile(x_tile, y_tile, DOWN);
+        uint32_t tile_left = get_tile_info(x_tile, y_tile);
+        uint32_t tile_right = get_tile_info(x_tile+1, y_tile);
+        int hit;
+        int hit_left = get_tile_hit(tile_left, DOWN);
         int hit_right;
         if (x_delta == 0.0f)
         {
@@ -538,13 +537,33 @@ void object_run_commands(int i)
                 goto test_bottom_left_block_only;
         }
         // gotta test left and right tiles
-        else if ((hit_right = test_tile(x_tile+1, y_tile, DOWN)))
+        else if ((hit_right = get_tile_hit(tile_right, DOWN)))
         {
             if (hit_left)
             {
                 object[i].y = 16*(y_tile+1);
                 object[i].blocked |= BLOCKED_UP;
-                switch (compare_hit(i, -object[i].vy, x_delta, hit_left, hit_right))
+                if (x_delta < 8.0f)
+                {
+                    hit = hit_tile(i, -object[i].vy, hit_left);
+                    if (object[i].vy < -BREAKING_VELOCITY_Y && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_left)))
+                    {
+                        hit |= 1;
+                        destroy_tile(x_tile, y_tile);
+                    }
+                }
+                else
+                {
+                    hit = hit_tile(i, -object[i].vy, hit_right);
+                    if (object[i].vy < -BREAKING_VELOCITY_Y && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_right)))
+                    {
+                        hit |= 1;
+                        destroy_tile(x_tile+1, y_tile);
+                    }
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -553,9 +572,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*DOWN;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*DOWN;
                         break;
                 }
             }
@@ -569,7 +590,14 @@ void object_run_commands(int i)
             {
                 object[i].y = 16*(y_tile+1);
                 object[i].blocked |= BLOCKED_UP;
-                switch (hit_tile(i, -object[i].vy, hit_right))
+                hit = hit_tile(i, -object[i].vy, hit_right);
+                if (object[i].vy < -BREAKING_VELOCITY_Y && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_right)))
+                {
+                    hit |= 1;
+                    destroy_tile(x_tile+1, y_tile);
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -578,9 +606,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*DOWN;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*DOWN;
                         break;
                 }
             }
@@ -598,7 +628,14 @@ void object_run_commands(int i)
                 test_bottom_left_block_only:
                 object[i].y = 16*(y_tile+1);
                 object[i].blocked |= BLOCKED_UP;
-                switch (hit_tile(i, -object[i].vy, hit_left))
+                hit = hit_tile(i, -object[i].vy, hit_left);
+                if (object[i].vy < -BREAKING_VELOCITY_Y && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_left)))
+                {
+                    hit |= 1;
+                    destroy_tile(x_tile, y_tile);
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -607,9 +644,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vy *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*DOWN;
                         break;
                     default: // super bounce
                         object[i].vy *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*DOWN;
                         break;
                 }
             }
@@ -636,7 +675,10 @@ void object_run_commands(int i)
         int x_tile = object[i].x/16 + 1;
         int y_tile = object[i].y/16;
         float y_delta = object[i].y - 16.0f*y_tile;
-        int hit_up = test_tile(x_tile, y_tile, LEFT);
+        uint32_t tile_up = get_tile_info(x_tile, y_tile);
+        uint32_t tile_down = get_tile_info(x_tile, y_tile+1);
+        int hit;
+        int hit_up = get_tile_hit(tile_up, LEFT);
         int hit_down;
         if (y_delta == 0.0f)
         {
@@ -644,13 +686,33 @@ void object_run_commands(int i)
             if (hit_up)
                 goto test_right_top_block_only;
         }
-        else if ((hit_down = test_tile(x_tile, y_tile+1, LEFT)))
+        else if ((hit_down = get_tile_hit(tile_down, LEFT)))
         {
             if (hit_up)
             {
                 object[i].blocked |= BLOCKED_RIGHT;
                 object[i].x = 16*(x_tile-1);
-                switch (compare_hit(i, object[i].vx, y_delta, hit_up, hit_down))
+                if (y_delta < 8.0f)
+                {
+                    hit = hit_tile(i, object[i].vx, hit_up);
+                    if (object[i].vx > BREAKING_VELOCITY_X && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_up)))
+                    {
+                        hit |= 1;
+                        destroy_tile(x_tile, y_tile);
+                    }
+                }
+                else
+                {
+                    hit = hit_tile(i, object[i].vx, hit_down);
+                    if (object[i].vx > BREAKING_VELOCITY_X && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_down)))
+                    {
+                        hit |= 1;
+                        destroy_tile(x_tile, y_tile+1);
+                    }
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -659,9 +721,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vx *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*LEFT;
                         break;
                     default: // super bounce
                         object[i].vx *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*LEFT;
                         break;
                 }
             }
@@ -671,7 +735,14 @@ void object_run_commands(int i)
             {
                 object[i].x = 16*(x_tile-1);
                 object[i].blocked |= BLOCKED_RIGHT;
-                switch (hit_tile(i, object[i].vx, hit_down))
+                hit = hit_tile(i, object[i].vx, hit_down);
+                if (object[i].vx > BREAKING_VELOCITY_X && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_down)))
+                {
+                    hit |= 1;
+                    destroy_tile(x_tile, y_tile+1);
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -680,9 +751,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vx *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*LEFT;
                         break;
                     default: // super bounce
                         object[i].vx *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*LEFT;
                         break;
                 }
             }
@@ -696,7 +769,14 @@ void object_run_commands(int i)
                 test_right_top_block_only:
                 object[i].x = 16*(x_tile-1);
                 object[i].blocked |= BLOCKED_RIGHT;
-                switch (hit_tile(i, object[i].vx, hit_up))
+                hit = hit_tile(i, object[i].vx, hit_up);
+                if (object[i].vx > BREAKING_VELOCITY_X && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_up)))
+                {
+                    hit |= 1;
+                    destroy_tile(x_tile, y_tile);
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -705,9 +785,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vx *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*LEFT;
                         break;
                     default: // super bounce
                         object[i].vx *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*LEFT;
                         break;
                 }
             }
@@ -739,7 +821,10 @@ void object_run_commands(int i)
         int x_tile = object[i].x/16;
         int y_tile = object[i].y/16;
         float y_delta = object[i].y - 16.0f*y_tile;
-        int hit_up = test_tile(x_tile, y_tile, RIGHT);
+        uint32_t tile_up = get_tile_info(x_tile, y_tile);
+        uint32_t tile_down = get_tile_info(x_tile, y_tile+1);
+        int hit;
+        int hit_up = get_tile_hit(tile_up, RIGHT);
         int hit_down;
         if (y_delta == 0.0f)
         {
@@ -747,13 +832,33 @@ void object_run_commands(int i)
             if (hit_up)
                 goto test_left_top_block_only;
         }
-        else if ((hit_down = test_tile(x_tile, y_tile+1, RIGHT)))
+        else if ((hit_down = get_tile_hit(tile_down, RIGHT)))
         {
             if (hit_up)
             {
                 object[i].x = 16*(x_tile+1);
                 object[i].blocked |= BLOCKED_LEFT;
-                switch (compare_hit(i, -object[i].vx, y_delta, hit_up, hit_down))
+                if (y_delta < 8.0f)
+                {
+                    hit = hit_tile(i, -object[i].vx, hit_up);
+                    if (object[i].vx < -BREAKING_VELOCITY_X && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_up)))
+                    {
+                        hit |= 1;
+                        destroy_tile(x_tile, y_tile);
+                    }
+                }
+                else
+                {
+                    hit = hit_tile(i, -object[i].vx, hit_down);
+                    if (object[i].vx < -BREAKING_VELOCITY_X && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_down)))
+                    {
+                        hit |= 1;
+                        destroy_tile(x_tile, y_tile+1);
+                    }
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -762,9 +867,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vx *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*RIGHT;
                         break;
                     default: // super bounce
                         object[i].vx *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*RIGHT;
                         break;
                 }
             }
@@ -774,7 +881,14 @@ void object_run_commands(int i)
             {
                 object[i].x = 16*(x_tile+1);
                 object[i].blocked |= BLOCKED_LEFT;
-                switch (hit_tile(i, -object[i].vx, hit_down))
+                hit = hit_tile(i, -object[i].vx, hit_down);
+                if (object[i].vx < -BREAKING_VELOCITY_X && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_down)))
+                {
+                    hit |= 1;
+                    destroy_tile(x_tile, y_tile+1);
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -783,9 +897,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vx *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*RIGHT;
                         break;
                     default: // super bounce
                         object[i].vx *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*RIGHT;
                         break;
                 }
             }
@@ -799,7 +915,14 @@ void object_run_commands(int i)
                 test_left_top_block_only:
                 object[i].x = 16*(x_tile+1);
                 object[i].blocked |= BLOCKED_LEFT;
-                switch (hit_tile(i, object[i].vx, hit_up))
+                hit = hit_tile(i, -object[i].vx, hit_up);
+                if (object[i].vx < -BREAKING_VELOCITY_X && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_up)))
+                {
+                    hit |= 1;
+                    destroy_tile(x_tile, y_tile);
+                }
+                switch (hit)
                 {
                     case -1:
                         return;
@@ -808,9 +931,11 @@ void object_run_commands(int i)
                         break;
                     case 1: // bounce
                         object[i].vx *= -0.5f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*RIGHT;
                         break;
                     default: // super bounce
                         object[i].vx *= -1.0f;
+                        object[i].sprite_index = 8*(object[i].sprite_index/8) + 2*RIGHT;
                         break;
                 }
             }
