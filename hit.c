@@ -11,6 +11,7 @@
 
 #define FIRE_COUNT 32 // number of EVEN times GO_NOT_FIRE needs to be called before you can fire again.
 #define SPEED_MULTIPLIER 0.5f
+#define BREAKING_VELOCITY 5.0f
 #define THROW_MULTIPLIER 0.6f
 #define JUMP_MULTIPLIER 1.75f
 #define ACCELERATION_DIVIDEND 4.0f
@@ -43,6 +44,38 @@ static inline int test_inside_tile(int x, int y)
         ((info >> 28)))
         return 1;
     return 0;
+}
+
+static inline uint32_t get_tile_info(int x, int y)
+{
+    int index = y*tile_map_width + x;
+    uint8_t tile;
+    if (index % 2)
+        tile = tile_map[index/2] >> 4;
+    else
+        tile = tile_map[index/2] & 15;
+    return tile_info[tile_translator[tile]];
+}
+
+static inline int get_tile_hit(uint32_t info, int dir)
+{
+    if (!(info & 8))
+        return 0; // TODO: check for warps
+    return (info >> (16 + 4*dir))&15;
+}
+
+static inline int get_tile_vulnerability(uint32_t info)
+{
+    return (info >> 12)&7;
+}
+
+static inline void destroy_tile(int x, int y)
+{
+    int index = y*tile_map_width + x;
+    if (index % 2)
+        tile_map[index/2] &= 15;
+    else
+        tile_map[index/2] &= 240;
 }
 
 static inline int test_tile(int x, int y, int dir)
@@ -237,7 +270,10 @@ void object_run_commands(int i)
         int y_tile = object[i].y/16 + 1;
         int x_tile = object[i].x/16;
         float x_delta = object[i].x - 16.0f*x_tile;
-        int hit_left = test_tile(x_tile, y_tile, UP);
+        uint32_t tile_left = get_tile_info(x_tile, y_tile);
+        uint32_t tile_right = get_tile_info(x_tile+1, y_tile);
+        int hit;
+        int hit_left = get_tile_hit(tile_left, UP);
         int hit_right;
         if (x_delta == 0.0f)
         {
@@ -251,25 +287,48 @@ void object_run_commands(int i)
             }
         }
         // else gotta test left and right tiles
-        else if ((hit_right = test_tile(x_tile+1, y_tile, UP)))
+        else if ((hit_right = get_tile_hit(tile_right, UP)))
         {
             object[i].y = 16*(y_tile-1);
             object[i].properties |= CAN_JUMP;
             object[i].blocked |= BLOCKED_DOWN;
             if (hit_left)
-            switch (compare_hit(i, object[i].vy, x_delta, hit_left, hit_right))
             {
-                case -1:
-                    return;
-                case 0:
-                    object[i].vy = 0.0f;
-                    break;
-                case 1: // bounce
-                    object[i].vy *= -0.5f;
-                    break;
-                default: // super bounce
-                    object[i].vy *= -1.0f;
-                    break;
+                if (x_delta < 8.0f)
+                {
+                    hit = hit_tile(i, object[i].vy, hit_left);
+                    if (object[i].vy > BREAKING_VELOCITY && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_left)))
+                    {
+                        hit |= 3;
+                        destroy_tile(x_tile, y_tile);
+                    }
+                }
+                else
+                {
+                    hit = hit_tile(i, object[i].vy, hit_right);
+                    if (object[i].vy > BREAKING_VELOCITY && 
+                        (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_right)))
+                    {
+                        hit |= 3;
+                        destroy_tile(x_tile+1, y_tile);
+                    }
+                }
+                // compare_hit(i, object[i].vy, x_delta, hit_left, hit_right) 
+                switch (hit)
+                {
+                    case -1:
+                        return;
+                    case 0:
+                        object[i].vy = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vy *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vy *= -1.0f;
+                        break;
+                }
             }
             else if (x_delta < 3.0f && object[i].vx < 0)
             // about to fall off to the left:
@@ -338,19 +397,29 @@ void object_run_commands(int i)
                     if (object[i].vx > -1.0f)
                         object[i].vx = 0;
             }
-            else switch (hit_tile(i, object[i].vy, hit_right))
+            else 
             {
-                case -1:
-                    return;
-                case 0:
-                    object[i].vy = 0.0f;
-                    break;
-                case 1: // bounce
-                    object[i].vy *= -0.5f;
-                    break;
-                default: // super bounce
-                    object[i].vy *= -1.0f;
-                    break;
+                hit = hit_tile(i, object[i].vy, hit_right);
+                if (object[i].vy > BREAKING_VELOCITY && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_right)))
+                {
+                    hit |= 3;
+                    destroy_tile(x_tile+1, y_tile);
+                }
+                switch (hit)
+                {
+                    case -1:
+                        return;
+                    case 0:
+                        object[i].vy = 0.0f;
+                        break;
+                    case 1: // bounce
+                        object[i].vy *= -0.5f;
+                        break;
+                    default: // super bounce
+                        object[i].vy *= -1.0f;
+                        break;
+                }
             }
         }
         else if (hit_left) // but not hit_right
@@ -428,7 +497,14 @@ void object_run_commands(int i)
             else
             {
                 test_top_left_block_only:
-                switch (hit_tile(i, object[i].vy, hit_left))
+                hit = hit_tile(i, object[i].vy, hit_left);
+                if (object[i].vy > BREAKING_VELOCITY && 
+                    (get_sprite_attack(&object[i]) & get_tile_vulnerability(tile_left)))
+                {
+                    hit |= 3;
+                    destroy_tile(x_tile, y_tile);
+                }
+                switch (hit)
                 {
                     case -1:
                         return;

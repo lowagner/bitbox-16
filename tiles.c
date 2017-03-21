@@ -14,7 +14,7 @@ info about a tile:
     4 bits for tile timing
     if Block:
         4 bits:
-            for tile vulnerability (can only destroy a tile using an attack which &'s this).
+            3 bits for tile vulnerability (can only destroy a tile when (attack & vulnerability) > 0).
         4 bits for surface property, x 4 sides 
             see common.h
             passable, normal, slippery, sticky/bouncy, insta-death, checkpoint, win location

@@ -184,7 +184,7 @@ void edit2_line()
             if (tile_info[edit_tile]&8) // solid
             {
                 strcpy((char *)msg+23, " vulnr ");
-                msg[30] = hex[(tile_info[edit_tile]>>12)&15];
+                msg[30] = hex[(tile_info[edit_tile]>>12)&7];
                 msg[31] = 0;
             }
             else if (tile_info[edit_tile]&(1<<13)) // warp
