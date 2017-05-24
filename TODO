@@ -24,19 +24,18 @@ allow for 8 unlock commands,
 
 unlock pattern commands:
     0 wait / end.  for the win unlock, this will stop the game when "end"ing.
-    1 heal player (1 bit which player, 3 bits how much.  0->8)
-    2 hurt player (1 bit which player, 3 bits how much.)
-    3 set damage multiplier -- start every sprite with 15 health, you can have single or double damage hits, but if the damage multiplier is f, even a single hit is fatal.
-    4 set game-type (platformer, top-down adventure) via GRAVITY
+    1 set game-type (platformer, top-down adventure) via GRAVITY
         determine platformer or not by GRAVITY only.  don't have separate variable.
+    2 set damage multiplier -- start every sprite with 15 health, you can have single or double damage hits, but if the damage multiplier is f, even a single hit is fatal.
+    3 hurt/heal player (1 bit which player, 1 bit sign, 2 bits how much.  0->4)
     5 set spawn location to player 0 location (2 bits for offset in each direction)
     6 set spawn location to player 1 location (2 bits for offset in each direction)
     7 move spawn location +-x; note spawn location starts at unlock tile/sprite position
-    8 move spawn location +-y
-    9 spawn sprite
-    a spawn tile (this can also destroy a tile if you spawn an "air" tile)
-    b 
-    c repeat next few commands.  first 2 bits for how many times to repeat, second 2 bits for how many commands get repeated
-    d make noise
+    8 move spawn location +-y; use 0 -> 8, so we have -8 to 8 excluding zero.
+    9 spawn tile (this can also destroy a tile if you spawn an "air" tile)
+    a spawn sprite
+    b set spawn sprite velocity (x for values < 8, y for values >= 8, 2s complement)
+    c make noise
+    d shake screen
     e randomize command
-    f shake screen
+    f jump
