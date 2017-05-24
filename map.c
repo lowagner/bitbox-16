@@ -33,7 +33,7 @@ void map_init()
     map_sprite_under_cursor = 255;
 }
 
-void map_switch()
+void map_start()
 {
     // reset the tile translations
     for (int j=0; j<16; ++j)
@@ -66,7 +66,7 @@ void map_switch()
     update_object_images(); 
 }
 
-void map_reset()
+void map_load_default()
 {
     tile_map_width = 260;
     tile_map_height = 60;

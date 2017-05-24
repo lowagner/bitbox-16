@@ -9,7 +9,7 @@ extern uint8_t instrument_j;
 extern uint8_t instrument_menu_not_edit;
 
 void instrument_init();
-void instrument_reset();
+void instrument_load_default();
 void instrument_controls();
 void instrument_line();
 

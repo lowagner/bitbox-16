@@ -180,7 +180,9 @@ void update_object_image(int i)
 void remove_object(int index)
 {
     if (player_index[0] == index)
-        kill_player();
+        kill_player(0);
+    if (player_index[1] == index)
+        kill_player(1);
     // free the object by linking previous indices to next indices and vice versa:
     int previous_index = object[index].previous_object_index;
     int next_index = object[index].next_object_index;
@@ -312,7 +314,7 @@ void sprites_frame()
     last_drawing_index = 0;
 }
 
-void sprites_reset()
+void sprites_load_default()
 {
     // create some random sprites...
     uint8_t *sc = sprite_draw[0][0];

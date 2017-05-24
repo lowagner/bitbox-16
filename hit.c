@@ -20,10 +20,8 @@
 #define MAX_VY 10.0f
 
 
-void set_checkpoint(int i)
+void set_checkpoint(int p)
 {
-    if (i != player_index[0])
-        return;
     message("checkpoint reached... TODO: do something\n");
 }
 
@@ -93,7 +91,7 @@ static inline int test_tile(int x, int y, int dir)
     return (info >> (16 + 4*dir))&15;
 }
 
-static inline int damage_sprite(struct object *o, float damage)
+int damage_sprite(struct object *o, float damage)
 {
     if (o->properties & PROJECTILE)
         goto kill_sprite;
@@ -166,22 +164,40 @@ int hit_tile(int i, float momentum, int hit)
                 return -1;
             break;
         case Unlock0:
-            set_unlock(i, 0);
+            if (i == player_index[0])
+                unlocks_switch(0, UNLOCKS_0);
+            else if (i == player_index[1])
+                unlocks_switch(1, UNLOCKS_0);
             break;
         case Unlock1:
-            set_unlock(i, 1);
+            if (i == player_index[0])
+                unlocks_switch(0, UNLOCKS_1);
+            else if (i == player_index[1])
+                unlocks_switch(1, UNLOCKS_1);
             break;
         case Unlock2:
-            set_unlock(i, 2);
+            if (i == player_index[0])
+                unlocks_switch(0, UNLOCKS_2);
+            else if (i == player_index[1])
+                unlocks_switch(1, UNLOCKS_2);
             break;
         case Unlock3:
-            set_unlock(i, 3);
+            if (i == player_index[0])
+                unlocks_switch(0, UNLOCKS_3);
+            else if (i == player_index[1])
+                unlocks_switch(1, UNLOCKS_3);
             break;
         case Checkpoint:
-            set_checkpoint(i);
+            if (i == player_index[0])
+                set_checkpoint(0);
+            else if (i == player_index[1])
+                set_checkpoint(1);
             break;
         case Win:
-            unlocks_win(i);
+            if (i == player_index[0])
+                unlocks_switch(0, UNLOCKS_WIN);
+            else if (i == player_index[1])
+                unlocks_switch(1, UNLOCKS_WIN);
             break;
         default:
             break;

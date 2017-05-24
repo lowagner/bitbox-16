@@ -35,5 +35,7 @@ FileError io_save_anthem();
 FileError io_load_anthem();
 FileError io_save_go(unsigned int i);
 FileError io_load_go(unsigned int i);
+FileError io_load_unlocks(unsigned int i);
+FileError io_save_unlocks(unsigned int i);
 
 #endif

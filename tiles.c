@@ -339,7 +339,7 @@ void tiles_line()
     }
 }
 
-void tiles_reset()
+void tiles_load_default()
 {
     for (int i=0; i<16; ++i)
         memset(tile_draw[i][0], i*17, 128);

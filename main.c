@@ -64,52 +64,57 @@ void game_init()
         base_filename[3] = 0;
 
         // need to reset everything
-        go_reset();
-        palette_reset();
-        tiles_reset();
-        map_reset();
-        sprites_reset();
-        anthem_reset();
-        verse_reset();
-        instrument_reset();
+        go_load_default();
+        palette_load_default();
+        tiles_load_default();
+        map_load_default();
+        sprites_load_default();
+        anthem_load_default();
+        verse_load_default();
+        instrument_load_default();
+        unlocks_load_default();
     }
     else // there was a filename to look into
     {
         if (io_load_palette())
         {
             // had troubles loading a palette
-            palette_reset();
+            palette_load_default();
         }
         if (io_load_tile(16))
         {
             // had troubles loading tiles...
-            tiles_reset();
+            tiles_load_default();
         }
         if (io_load_map())
         {
             // etc...
-            map_reset();
+            map_load_default();
         }
         if (io_load_sprite(16, 8))
         {
             // and so on...
-            sprites_reset();
+            sprites_load_default();
         }
         if (io_load_anthem())
         {
-            anthem_reset();
+            anthem_load_default();
         }
         if (io_load_verse(16))
         {
-            verse_reset();
+            verse_load_default();
         }
         if (io_load_instrument(16))
         {
-            instrument_reset();
+            instrument_load_default();
         }
         if (io_load_go(16))
         {
-            go_reset();
+            go_load_default();
+        }
+        if (io_load_unlocks(8))
+        {
+            unlocks_load_default();
         }
     }
 
@@ -390,10 +395,10 @@ void game_switch(VisualMode new_visual_mode)
     switch (new_visual_mode)
     {
     case EditMap:
-        map_switch();
+        map_start();
         break;
     case GameOn:
-        run_switch();
+        run_start();
         break;
     default:
         break;

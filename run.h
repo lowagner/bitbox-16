@@ -9,9 +9,9 @@ extern int players_swapped;
 void set_camera_from_player_position();
 
 void run_init();
-void run_reset();
-void run_switch();
+void run_start();
 void run_line();
 void run_controls();
+void run_stop(int win);
 
 #endif

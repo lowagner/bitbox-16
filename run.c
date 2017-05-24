@@ -7,6 +7,7 @@
 #include "edit.h"
 #include "save.h"
 #include "font.h"
+#include "unlocks.h"
 #include <stdint.h>
 #include <stdlib.h> // abs
 #include <string.h> // memset
@@ -26,10 +27,6 @@ void run_init()
     camera_shake = 0;
     camera_y = 16.0f;
     camera_x = 16.0f;
-}
-
-void run_reset()
-{
 }
 
 void set_camera_from_player_position()
@@ -53,7 +50,7 @@ void set_camera_from_player_position()
     update_object_images();
 }
 
-void run_switch()
+void run_start()
 {
     update_palette2();
 
@@ -97,6 +94,7 @@ void run_switch()
 
     if (player_index[0] != 255)
         set_camera_from_player_position();
+    unlocks_start();
     run_paused = 0;
     chip_play_init(0);
 }
@@ -155,7 +153,7 @@ void run_controls()
         // pause mode
         if (player_index[0] == 255)
         {
-            run_paused = 0;
+            // TODO: allow for continuing at a checkpoint
             return;
         }
         game_message[0] = 0;
@@ -276,4 +274,14 @@ void run_controls()
     tile_map_y = camera_y;
     tile_map_x = camera_x;
     update_objects();
+}
+
+void run_stop(int win)
+{
+    player_index[0] = 255;
+    run_paused = 1;
+    if (win)
+        strcpy((char *)game_message, "you won!");
+    else
+        strcpy((char *)game_message, "you died...");
 }

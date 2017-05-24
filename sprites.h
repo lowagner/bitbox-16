@@ -61,7 +61,7 @@ void update_objects();
 void sprites_init();
 void sprites_line();
 void sprites_frame();
-void sprites_reset();
+void sprites_load_default();
 
 void update_object_images();
 

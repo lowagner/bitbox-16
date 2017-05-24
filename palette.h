@@ -24,7 +24,7 @@ extern uint16_t palette[16];
 extern uint32_t palette2[512];
 
 void palette_init();
-void palette_reset();
+void palette_load_default();
 void palette_controls();
 void palette_line();
 void update_palette2();

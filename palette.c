@@ -21,7 +21,7 @@ void update_palette2()
         *++p = (~palette[j]) | ((~palette[i])<<16);
 }
 
-void palette_reset()
+void palette_load_default()
 {
     static const uint16_t colors[16] = {
         [BLACK]=RGB(0, 0, 0),

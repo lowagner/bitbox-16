@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-void map_switch();
+void map_start();
 void map_init();
-void map_reset();
+void map_load_default();
 void map_line();
 void map_controls();
 

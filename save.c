@@ -204,6 +204,12 @@ void save_controls()
                 offset = 7;
                 break;
             }
+            error = (save_or_load == 1) ? io_save_unlocks(8) : io_load_unlocks(8);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "unlock ");
+                offset = 7;
+            }
             break;
         case 1:
             error = (save_or_load == 1) ? io_save_map() : io_load_map();
@@ -265,6 +271,14 @@ void save_controls()
             if (error != NoError)
             {
                 strcpy((char *)game_message, "pattn. ");
+                offset = 7;
+            }
+            break;
+        case 7:
+            error = (save_or_load == 1) ? io_save_unlocks(8) : io_load_unlocks(8);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "unlock ");
                 offset = 7;
             }
             break;

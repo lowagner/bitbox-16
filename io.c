@@ -4,6 +4,7 @@
 #include "tiles.h"
 #include "name.h"
 #include "io.h"
+#include "unlocks.h"
 
 #include "fatfs/ff.h"
 #include <string.h> // strlen
@@ -1250,6 +1251,106 @@ FileError io_load_go(unsigned int i)
         return ReadError;
     }
     if (bytes_get != sizeof(sprite_pattern[0]))
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    f_close(&fat_file);
+    return NoError;
+}
+
+FileError io_save_unlocks(unsigned int i)
+{
+    char filename[13];
+    if (io_set_extension(filename, "U16"))
+        return MountError; 
+
+    if (i >= 8)
+    {
+        fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
+        if (fat_result != FR_OK)
+            return OpenError;
+
+        for (i=0; i<8; ++i)
+        {
+            UINT bytes_get; 
+            fat_result = f_write(&fat_file, unlocks[i], sizeof(unlocks[0]), &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return WriteError;
+            }
+            if (bytes_get != sizeof(unlocks[0]))
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+        }
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    FileError ferr = io_open_or_zero_file(filename, 8*sizeof(unlocks[0]));
+    if (ferr)
+        return ferr;
+
+    f_lseek(&fat_file, i*sizeof(unlocks[0])); 
+    UINT bytes_get; 
+    fat_result = f_write(&fat_file, unlocks[i], sizeof(unlocks[0]), &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != sizeof(unlocks[0]))
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    f_close(&fat_file);
+    return NoError;
+}
+
+FileError io_load_unlocks(unsigned int i)
+{
+    char filename[13];
+    if (io_set_extension(filename, "U16"))
+        return MountError; 
+
+    fat_result = f_open(&fat_file, filename, FA_READ | FA_OPEN_EXISTING);
+    if (fat_result != FR_OK)
+        return OpenError;
+
+    if (i >= 8)
+    {
+        for (i=0; i<8; ++i)
+        {
+            UINT bytes_get; 
+            fat_result = f_read(&fat_file, unlocks[i], sizeof(unlocks[0]), &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return ReadError;
+            }
+            if (bytes_get != sizeof(unlocks[0]))
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+        }
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    f_lseek(&fat_file, i*sizeof(unlocks[0])); 
+    UINT bytes_get; 
+    fat_result = f_read(&fat_file, unlocks[i], sizeof(unlocks[0]), &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return ReadError;
+    }
+    if (bytes_get != sizeof(unlocks[0]))
     {
         f_close(&fat_file);
         return MissingDataError;

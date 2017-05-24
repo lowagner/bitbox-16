@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 void go_init();
-void go_reset();
+void go_load_default();
 void go_controls();
 void go_line();
 

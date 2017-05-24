@@ -30,7 +30,7 @@ void anthem_init()
     anthem_color[0] = 1;
 }
 
-void anthem_reset()
+void anthem_load_default()
 {
     song_length = 16;
     song_speed = 4;

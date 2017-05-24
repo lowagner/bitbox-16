@@ -31,7 +31,7 @@ void go_init()
     go_command_copy = rand()%16;
 }
 
-void go_reset()
+void go_load_default()
 {
     int index = -1;
     sprite_pattern[0][++index] = GO_NOT_FIRE | (4<<4);

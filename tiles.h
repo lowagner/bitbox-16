@@ -12,7 +12,7 @@ extern int tile_map_width, tile_map_height;
 
 void tiles_init();
 void tiles_line();
-void tiles_reset();
+void tiles_load_default();
 
 int tile_is_block(uint8_t t);
 int tile_xy_is_block(int16_t x, int16_t y);

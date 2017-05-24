@@ -59,7 +59,7 @@ void instrument_init()
     instrument_command_copy = rand()%16;
 }
 
-void instrument_reset()
+void instrument_load_default()
 {
     int i=0; // isntrument
     int ci = 0; // command index

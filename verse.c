@@ -36,7 +36,7 @@ void verse_init()
     verse_bad = 0;
 }
 
-void verse_reset()
+void verse_load_default()
 {
 }
 
