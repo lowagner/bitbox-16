@@ -9,7 +9,6 @@
 #include "io.h"
 
 #include <stdlib.h> // rand
-#include <string.h> // memset
 
 #define BG_COLOR 132
 #define PLAY_COLOR (RGB(200, 100, 0)|(RGB(200, 100, 0)<<16))
@@ -327,7 +326,7 @@ void check_verse()
     if (_check_verse())
     {
         verse_bad = 1; 
-        strcpy((char *)game_message, "bad jump, need wait in loop.");
+        set_game_message_timeout("bad jump, need wait in loop.", MESSAGE_TIMEOUT);
     }
     else
     {
@@ -753,7 +752,7 @@ void verse_controls()
             else
             {
                 verse_copying = 4*verse_track + verse_player;
-                strcpy((char *)game_message, "copied.");
+                set_game_message_timeout("copied.", MESSAGE_TIMEOUT);
             }
         }
 
@@ -768,11 +767,11 @@ void verse_controls()
                 if (src == dst)
                 {
                     verse_copying = 64;
-                    strcpy((char *)game_message, "pasting to same thing"); 
+                    set_game_message_timeout("pasting to same thing", MESSAGE_TIMEOUT);
                     return;
                 }
                 memcpy(dst, src, sizeof(chip_track[0][0]));
-                strcpy((char *)game_message, "pasted."); 
+                set_game_message_timeout("pasted.", MESSAGE_TIMEOUT);
                 verse_copying = 64;
             }
             else
@@ -894,10 +893,7 @@ void verse_controls()
         {
             // insert
             if ((chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1]&15) != TRACK_BREAK)
-            {
-                strcpy((char *)game_message, "list full, can't insert.");
-                return;
-            }
+                return set_game_message_timeout("list full, can't insert.", MESSAGE_TIMEOUT);
             for (int j=MAX_TRACK_LENGTH-1; j>verse_track_pos; --j)
             {
                 chip_track[verse_track][verse_player][j] = chip_track[verse_track][verse_player][j-1];

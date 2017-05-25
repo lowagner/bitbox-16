@@ -9,7 +9,6 @@
 #include "io.h"
 #include <stdint.h>
 #include <stdlib.h> // abs
-#include <string.h> // memset
 
 int16_t map_tile_y CCM_MEMORY, map_tile_x CCM_MEMORY;
 uint8_t map_color[2] CCM_MEMORY, map_last_painted CCM_MEMORY;
@@ -460,7 +459,7 @@ void map_controls()
             map_sprite_under_cursor = create_object(map_sprite, 16*map_tile_x, 16*map_tile_y, 1);
             if (map_sprite_under_cursor == 255) // could not create one
             {
-                strcpy((char *)game_message, "too many sprites");
+                set_game_message_timeout("too many sprites", MESSAGE_TIMEOUT);
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }

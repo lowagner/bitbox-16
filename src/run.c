@@ -10,7 +10,6 @@
 #include "unlocks.h"
 #include <stdint.h>
 #include <stdlib.h> // abs
-#include <string.h> // memset
 
 uint8_t run_paused CCM_MEMORY;
 int player_index[2] CCM_MEMORY; // which sprite has the camera on it, and second player
@@ -282,7 +281,7 @@ void run_stop(int win)
     player_index[0] = 255;
     run_paused = 1;
     if (win)
-        strcpy((char *)game_message, "you won!");
+        set_game_message_timeout("you won!", 0);
     else
-        strcpy((char *)game_message, "you died...");
+        set_game_message_timeout("you died...", 0);
 }

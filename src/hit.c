@@ -21,8 +21,9 @@
 
 
 void set_checkpoint(int p)
-{
+{   
     message("checkpoint reached... TODO: do something\n");
+    set_game_message_timeout("check point!", 10);
 }
 
 static inline int test_inside_tile(int x, int y)

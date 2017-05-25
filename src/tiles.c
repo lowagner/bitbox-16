@@ -1,6 +1,5 @@
 #include "common.h"
 #include "bitbox.h"
-#include <string.h> // memcpy
 
 uint8_t tile_draw[16][16][8] CCM_MEMORY;
 uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;

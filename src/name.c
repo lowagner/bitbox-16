@@ -4,8 +4,6 @@
 
 char base_filename[9] CCM_MEMORY; // up to 8 characters, plus a zero
 
-#include <string.h> // memset
-
 #define OFFSET_X 230 // offset for alphabet square
 #define TEXT_OFFSET ((16+6*9))
 #define BG_COLOR 32 // a uint8_t, uint16_t color is (BG_COLOR)|(BG_COLOR<<8).  32/128 is dark red/green

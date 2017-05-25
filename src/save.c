@@ -5,8 +5,6 @@
 #include "io.h"
 #include "edit.h"
 
-#include <string.h> // memset
-
 #define BG_COLOR 192 // a uint8_t, uint16_t color is (BG_COLOR)|(BG_COLOR<<8)
 
 uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - map, 2 - tiles, 3 - sprites, 4 - palette
@@ -319,10 +317,7 @@ void save_controls()
         {
         case 0:
             if (map_modified)
-            {
-                strcpy((char *)game_message, "map modified, save first!");
-                return;
-            }
+                return set_game_message_timeout("map modified, save first!", MESSAGE_TIMEOUT);
             game_switch(GameOn);
             break;
         case 1:

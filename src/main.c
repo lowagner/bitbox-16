@@ -17,8 +17,6 @@
 #include "go-sprite.h"
 #include "unlocks.h"
 
-#include "string.h" // memcpy
-
 VisualMode visual_mode CCM_MEMORY; 
 VisualMode previous_visual_mode CCM_MEMORY;
 VisualMode old_visual_mode CCM_MEMORY;
@@ -26,6 +24,7 @@ uint16_t new_gamepad[2] CCM_MEMORY;
 uint16_t old_gamepad[2] CCM_MEMORY;
 uint8_t gamepad_press_wait CCM_MEMORY;
 uint8_t game_message[32] CCM_MEMORY;
+int game_message_timeout CCM_MEMORY;
 uint8_t parade_offset CCM_MEMORY;
 
 uint8_t U8row[SCREEN_W+32] CCM_MEMORY;
@@ -178,6 +177,10 @@ void game_frame()
     
     if (gamepad_press_wait)
         --gamepad_press_wait;
+    
+    if (game_message_timeout && --game_message_timeout == 0)
+        game_message[0] = 0; 
+
 }
 
 void graph_vsync()

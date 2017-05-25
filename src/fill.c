@@ -3,7 +3,6 @@
 #include "fill.h"
 #include <stdint.h>
 #include <stdlib.h> // rand
-#include <string.h> // memset
 
 #define MAX_STACK_INDEX (32*2-1)
 

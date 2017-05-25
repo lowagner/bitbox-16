@@ -5,8 +5,6 @@
 #include "name.h"
 #include "io.h"
 
-#include <string.h> // memset
-
 #define TILE_COLOR 136 // a uint8_t, uint16_t color is (_COLOR)|(_COLOR<<8)
 #define SPRITE_COLOR 164
 #define BG_COLOR (edit_sprite_not_tile ? SPRITE_COLOR : TILE_COLOR)
@@ -817,7 +815,7 @@ void edit2_controls()
                     uint8_t value = src[(j*8) - i];
                     *dst++ = (value>>4) | (value<<4);
                 }
-                strcpy((char *)game_message, "mirror-pasted.");
+                set_game_message_timeout("mirror-pasted.", MESSAGE_TIMEOUT);
             }
             else // pressed B, rotate that tile 90 degrees CCW
             {
@@ -830,7 +828,7 @@ void edit2_controls()
                     for (int j=0; j<16; j+=2)
                         *dst++ = (src[(j*16+i)/2]&15) | ((src[((j+1)*16+i)/2]&15)<<4);
                 }
-                strcpy((char *)game_message, "rota-pasted.");
+                set_game_message_timeout("rota-pasted.", MESSAGE_TIMEOUT);
             }
             edit2_copying = 0;
             return;
@@ -885,11 +883,11 @@ void edit2_controls()
                 }
             }
             if (src == dst)
-                strcpy((char *)game_message, "pasting to same thing");
+                set_game_message_timeout("pasting to same thing.", MESSAGE_TIMEOUT);
             else
             {
                 memcpy(dst, src, 16*8);
-                strcpy((char *)game_message, "pasted.");
+                set_game_message_timeout("pasted.", MESSAGE_TIMEOUT);
             }
             edit2_copying = 0;
         }

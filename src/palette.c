@@ -5,8 +5,6 @@
 #include "name.h"
 #include "io.h"
 
-#include "string.h" //memcpy
-
 uint16_t palette[16] CCM_MEMORY; 
 uint32_t palette2[512] CCM_MEMORY;
 
@@ -304,7 +302,7 @@ void palette_controls()
         if (palette_copying < 32768)
         {
             // paste:
-            strcpy((char *)game_message, "pasted.");
+            set_game_message_timeout("pasted.", MESSAGE_TIMEOUT);
             palette[palette_index] = palette_copying;
             palette_copying = 32768;
         }

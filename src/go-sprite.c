@@ -11,7 +11,6 @@
 #include "go-sprite.h"
 
 #include <stdlib.h> // rand
-#include <string.h> // memset
 
 #define BG_COLOR 168
 #define NUMBER_LINES 20
@@ -793,7 +792,7 @@ void go_controls()
             else
             {
                 go_copying = edit_sprite/8;
-                strcpy((char *)game_message, "copied.");
+                set_game_message_timeout("copied.", MESSAGE_TIMEOUT);
             }
         }
 
@@ -808,11 +807,11 @@ void go_controls()
                 if (src == dst)
                 {
                     go_copying = 16;
-                    strcpy((char *)game_message, "pasting to same thing"); 
+                    set_game_message_timeout("pasting to same thing.", MESSAGE_TIMEOUT);
                     return;
                 }
                 memcpy(dst, src, sizeof(sprite_pattern[0]));
-                strcpy((char *)game_message, "pasted."); 
+                set_game_message_timeout("pasted.", MESSAGE_TIMEOUT);
                 go_copying = 16;
             }
             else
@@ -926,7 +925,7 @@ void go_controls()
             // insert
             if ((sprite_pattern[edit_sprite/8][31]&15) != GO_BREAK)
             {
-                strcpy((char *)game_message, "list full, can't insert.");
+                set_game_message_timeout("list full, can't insert.", MESSAGE_TIMEOUT);
                 return;
             }
             for (int j=31; j>go_pattern_pos; --j)

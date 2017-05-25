@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include <stdint.h>
+#include <string.h>
 #define TILE_MAP_MEMORY 8192
 #define MAX_OBJECTS 64 // no more than 255
 #define SCREEN_W 320
@@ -85,6 +86,7 @@ extern uint16_t old_gamepad[2];
 extern uint8_t gamepad_press_wait;
 
 extern uint8_t game_message[32];
+extern int game_message_timeout;
 extern const uint8_t hex[64]; // not exactly hex but ok!
 extern const uint8_t direction[4];
 
@@ -94,4 +96,12 @@ void game_switch(VisualMode new_visual_mode);
 extern float gravity;
 
 uint8_t randomize(uint8_t arg);
+
+inline void set_game_message_timeout(const char *msg, int timeout)
+{
+    strcpy((char *)game_message, msg);
+    game_message_timeout = timeout;
+}
+
+#define MESSAGE_TIMEOUT (10*64)
 #endif

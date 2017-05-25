@@ -1030,7 +1030,7 @@ characters = [
 ]
 
 with open("src/font.c", 'w') as f:
-    f.write("#include \"bitbox.h\"\n#include \"common.h\"\n#include \"font.h\"\n#include <string.h> // strlen\n")
+    f.write("#include \"bitbox.h\"\n#include \"common.h\"\n#include \"font.h\"\n\n")
     f.write("uint16_t font[256] CCM_MEMORY;\n")
     f.write("uint16_t font_cache[256] = {\n")
     if starting_index:

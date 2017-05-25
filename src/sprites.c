@@ -6,7 +6,6 @@
 #include "tiles.h"
 
 #include <stdlib.h> // rand
-#include <string.h> // memset
 
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[128][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...

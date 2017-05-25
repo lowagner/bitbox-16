@@ -6,7 +6,6 @@
 #include "font.h"
 #include "io.h"
 #include "sprites.h"
-#include <string.h> // memset
 
 uint8_t edit_tile CCM_MEMORY;
 uint8_t edit_sprite CCM_MEMORY;

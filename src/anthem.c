@@ -9,7 +9,6 @@
 #include "io.h"
 
 #include <stdlib.h> // rand
-#include <string.h> // memset
 
 #define BG_COLOR 128
 #define BOX_COLOR (RGB(180, 250, 180)|(RGB(180, 250, 180)<<16))
@@ -447,6 +446,7 @@ void anthem_controls()
             game_message[18] = hex[chip_volume%16];
             game_message[19] = 0;
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            game_message_timeout = MESSAGE_TIMEOUT;
             return;
         }
 

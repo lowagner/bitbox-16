@@ -9,7 +9,6 @@
 #include "io.h"
 
 #include <stdlib.h> // rand
-#include <string.h> // memset
 
 const uint8_t hex[64] = { 
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', // standard hex
@@ -501,7 +500,7 @@ void check_instrument()
     if (_check_instrument())
     {
         instrument_bad = 1; 
-        strcpy((char *)game_message, "bad jump, need wait in loop.");
+        set_game_message_timeout("bad jump, need wait in loop.", MESSAGE_TIMEOUT);
     }
     else
     {
@@ -948,10 +947,7 @@ void instrument_controls()
         {
             // save
             if (instrument_bad)
-            {
-                strcpy((char *)game_message, "can't save bad jump.");
-                return;
-            }
+                return set_game_message_timeout("can't save bad jump.", MESSAGE_TIMEOUT);
             save_or_load = 1;
         }
         if (GAMEPAD_PRESS(0, B))
@@ -999,7 +995,7 @@ void instrument_controls()
                 if (instrument_i == instrument_copying)
                 {
                     instrument_copying = 16;
-                    strcpy((char *)game_message, "pasting to same thing"); 
+                    set_game_message_timeout("pasting to same thing", MESSAGE_TIMEOUT); 
                     return;
                 }
                 uint8_t *src, *dst;
@@ -1008,7 +1004,7 @@ void instrument_controls()
                 instrument[instrument_i].octave = instrument[instrument_copying].octave;
                 instrument[instrument_i].is_drum = instrument[instrument_copying].is_drum;
                 memcpy(dst, src, MAX_INSTRUMENT_LENGTH);
-                strcpy((char *)game_message, "pasted."); 
+                set_game_message_timeout("pasted.", MESSAGE_TIMEOUT); 
                 instrument_copying = 16;
             }
             else
@@ -1173,10 +1169,7 @@ void instrument_controls()
             if (!instrument[instrument_i].is_drum)
             {
                 if ((instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1]&15) != BREAK)
-                {
-                    strcpy((char *)game_message, "list full, can't insert.");
-                    return;
-                }
+                    return set_game_message_timeout("list full, can't insert.", MESSAGE_TIMEOUT); 
                 for (int j=MAX_INSTRUMENT_LENGTH-1; j>instrument_j; --j)
                     instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];
             }
@@ -1190,10 +1183,7 @@ void instrument_controls()
                 else
                     next_j = MAX_INSTRUMENT_LENGTH;
                 if ((instrument[instrument_i].cmd[next_j-1]&15) != BREAK)
-                {
-                    strcpy((char *)game_message, "list full, can't insert.");
-                    return;
-                }
+                    return set_game_message_timeout("list full, can't insert.", MESSAGE_TIMEOUT); 
 
                 for (int j=next_j-1; j>instrument_j; --j)
                     instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];

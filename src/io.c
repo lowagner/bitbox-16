@@ -7,7 +7,6 @@
 #include "unlocks.h"
 
 #include "fatfs/ff.h"
-#include <string.h> // strlen
 
 int io_mounted = 0;
 FATFS fat_fs;
@@ -52,6 +51,7 @@ void io_message_from_error(uint8_t *msg, FileError error, int save_not_load)
         strcpy((char *)msg, "fully bungled.");
         break;
     }
+    game_message_timeout = MESSAGE_TIMEOUT;
 }
 
 FileError io_init()

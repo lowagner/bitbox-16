@@ -3,7 +3,6 @@
 #include "common.h"
 #include "run.h"
 #include "hit.h"
-#include <string.h>
 
 float damage_multiplier CCM_MEMORY;
 float gravity CCM_MEMORY;
