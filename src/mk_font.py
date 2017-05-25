@@ -1029,7 +1029,7 @@ characters = [
     "****"],
 ]
 
-with open("font.c", 'w') as f:
+with open("src/font.c", 'w') as f:
     f.write("#include \"bitbox.h\"\n#include \"common.h\"\n#include \"font.h\"\n#include <string.h> // strlen\n")
     f.write("uint16_t font[256] CCM_MEMORY;\n")
     f.write("uint16_t font_cache[256] = {\n")
@@ -1133,7 +1133,7 @@ void font_render_no_bg_line_doubled(const uint8_t *text, int x, int y, uint16_t 
 )
 
 
-with open("font.h", 'w') as f:
+with open("src/font.h", 'w') as f:
     f.write("#ifndef FONT_H\n#define FONT_H\n#include <stdint.h>\n")
     f.write("extern uint16_t font_cache[256];\nextern uint16_t font[256];\nvoid font_init();\nvoid font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg);\n")
     f.write("void font_render_no_bg_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg);\n");
