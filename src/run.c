@@ -123,7 +123,7 @@ void run_line()
 
     if (vga_line >= 2 && vga_line < 10)
     {
-        if (run_paused)
+        if (run_paused && player_index[0] < 255)
         {
             if (vga_frame/32 % 2)
                 font_render_no_bg_line_doubled((const uint8_t *)"paused", 16, vga_line-2, 65535);
@@ -274,6 +274,7 @@ void run_controls()
     tile_map_y = camera_y;
     tile_map_x = camera_x;
     update_objects();
+    unlocks_run();
 }
 
 void run_stop(int win)

@@ -5,7 +5,7 @@
 extern uint8_t unlocks[8][32];
 
 void unlocks_init();
-void kill_player(int p);
+void unlocks_load_default();
 
 void unlocks_start();
 void unlocks_switch(int p, int next_unlock_index);
@@ -17,8 +17,8 @@ void unlocks_switch(int p, int next_unlock_index);
 #define UNLOCKS_LOOP 5
 #define UNLOCKS_WIN 6
 #define UNLOCKS_DEAD 7
-
-void unlocks_load_default();
+void unlocks_run();
+void kill_player(int p);
 
 extern float damage_multiplier;
 
