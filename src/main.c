@@ -90,7 +90,7 @@ void game_init()
             // etc...
             map_load_default();
         }
-        if (io_load_sprite(16, 8))
+        if (io_load_sprite(128))
         {
             // and so on...
             sprites_load_default();

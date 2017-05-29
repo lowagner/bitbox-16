@@ -39,3 +39,10 @@ unlock pattern commands:
     d shake screen
     e randomize command
     f jump
+
+
+new file format:
+    G16 = palette, instruments, verse, anthem (with maybe padding), go, unlocks, tile, sprite, map
+
+to get from old to new, just concatenate files after you set your anthem to full length, if not already.
+then reduce your anthem (if necessary) to right size.
