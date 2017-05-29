@@ -153,7 +153,7 @@ void save_controls()
                 offset = 6;
                 break;
             }
-            error = (save_or_load == 1) ? io_save_sprite(16, 8) : io_load_sprite(16, 8);
+            error = (save_or_load == 1) ? io_save_sprite(128) : io_load_sprite(128);
             if (error != NoError)
             {
                 strcpy((char *)game_message, "sprites ");
@@ -226,7 +226,7 @@ void save_controls()
             }
             break;
         case 3:
-            error = (save_or_load == 1) ? io_save_sprite(16, 8) : io_load_sprite(16, 8);
+            error = (save_or_load == 1) ? io_save_sprite(128) : io_load_sprite(128);
             if (error != NoError)
             {
                 strcpy((char *)game_message, "sprites ");

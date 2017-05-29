@@ -838,14 +838,14 @@ void edit2_controls()
         if (save_or_load == 1) // save
         {
             if (edit_sprite_not_tile)
-                error = io_save_sprite(edit_sprite/8, edit_sprite%8);
+                error = io_save_sprite(edit_sprite);
             else
                 error = io_save_tile(edit_tile);
         }
         else // load
         {
             if (edit_sprite_not_tile)
-                error = io_load_sprite(edit_sprite/8, edit_sprite%8);
+                error = io_load_sprite(edit_sprite);
             else
                 error = io_load_tile(edit_tile);
         }
