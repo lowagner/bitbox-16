@@ -17,6 +17,7 @@ int players_swapped CCM_MEMORY;
 int camera_shake CCM_MEMORY;
 float camera_y CCM_MEMORY;
 float camera_x CCM_MEMORY;
+int run_win CCM_MEMORY;
 
 void run_init()
 {
@@ -51,6 +52,7 @@ void set_camera_from_player_position()
 
 void run_start()
 {
+    run_win = 0;
     update_palette2();
 
     camera_shake = 0;
@@ -168,7 +170,26 @@ void run_controls()
     }
 
     if (run_paused)
+    {
+        if (player_index[0] < 255)
+            return;
+        if (run_win) // won, fade to black
+        {
+            int i = rand()%512;
+            uint32_t c = palette2[i];
+            palette2[i] = (c&2078178270)>>1; // (30)|(30<<5)|(30<<10)|(30<<16)|(30<<21)|(30<<26)
+            i = rand()%512;
+            c = palette2[i];
+            palette2[i] = (c&2078178270)>>1;
+        }
+        else // dead, fade to red
+        {
+            int i = rand()%512;
+            uint32_t c = palette2[i];
+            palette2[i] = ((c&2078178270)>>1) | (15<<10) | (15<<26);
+        }
         return;
+    }
 
     tiles_translate();
 
@@ -280,7 +301,8 @@ void run_stop(int win)
 {
     player_index[0] = 255;
     run_paused = 1;
-    if (win)
+    run_win = win;
+    if (run_win)
         set_game_message_timeout("you won!", 0);
     else
         set_game_message_timeout("you died...", 0);
