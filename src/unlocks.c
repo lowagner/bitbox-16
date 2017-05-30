@@ -4,6 +4,9 @@
 #include "run.h"
 #include "hit.h"
 
+#include <math.h> // round
+#include <stdlib.h> // rand
+
 float damage_multiplier CCM_MEMORY;
 float gravity CCM_MEMORY;
 uint8_t unlocks[8][32] CCM_MEMORY;
@@ -77,6 +80,8 @@ void unlocks_load_default()
 void unlocks_run()
 {
     static int wait = 0;
+    static int spawn_x=0;
+    static int spawn_y=0;
     if (wait)
     {
         --wait;
@@ -127,8 +132,45 @@ void unlocks_run()
             break;
         }
         case UNLOCKS_SPAWN_NEAR_0:
-            break;
+            if (player_index[0] == 255)
+                break;
+            spawn_x = round(object[player_index[0]].x/16);
+            spawn_y = round(object[player_index[0]].y/16);
+            goto player_delta_spawn;
         case UNLOCKS_SPAWN_NEAR_1:
+            if (player_index[1] == 255)
+                break;
+            spawn_x = round(object[player_index[1]].x/16);
+            spawn_y = round(object[player_index[1]].y/16);
+            player_delta_spawn:
+            switch (param&3)
+            {
+                case 0:
+                    break;
+                case 1:
+                    ++spawn_x;
+                    break;
+                case 2:
+                    spawn_x += 1 - 2*(rand()%2);
+                    break;
+                case 3:
+                    --spawn_x;
+                    break;
+            }
+            switch (param>>2)
+            {
+                case 0:
+                    break;
+                case 1:
+                    ++spawn_y;
+                    break;
+                case 2:
+                    spawn_y += 1 - 2*(rand()%2);
+                    break;
+                case 3:
+                    --spawn_y;
+                    break;
+            }
             break;
         case UNLOCKS_DELTA_SPAWN_X:
             break;
