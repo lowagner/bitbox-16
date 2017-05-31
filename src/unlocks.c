@@ -8,6 +8,9 @@
 
 #define SPEED_MULTIPLIER 0.5f
 
+#define BG_COLOR 96
+#define NUMBER_LINES 20
+
 #include <math.h> // round
 #include <stdlib.h> // rand
 
@@ -248,7 +251,7 @@ void unlocks_run()
                     break;
             }
             break;
-        case UNLOCKS_RANDOMIZE:
+        case UNLOCKS_NOISE:
         {
             chip_note(
                 rand()%4, // random player
@@ -258,13 +261,13 @@ void unlocks_run()
             ); 
             break;
         }
-        case UNLOCKS_GROUP:
+        case UNLOCKS_QUAKE:
             if (param)
                 camera_shake += param + param*param;
             else
                 camera_shake = 0;
             break;
-        case UNLOCKS_REPEAT:
+        case UNLOCKS_RANDOMIZE:
         {
             if (next_index >= 32)
                 break;
@@ -308,49 +311,49 @@ void unlocks_short_command_message(uint8_t *buffer, uint8_t cmd)
             strcpy((char *)buffer, "wait/break");
             break;
         case UNLOCKS_GRAVITY:
-            strcpy((char *)buffer, "not move goto");
+            strcpy((char *)buffer, "set gravity");
             break;
         case UNLOCKS_MULTIPLIER:
-            strcpy((char *)buffer, "not run goto");
+            strcpy((char *)buffer, "damage multiplier");
             break;
         case UNLOCKS_HURT_HEAL:
-            strcpy((char *)buffer, "not air goto");
+            strcpy((char *)buffer, "hurt/heal player");
             break;
         case UNLOCKS_SPAWN_NEAR_0:
-            strcpy((char *)buffer, "not fire goto");
+            strcpy((char *)buffer, "spawn by player 1");
             break;
         case UNLOCKS_SPAWN_NEAR_1:
-            strcpy((char *)buffer, "execute");
+            strcpy((char *)buffer, "spawn by player 2");
             break;
         case UNLOCKS_DELTA_SPAWN_X:
-            strcpy((char *)buffer, "set property");
+            strcpy((char *)buffer, "move spawn dx");
             break;
         case UNLOCKS_DELTA_SPAWN_Y:
-            strcpy((char *)buffer, "handle input");
+            strcpy((char *)buffer, "move spawn dy");
             break;
         case UNLOCKS_SPAWN_TILE:
-            strcpy((char *)buffer, "handle special");
-            break;
-        case UNLOCKS_SPAWN_SPRITE:
             strcpy((char *)buffer, "spawn tile");
             break;
-        case UNLOCKS_SPRITE_VELOCITY:
+        case UNLOCKS_SPAWN_SPRITE:
             strcpy((char *)buffer, "spawn sprite");
             break;
+        case UNLOCKS_SPRITE_VELOCITY:
+            strcpy((char *)buffer, "sprite velocity");
+            break;
         case UNLOCKS_NOISE:
-            strcpy((char *)buffer, "acceleration");
-            break;
-        case UNLOCKS_QUAKE:
-            strcpy((char *)buffer, "speed");
-            break;
-        case UNLOCKS_RANDOMIZE:
             strcpy((char *)buffer, "noise");
             break;
-        case UNLOCKS_REPEAT:
+        case UNLOCKS_QUAKE:
+            strcpy((char *)buffer, "quake");
+            break;
+        case UNLOCKS_RANDOMIZE:
             strcpy((char *)buffer, "randomize");
             break;
+        case UNLOCKS_REPEAT:
+            strcpy((char *)buffer, "repeat next cmd");
+            break;
         case UNLOCKS_GROUP:
-            strcpy((char *)buffer, "quake");
+            strcpy((char *)buffer, "group commands");
             break;
     }
 }
@@ -418,76 +421,68 @@ void unlocks_render_command(int j, int y)
             }
             break;
         case UNLOCKS_GRAVITY:
-            cmd = 'm';
-            if (!param)
-                param = 16;
-            param = hex[j+1+param];
+            cmd = 'G';
+            param = hex[param];
             break;
         case UNLOCKS_MULTIPLIER:
-            cmd = 'r';
-            if (!param)
-                param = 16;
-            param = hex[j+1+param];
+            cmd = 'M';
+            param = hex[param];
             break;
         case UNLOCKS_HURT_HEAL:
-            cmd = 'a';
-            if (!param)
-                param = 16;
-            param = hex[j+1+param];
+            cmd = 'H';
+            param = hex[param];
             break;
         case UNLOCKS_SPAWN_NEAR_0:
-            cmd = 'f';
-            if (!param)
-                param = 16;
-            param = hex[j+1+param];
+            cmd = '1';
+            param = hex[param];
             break;
         case UNLOCKS_SPAWN_NEAR_1:
-            cmd = 'E';
+            cmd = '2';
             param = hex[param];
             break;
         case UNLOCKS_DELTA_SPAWN_X:
-            cmd = 'P';
+            cmd = 'X';
             param = hex[param];
             break;
         case UNLOCKS_DELTA_SPAWN_Y:
-            cmd = 'D';
+            cmd = 'Y';
             param = hex[param];
             break;
         case UNLOCKS_SPAWN_TILE:
-            cmd = 'I';
-            param = hex[param];
-            break;
-        case UNLOCKS_SPAWN_SPRITE:
             cmd = 'T';
             param = hex[param];
             break;
-        case UNLOCKS_SPRITE_VELOCITY:
+        case UNLOCKS_SPAWN_SPRITE:
             cmd = 'S';
             param = hex[param];
             break;
-        case UNLOCKS_NOISE:
-            cmd = '/';
-            param = hex[param];
-            break;
-        case UNLOCKS_QUAKE:
+        case UNLOCKS_SPRITE_VELOCITY:
             if (param < 8)
             {
-                cmd = '+';
+                cmd = 'U';
                 param = '0' + param;
             }
             else
             {
-                cmd = '^';
+                cmd = 'V';
                 param = '0' + param - 8;
             }
             break;
-        case UNLOCKS_RANDOMIZE:
+        case UNLOCKS_NOISE:
             cmd = 'N';
             param = hex[param];
             break;
-        case UNLOCKS_REPEAT:
+        case UNLOCKS_QUAKE:
+            cmd = 'Q';
+            param = hex[param];
+            break;
+        case UNLOCKS_RANDOMIZE:
             cmd = 'R';
             param = 224 + param;
+            break;
+        case UNLOCKS_REPEAT:
+            cmd = 'D';
+            param = hex[param];
             break;
         case UNLOCKS_GROUP:
             cmd = 'Q';
