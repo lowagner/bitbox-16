@@ -34,7 +34,7 @@ extern float damage_multiplier;
 #define UNLOCKS_SPAWN_SPRITE 9
 #define UNLOCKS_SPRITE_VELOCITY 10
 #define UNLOCKS_NOISE 11
-#define UNLOCKS_SHAKE 12
+#define UNLOCKS_QUAKE 12
 #define UNLOCKS_RANDOMIZE 13
 #define UNLOCKS_REPEAT 14
 #define UNLOCKS_GROUP 15

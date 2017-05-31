@@ -11,4 +11,7 @@ void map_controls();
 
 extern uint8_t map_modified;
 
+void map_set_tile(int x, int y, uint8_t tile);
+uint8_t map_get_tile(int x, int y);
+
 #endif

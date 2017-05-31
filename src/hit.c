@@ -1503,17 +1503,18 @@ void object_run_commands(int i)
             uint8_t j = 255;
             float vx = object[i].vx, vy = object[i].vy;
             int ty = object[i].y/16, tx = object[i].x/16;
+            int z = 1;
             switch ((object[i].sprite_index%8)/2)
             {
                 case RIGHT:
                     if (16.0f*ty == object[i].y)
                     {
                         if (test_inside_tile(tx+1, ty))
-                            break;
+                            z = 0;
                     }
                     else if (test_inside_tile(tx+1, ty) || test_inside_tile(tx+1, ty+1))
-                        break;
-                    j = create_object(8*param + RIGHT*2, object[i].x+16, object[i].y, 1);
+                        z = 0;
+                    j = create_object(8*param + RIGHT*2, object[i].x+16, object[i].y, z);
                     vx += object[i].speed*THROW_MULTIPLIER;
                     if (gravity) // platformer
                         vy -= object[i].jump_speed*THROW_MULTIPLIER;
@@ -1522,11 +1523,11 @@ void object_run_commands(int i)
                     if (16.0f*tx == object[i].x)
                     {
                         if (test_inside_tile(tx, ty-1))
-                            break;
+                            z = 0;
                     }
                     else if (test_inside_tile(tx, ty-1) || test_inside_tile(tx+1, ty-1))
-                        break;
-                    j = create_object(8*param + UP*2, object[i].x, object[i].y-16, 1);
+                        z = 0;
+                    j = create_object(8*param + UP*2, object[i].x, object[i].y-16, z);
                     vy -= object[i].speed*THROW_MULTIPLIER;
                     if (gravity) // platformer
                         vy -= object[i].jump_speed*THROW_MULTIPLIER/2;
@@ -1535,11 +1536,11 @@ void object_run_commands(int i)
                     if (16.0f*ty == object[i].y)
                     {
                         if (test_inside_tile(tx-1, ty))
-                            break;
+                            z = 0;
                     }
                     else if (test_inside_tile(tx-1, ty) || test_inside_tile(tx-1, ty+1))
-                        break;
-                    j = create_object(8*param + LEFT*2, object[i].x-16, object[i].y, 1);
+                        z = 0;
+                    j = create_object(8*param + LEFT*2, object[i].x-16, object[i].y, z);
                     vx -= object[i].speed*THROW_MULTIPLIER;
                     if (gravity) // platformer
                         vy -= object[i].jump_speed*THROW_MULTIPLIER;
@@ -1548,11 +1549,11 @@ void object_run_commands(int i)
                     if (16.0f*tx == object[i].x)
                     {
                         if (test_inside_tile(tx, ty+1))
-                            break;
+                            z = 0;
                     }
                     else if (test_inside_tile(tx, ty+1) || test_inside_tile(tx+1, ty+1))
-                        break;
-                    j = create_object(8*param + DOWN*2, object[i].x, object[i].y+16, 1);
+                        z = 0;
+                    j = create_object(8*param + DOWN*2, object[i].x, object[i].y+16, z);
                     vy += object[i].speed*THROW_MULTIPLIER;
                     break;
             }

@@ -315,6 +315,40 @@ void map_line()
     }
 }
 
+void map_set_tile(int x, int y, uint8_t tile)
+{
+    if (x < 0 || x >= tile_map_width ||
+        y < 0 || y >= tile_map_height)
+    {
+        return;
+    }
+
+    int index = map_tile_y * tile_map_width + map_tile_x;
+    uint8_t *memory = &tile_map[index/2];
+
+    if (index % 2)
+        *memory = ((*memory)&15) | (tile<<4);
+    else
+        *memory = (tile&15) | ((*memory) & 240);
+}
+
+uint8_t map_get_tile(int x, int y)
+{
+    if (x < 0 || x >= tile_map_width ||
+        y < 0 || y >= tile_map_height)
+    {
+        return -1;
+    }
+
+    int index = map_tile_y * tile_map_width + map_tile_x;
+    uint8_t *memory = &tile_map[index/2];
+
+    if (index % 2)
+        return (*memory)>>4;
+    else
+        return (*memory)&15;
+}
+
 void map_spot_paint(uint8_t p)
 {
     map_last_painted = p;

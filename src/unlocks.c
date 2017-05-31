@@ -3,6 +3,10 @@
 #include "common.h"
 #include "run.h"
 #include "hit.h"
+#include "map.h"
+#include "sprites.h"
+
+#define SPEED_MULTIPLIER 0.5f
 
 #include <math.h> // round
 #include <stdlib.h> // rand
@@ -12,7 +16,8 @@ float gravity CCM_MEMORY;
 uint8_t unlocks[8][32] CCM_MEMORY;
 int unlocks_index CCM_MEMORY;
 int unlocks_command_index CCM_MEMORY;
-static int unlock_work[32] CCM_MEMORY;
+static uint8_t unlocks_next[32] CCM_MEMORY;
+static uint8_t unlocks_count[32] CCM_MEMORY;
 int unlocks_x CCM_MEMORY;
 int unlocks_y CCM_MEMORY;
 
@@ -27,7 +32,9 @@ void unlocks_switch(int p, int next_unlocks_index)
     if (unlocks_index == UNLOCKS_WIN && next_unlocks_index != UNLOCKS_DEAD)
         return;
 
-    memset(unlock_work, 0, sizeof(unlock_work));
+    for (int i=0; i<32; ++i)
+        unlocks_next[i] = i+1;
+    unlocks_count[0] = 1;
     unlocks_index = next_unlocks_index;
     unlocks_command_index = 0;
     if (player_index[p] != 255)
@@ -82,6 +89,8 @@ void unlocks_run()
     static int wait = 0;
     static int spawn_x=0;
     static int spawn_y=0;
+    static int spawn_vx=0;
+    static int spawn_vy=0;
     if (wait)
     {
         --wait;
@@ -92,7 +101,11 @@ void unlocks_run()
         unlocks_switch(0, UNLOCKS_LOOP);
         return;
     }
-    uint8_t cmd = unlocks[unlocks_index][unlocks_command_index++];
+    uint8_t cmd = unlocks[unlocks_index][unlocks_command_index];
+    uint8_t next_index = unlocks_next[unlocks_command_index];
+    int update_index = (--unlocks_count[unlocks_command_index] <= 0);
+    int update_next_count = update_index;
+
     uint8_t param = cmd >> 4;
     switch (cmd&15)
     {
@@ -100,7 +113,10 @@ void unlocks_run()
             if (param == 0)
             {
                 if (unlocks_index == UNLOCKS_WIN)
-                    return run_stop(1);
+                {
+                    run_stop(1);
+                    break;
+                }
 
                 unlocks_switch(0, UNLOCKS_LOOP);
             }
@@ -173,24 +189,109 @@ void unlocks_run()
             }
             break;
         case UNLOCKS_DELTA_SPAWN_X:
+            if (++param > 8)
+                spawn_x -= 17-param;
+            else
+                spawn_x += param;
             break;
         case UNLOCKS_DELTA_SPAWN_Y:
+            if (++param > 8)
+                spawn_y -= 17-param;
+            else
+                spawn_y += param;
             break;
         case UNLOCKS_SPAWN_TILE:
+            map_set_tile(spawn_x, spawn_y, param);            
             break;
         case UNLOCKS_SPAWN_SPRITE:
+        {
+            uint8_t index = create_object(8*param, spawn_x, spawn_y, 
+                tile_xy_is_block(spawn_x, spawn_y) ? 0 : 1);
+            if (index == 255)
+                break;
+            if (abs(spawn_vx) >= abs(spawn_vy))
+            {
+                if (spawn_vx >= 0)
+                    object[index].sprite_index = 8*param + 2*RIGHT;
+                else
+                    object[index].sprite_index = 8*param + 2*LEFT;
+            }
+            else
+            {
+                if (spawn_vy >= 0)
+                    object[index].sprite_index = 8*param + 2*DOWN;
+                else
+                    object[index].sprite_index = 8*param + 2*UP;
+            }
+            object[index].vx = spawn_vx * SPEED_MULTIPLIER;
+            object[index].vy = spawn_vy * SPEED_MULTIPLIER;
             break;
+        }
         case UNLOCKS_SPRITE_VELOCITY:
+            switch (param/4)
+            {
+                case 0:
+                    spawn_vx = param;
+                    break;
+                case 1:
+                    spawn_vx = -8+param;
+                    break;
+                case 2:
+                    spawn_vy = param-8;
+                    break;
+                case 3:
+                    spawn_vy = -16+param;
+                    break;
+            }
             break;
         case UNLOCKS_NOISE:
+        {
+            chip_note(
+                rand()%4, // random player
+                param, // instrument
+                rand()%16, // random note
+                255 // full volume 
+            ); 
             break;
-        case UNLOCKS_SHAKE:
+        }
+        case UNLOCKS_QUAKE:
+            if (param)
+                camera_shake += param + param*param;
+            else
+                camera_shake = 0;
             break;
         case UNLOCKS_RANDOMIZE:
+        {
+            if (next_index >= 32)
+                break;
+            uint8_t *memory = &unlocks[unlocks_index][next_index];
+            *memory = ((*memory)&15) | (randomize(param)<<4);
             break;
+        }
         case UNLOCKS_REPEAT:
+            if (next_index >= 32)
+                break;
+            unlocks_count[next_index] = param + (param <= 1 ? 16 : 0);
+            update_next_count = 0;
             break;
         case UNLOCKS_GROUP:
+        {
+            uint8_t jump_from = unlocks_command_index + param + (param <= 1 ? 16 : 0);
+            if (jump_from >= 32)
+                break;
+            if (update_index) // continue executing after this block/grouping
+                unlocks_next[jump_from] = jump_from + 1;
+            else // repeat this grouping
+                unlocks_next[jump_from] = unlocks_command_index;
+            update_index = 1;
+            update_next_count = 1;
             break;
+        }
+    }
+    if (update_index)
+    {
+        unlocks_command_index = next_index;
+        if (update_next_count && next_index < 32)
+             unlocks_count[next_index] = 1;
     }
 }
