@@ -39,4 +39,7 @@ extern float damage_multiplier;
 #define UNLOCKS_REPEAT 14
 #define UNLOCKS_GROUP 15
 
+
+void unlocks_line();
+void unlocks_controls();
 #endif

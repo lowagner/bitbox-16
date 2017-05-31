@@ -145,6 +145,9 @@ void game_frame()
     case EditSpritePattern:
         go_controls();
         break;
+    case EditUnlocks:
+        unlocks_controls();
+        break;
     case EditPalette:
         palette_controls();
         break;
@@ -220,6 +223,9 @@ void graph_line()
             break;
         case EditSpritePattern:
             go_line();
+            break;
+        case EditUnlocks:
+            unlocks_line();
             break;
         case SaveLoadScreen:
             save_line();
