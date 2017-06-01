@@ -72,7 +72,7 @@ void unlocks_start_run()
 void unlocks_start()
 {
     unlocks_pattern_offset=0;
-    unlocks_index = 0;
+    unlocks_index = UNLOCKS_INIT;
     unlocks_command_index = 0;
 }
 
@@ -583,6 +583,7 @@ void unlocks_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
+        return;
     }
     --internal_line;
     uint8_t buffer[24];
@@ -793,9 +794,9 @@ void unlocks_line()
             goto definitely_show_unlocks;
         case 15:
             if (unlocks_menu_not_edit)
-                font_render_line_doubled((uint8_t *)"start:edit pattern", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"start:edit unlock", 96, internal_line, 65535, BG_COLOR*257);
             else
-                font_render_line_doubled((uint8_t *)"start:pattern menu", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"start:unlocks menu", 96, internal_line, 65535, BG_COLOR*257);
             goto definitely_show_unlocks;
         case 16:
             font_render_line_doubled((uint8_t *)"select:return", 96, internal_line, 65535, BG_COLOR*257);
