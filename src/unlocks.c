@@ -154,9 +154,7 @@ void unlocks_run()
                 break;
             if (param < 4) // heal
             {
-                if (param == 0)
-                    param = 4;
-                if (object[index].health + param >= 255)
+                if (object[index].health + (++param) >= 255)
                     object[index].health = 255;
                 else
                     object[index].health += param;
@@ -695,7 +693,7 @@ void unlocks_line()
                     param &= 7;
                     if (param < 4)
                     {
-                        param = param ? param : 4;
+                        ++param;
                         strcpy(b, "heal ");
                     }
                     else
