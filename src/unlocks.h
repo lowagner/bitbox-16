@@ -8,6 +8,7 @@ void unlocks_init();
 void unlocks_load_default();
 
 void unlocks_start();
+void unlocks_start_run();
 void unlocks_switch(int p, int next_unlock_index);
 #define UNLOCKS_0 0 
 #define UNLOCKS_1 1
@@ -16,7 +17,7 @@ void unlocks_switch(int p, int next_unlock_index);
 #define UNLOCKS_INIT 4
 #define UNLOCKS_LOOP 5
 #define UNLOCKS_WIN 6
-#define UNLOCKS_DEAD 7
+#define UNLOCKS_LOSE 7
 void unlocks_run();
 void kill_player(int p);
 

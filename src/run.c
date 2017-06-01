@@ -95,7 +95,7 @@ void run_start()
 
     if (player_index[0] != 255)
         set_camera_from_player_position();
-    unlocks_start();
+    unlocks_start_run();
     run_paused = 0;
     chip_play_init(0);
 }

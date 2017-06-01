@@ -1,6 +1,10 @@
 #include "bitbox.h"
-#include "unlocks.h"
 #include "common.h"
+#include "io.h"
+#include "name.h"
+#include "font.h"
+#include "unlocks.h"
+#include "chiptune.h"
 #include "run.h"
 #include "hit.h"
 #include "map.h"
@@ -19,6 +23,7 @@ float gravity CCM_MEMORY;
 uint8_t unlocks[8][32] CCM_MEMORY;
 int unlocks_index CCM_MEMORY;
 int unlocks_command_index CCM_MEMORY;
+int unlocks_pattern_offset CCM_MEMORY;
 static uint8_t unlocks_next[32] CCM_MEMORY;
 static uint8_t unlocks_count[32] CCM_MEMORY;
 int unlocks_x CCM_MEMORY;
@@ -34,9 +39,9 @@ void unlocks_init()
 
 void unlocks_switch(int p, int next_unlocks_index)
 {
-    if (unlocks_index == UNLOCKS_DEAD)
+    if (unlocks_index == UNLOCKS_LOSE)
         return run_stop(0);
-    if (unlocks_index == UNLOCKS_WIN && next_unlocks_index != UNLOCKS_DEAD)
+    if (unlocks_index == UNLOCKS_WIN && next_unlocks_index != UNLOCKS_LOSE)
         return;
 
     for (int i=0; i<32; ++i)
@@ -56,7 +61,7 @@ void unlocks_switch(int p, int next_unlocks_index)
     }
 }
 
-void unlocks_start()
+void unlocks_start_run()
 {
     unlocks_index = -1;
     unlocks_switch(0, UNLOCKS_INIT); // level initialization
@@ -64,9 +69,16 @@ void unlocks_start()
     gravity = 1.0f;
 }
 
+void unlocks_start()
+{
+    unlocks_pattern_offset=0;
+    unlocks_index = 0;
+    unlocks_command_index = 0;
+}
+
 void kill_player(int index)
 {
-    unlocks_switch(index, UNLOCKS_DEAD);
+    unlocks_switch(index, UNLOCKS_LOSE);
     player_index[0] = 255;
     player_index[1] = 255;
 }
@@ -207,10 +219,10 @@ void unlocks_run()
             else
                 spawn_y += param;
             break;
-        case UNLOCKS_SPAWN_SPRITE:
+        case UNLOCKS_SPAWN_TILE:
             map_set_tile(spawn_x, spawn_y, param);            
             break;
-        case UNLOCKS_SPRITE_VELOCITY:
+        case UNLOCKS_SPAWN_SPRITE:
         {
             uint8_t index = create_object(8*param, 16*spawn_x, 16*spawn_y, 
                 tile_xy_is_block(spawn_x, spawn_y) ? 0 : 1);
@@ -230,8 +242,8 @@ void unlocks_run()
                 else
                     object[index].sprite_index = 8*param + 2*UP;
             }
-            object[index].vx = spawn_vx * QUAKE_MULTIPLIER;
-            object[index].vy = spawn_vy * QUAKE_MULTIPLIER;
+            object[index].vx = spawn_vx * SPEED_MULTIPLIER;
+            object[index].vy = spawn_vy * SPEED_MULTIPLIER;
             break;
         }
         case UNLOCKS_SPRITE_VELOCITY:
@@ -434,19 +446,35 @@ void unlocks_render_command(int j, int y)
             break;
         case UNLOCKS_SPAWN_NEAR_0:
             cmd = '1';
-            param = hex[param];
+            param += 16;
             break;
         case UNLOCKS_SPAWN_NEAR_1:
             cmd = '2';
-            param = hex[param];
+            param += 16;
             break;
         case UNLOCKS_DELTA_SPAWN_X:
-            cmd = 'X';
-            param = hex[param];
+            if (++param > 8)
+            {
+                cmd = '-';
+                param = hex[17-param];
+            }
+            else
+            {
+                cmd = '+';
+                param = hex[param];
+            }
             break;
         case UNLOCKS_DELTA_SPAWN_Y:
-            cmd = 'Y';
-            param = hex[param];
+            if (++param > 8)
+            {
+                cmd = '^';
+                param = hex[17-param];
+            }
+            else
+            {
+                cmd = 127; // upside down arrow
+                param = hex[param];
+            }
             break;
         case UNLOCKS_SPAWN_TILE:
             cmd = 'T';
@@ -482,11 +510,11 @@ void unlocks_render_command(int j, int y)
             break;
         case UNLOCKS_REPEAT:
             cmd = 'D';
-            param = hex[param];
+            param = hex[param + (param <= 1 ? 16 : 0)];
             break;
         case UNLOCKS_GROUP:
             cmd = 'Q';
-            param = hex[param];
+            param = hex[param + j + (param <= 1 ? 16 : 0)];
             break;
     }
     
@@ -581,8 +609,27 @@ void unlocks_line()
         case 0:
         {
             // edit track
-            uint8_t msg[] = { 'g', 'o', ' ', 's', 'p', 'r', 'i', 't', 'e', ' ', hex[unlocks_index], '!',
-            0 };
+            uint8_t msg[16] = { 'u', 'n', 'l', 'o', 'c', 'k', 's', ' ' };
+            if (unlocks_index < 4)
+            {
+                msg[8] = '0'+unlocks_index;
+                msg[9] = 0;
+            }
+            else switch (unlocks_index)
+            {
+                case UNLOCKS_INIT:
+                    strcpy((char *)msg+8, "init");
+                    break;
+                case UNLOCKS_LOOP:
+                    strcpy((char *)msg+8, "loop");
+                    break;
+                case UNLOCKS_WIN:
+                    strcpy((char *)msg+8, "win!");
+                    break;
+                case UNLOCKS_LOSE:
+                    strcpy((char *)msg+8, "lose");
+                    break;
+            }
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             break;
         }
@@ -592,7 +639,7 @@ void unlocks_line()
         {
             unlocks_render_command(unlocks_pattern_offset+line-2, internal_line);
             // command
-            uint8_t msg[] = { 'c', 'o', 'm', 'm', 'a', 'n', 'd', ' ', hex[go_pattern_pos], ':', 0 };
+            uint8_t msg[] = { 'c', 'o', 'm', 'm', 'a', 'n', 'd', ' ', hex[unlocks_command_index], ':', 0 };
             font_render_line_doubled(msg, 96, internal_line, 65535, BG_COLOR*257);
             break;
         }

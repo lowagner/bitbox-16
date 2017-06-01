@@ -409,6 +409,9 @@ void game_switch(VisualMode new_visual_mode)
     case GameOn:
         run_start();
         break;
+    case EditUnlocks:
+        unlocks_start();
+        break;
     default:
         break;
     }
