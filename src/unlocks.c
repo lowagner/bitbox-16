@@ -569,22 +569,6 @@ void unlocks_line()
         if (vga_line/2 == 0)
         {
             memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
-            return;
-        }
-        else if (vga_line >= 8)
-        {
-            uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 8 - 16*2)/2 - 1;
-            uint8_t *tile_color = &sprite_draw[(unlocks_index)*8+(vga_frame/64)%8][(vga_line-8)/2][0] - 1;
-            for (int l=0; l<8; ++l) 
-            {
-                uint32_t color = palette[(*(++tile_color))&15];
-                color |= color << 16;
-                *(++dst) = color;
-                
-                color = palette[(*tile_color)>>4];
-                color |= color << 16;
-                *(++dst) = color;
-            }
         }
         return;
     }
@@ -599,7 +583,6 @@ void unlocks_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
-        goto maybe_draw_sprite;
     }
     --internal_line;
     uint8_t buffer[24];
@@ -649,49 +632,49 @@ void unlocks_line()
                     strcpy((char *)buffer, "wait or break (if 00)");
                     break;
                 case UNLOCKS_GRAVITY:
-                    strcpy((char *)buffer, "if not moving goto");
+                    strcpy((char *)buffer, "set gravity strength");
                     break;
                 case UNLOCKS_MULTIPLIER:
-                    strcpy((char *)buffer, "if not running goto");
+                    strcpy((char *)buffer, "set damage multiplier");
                     break;
                 case UNLOCKS_HURT_HEAL:
-                    strcpy((char *)buffer, "if not in air goto");
+                    strcpy((char *)buffer, "hurt or heal player");
                     break;
                 case UNLOCKS_SPAWN_NEAR_0:
-                    strcpy((char *)buffer, "if not firing goto");
+                    strcpy((char *)buffer, "spawn near player 1");
                     break;
                 case UNLOCKS_SPAWN_NEAR_1:
-                    strcpy((char *)buffer, "execute:");
+                    strcpy((char *)buffer, "spawn near player 2");
                     break;
                 case UNLOCKS_DELTA_SPAWN_X:
-                    strcpy((char *)buffer, "set property:");
+                    strcpy((char *)buffer, "change spawn x pos");
                     break;
                 case UNLOCKS_DELTA_SPAWN_Y:
-                    strcpy((char *)buffer, "handle directions:");
+                    strcpy((char *)buffer, "change spawn y pos");
                     break;
                 case UNLOCKS_SPAWN_TILE:
-                    strcpy((char *)buffer, "handle special input:");
-                    break;
-                case UNLOCKS_SPAWN_SPRITE:
                     strcpy((char *)buffer, "spawn a tile");
                     break;
-                case UNLOCKS_SPRITE_VELOCITY:
+                case UNLOCKS_SPAWN_SPRITE:
                     strcpy((char *)buffer, "spawn a sprite");
                     break;
+                case UNLOCKS_SPRITE_VELOCITY:
+                    strcpy((char *)buffer, "set sprite velocity");
+                    break;
                 case UNLOCKS_NOISE:
-                    strcpy((char *)buffer, "set acc/deceleration");
+                    strcpy((char *)buffer, "make noise with inst.");
                     break;
                 case UNLOCKS_QUAKE:
-                    strcpy((char *)buffer, "set move or jump speed");
+                    strcpy((char *)buffer, "quake screen");
                     break;
                 case UNLOCKS_RANDOMIZE:
-                    strcpy((char *)buffer, "make noise w/ inst.");
-                    break;
-                case UNLOCKS_REPEAT:
                     strcpy((char *)buffer, "randomize next cmd");
                     break;
+                case UNLOCKS_REPEAT:
+                    strcpy((char *)buffer, "repeat next command");
+                    break;
                 case UNLOCKS_GROUP:
-                    strcpy((char *)buffer, "quake screen");
+                    strcpy((char *)buffer, "group next cmds as one");
                     break;
             }
             font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
@@ -699,124 +682,7 @@ void unlocks_line()
         case 4:
             switch (unlocks[unlocks_index][unlocks_command_index]&15)
             {
-                case UNLOCKS_SPAWN_NEAR_0:
-                {
-                    int p = (unlocks[unlocks_index][unlocks_command_index]>>4);
-                    if (!p)
-                        p = 16;
-                    strcpy((char *)buffer, "fire: X/L next, A/R ");
-
-                    buffer[20] = hex[1 + unlocks_command_index + p/2];
-                    buffer[21] = 0;
-                    break;
-                }
-                case UNLOCKS_SPAWN_NEAR_1:
-                    switch (unlocks[unlocks_index][unlocks_command_index]>>4)
-                    {
-                        case 0:
-                            strcpy((char *)buffer, "stop");
-                            break;
-                        case 1:
-                            strcpy((char *)buffer, "turn CCW");
-                            break;
-                        case 2:
-                            strcpy((char *)buffer, "turn 180");
-                            break;
-                        case 3:
-                            strcpy((char *)buffer, "turn CW");
-                            break;
-                        case 4:
-                            strcpy((char *)buffer, "move forward");
-                            break;
-                        case 5:
-                            strcpy((char *)buffer, "do a jump");
-                            break;
-                        case 6:
-                            strcpy((char *)buffer, "fire X/L!!");
-                            break;
-                        case 7:
-                            strcpy((char *)buffer, "fire A/R!!");
-                            break;
-                        case 8:
-                            strcpy((char *)buffer, "look right");
-                            break;
-                        case 9:
-                            strcpy((char *)buffer, "look up");
-                            break;
-                        case 10:
-                            strcpy((char *)buffer, "look left");
-                            break;
-                        case 11:
-                            strcpy((char *)buffer, "look down");
-                            break;
-                        case 12:
-                            strcpy((char *)buffer, "look 4 player 1");
-                            break;
-                        case 13:
-                            strcpy((char *)buffer, "look 4 player 2");
-                            break;
-                        case 14:
-                            strcpy((char *)buffer, "may add 1 HP");
-                            break;
-                        case 15:
-                            strcpy((char *)buffer, "may remove 1 HP");
-                            break;
-                    }
-                    break;
-                case UNLOCKS_DELTA_SPAWN_X:
-                    switch (unlocks[unlocks_index][unlocks_command_index]>>4)
-                    {
-                        case 0:
-                            strcpy((char *)buffer, "set run");
-                            break;
-                        case 1:
-                            strcpy((char *)buffer, "stop run");
-                            break;
-                        case 2:
-                            strcpy((char *)buffer, "start ghost");
-                            break;
-                        case 3:
-                            strcpy((char *)buffer, "stop ghost");
-                            break;
-                        case 4:
-                            strcpy((char *)buffer, "become projectile");
-                            break;
-                        case 5:
-                            strcpy((char *)buffer, "become real");
-                            break;
-                        case 6:
-                            strcpy((char *)buffer, "swap player 1<->2");
-                            break;
-                        case 7:
-                            strcpy((char *)buffer, "make player 1");
-                            break;
-                        case 8:
-                            strcpy((char *)buffer, "fall off edges");
-                            break;
-                        case 9:
-                            strcpy((char *)buffer, "turn CCW at edges");
-                            break;
-                        case 10:
-                            strcpy((char *)buffer, "turn 180 at edges");
-                            break;
-                        case 11:
-                            strcpy((char *)buffer, "turn CW at edges");
-                            break;
-                        case 12:
-                            strcpy((char *)buffer, "jump at edges");
-                            break;
-                        case 13:
-                            strcpy((char *)buffer, "turn or fall");
-                            break;
-                        case 14:
-                            strcpy((char *)buffer, "stop or fall");
-                            break;
-                        case 15:
-                            strcpy((char *)buffer, "stop at edges");
-                            break;
-                    }
-                    break;
-                case UNLOCKS_DELTA_SPAWN_Y:
+                case UNLOCKS_HURT_HEAL:
                 {
                     char *b = (char *)buffer;
                     uint8_t param = (unlocks[unlocks_index][unlocks_command_index]>>4);
@@ -825,83 +691,21 @@ void unlocks_line()
                     else
                         strcpy(b, "P1: ");
                     b += 4;
-                    if (param & 7)
+                    param &= 7;
+                    if (param < 4)
                     {
-                        if (param & 3)
-                        {
-                            if (param & 1)
-                            {
-                                strcpy(b, "L/R ");
-                                b += 4;
-                            }
-                            if (param & 2)
-                            {
-                                strcpy(b, "U/D ");
-                                b += 4;
-                            }
-                            if (param & 4)
-                                strcpy(b, "mirrored");
-                        }
-                        else
-                            strcpy(b, "random");
+                        param = param ? param : 4;
+                        strcpy(b, "heal ");
                     }
                     else
-                        strcpy(b, "no input"); // TODO: could make this do something
+                    {
+                        param = 8-param;
+                        strcpy(b, "hurt ");
+                    }
+                    b[5] = '0' + param;
+                    b[6] = 0;
                     break;
                 }
-                case UNLOCKS_SPAWN_TILE:
-                {
-                    char *b = (char *)buffer;
-                    uint8_t param = (unlocks[unlocks_index][unlocks_command_index]>>4);
-                    if (param & 8)
-                        strcpy(b, "P2: ");
-                    else
-                        strcpy(b, "P1: ");
-                    b += 4;
-                    if (!(param & 7))
-                    {
-                        strcpy(b, "no input"); // TODO: could make this do something
-                        break;
-                    }
-                    if (param & 1)
-                    {
-                        strcpy(b, "run ");
-                        b += 4;
-                    }
-                    if (param & 2)
-                    {
-                        strcpy(b, "jump ");
-                        b += 5;
-                    }
-                    if (param & 4)
-                    {
-                        strcpy(b, "fire");
-                    }
-                    break;
-                }
-                case UNLOCKS_NOISE:
-                {
-                    uint8_t *b = buffer;
-                    *b = ' ';
-                    *++b = ' ';
-                    *++b = ' ';
-                    *++b = ' ';
-                    *++b = hex[(unlocks[unlocks_index][unlocks_command_index]>>4)%4];
-                    *++b = ' ';
-                    *++b = '/';
-                    *++b = ' ';
-                    *++b = hex[(unlocks[unlocks_index][unlocks_command_index]>>4)/4];
-                    *++b = 0;
-                    break;
-                }
-                case UNLOCKS_QUAKE:
-                    if ((unlocks[unlocks_index][unlocks_command_index]>>4) < 8)
-                        strcpy((char *)buffer, "move speed ");
-                    else
-                        strcpy((char *)buffer, "jump speed ");
-                    buffer[11] = '0'+(unlocks[unlocks_index][unlocks_command_index]>>4)%8;
-                    buffer[12] = 0;
-                    break;
                 default:
                     buffer[0] = 0;
             }
@@ -913,7 +717,7 @@ void unlocks_line()
         case 7:
             if (unlocks_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"L:prev sprite", 112, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"L:prev unlock", 112, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
@@ -925,7 +729,7 @@ void unlocks_line()
         case 8:
             if (unlocks_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"R:next sprite", 112, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"R:next unlock", 112, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
@@ -1005,27 +809,6 @@ void unlocks_line()
           definitely_show_unlocks:
             unlocks_render_command(unlocks_pattern_offset+line-2, internal_line);
             break; 
-    }
-    maybe_draw_sprite:
-    if (vga_line < 8 + 2*16)
-    {
-        uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 8 - 16*2)/2 - 1;
-        internal_line = (vga_line - 8)/2;
-        uint8_t *tile_color = &sprite_draw[(unlocks_index)*8+(vga_frame/64)%8][internal_line][0] - 1;
-        for (int l=0; l<8; ++l) 
-        {
-            uint32_t color = palette[(*(++tile_color))&15];
-            color |= color << 16;
-            *(++dst) = color;
-            
-            color = palette[(*tile_color)>>4];
-            color |= color << 16;
-            *(++dst) = color;
-        }
-    }
-    else if (vga_line/2 == (8 + 2*16)/2)
-    {
-        memset(draw_buffer + SCREEN_W - 8 - 16*2, BG_COLOR, 16*4);
     }
 }
 
