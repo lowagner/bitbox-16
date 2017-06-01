@@ -117,7 +117,10 @@ void unlocks_run()
     }
     if (unlocks_command_index >= 32)
     {
-        unlocks_switch(0, UNLOCKS_LOOP);
+        if (unlocks_index == UNLOCKS_WIN)
+            run_stop(1);
+        else
+            unlocks_switch(0, UNLOCKS_LOOP);
         return;
     }
     uint8_t cmd = unlocks[unlocks_index][unlocks_command_index];
@@ -131,15 +134,11 @@ void unlocks_run()
         case UNLOCKS_BREAK:
             if (param == 0)
             {
-                if (unlocks_index == UNLOCKS_WIN)
-                {
-                    run_stop(1);
-                    break;
-                }
-
-                unlocks_switch(0, UNLOCKS_LOOP);
+                unlocks_command_index = 32;
+                update_index = 0;
             }
-            wait = param;
+            else
+                wait = param;
             break;
         case UNLOCKS_GRAVITY:
             gravity = 0.25*param;
