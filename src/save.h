@@ -5,4 +5,5 @@ extern uint8_t save_only;
 void save_init();
 void save_line();
 void save_controls();
+void save_list_games();
 #endif

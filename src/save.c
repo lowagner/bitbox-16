@@ -5,16 +5,102 @@
 #include "io.h"
 #include "edit.h"
 
+#include <stdlib.h> // qsort
+
+#define MAX_FILES 1024
 #define BG_COLOR 192 // a uint8_t, uint16_t color is (BG_COLOR)|(BG_COLOR<<8)
 
 uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - map, 2 - tiles, 3 - sprites, 4 - palette
                               // 5 - music, 6 - patterns, 7 - unlock
+
+#include "fatfs/ff.h"
+FATFS fat_fs;
+FIL fat_file;
+char filenames[MAX_FILES][8];
+int file_count;
+int file_index;
+
+#ifdef EMULATOR
+#define ROOT_DIR "."
+#else
+#define ROOT_DIR ""
+#endif
 
 #define NUMBER_LINES 17
    
 void save_init()
 {
     save_only = 0;
+}
+
+static int cmp(const void *p1, const void *p2){
+    return strncmp( (char * const ) p1, (char * const ) p2, 8);
+}
+
+void save_list_games()
+{
+    file_count = 0;
+    message("listing games\n");
+
+    DIR dir;
+    if (f_opendir(&dir, ROOT_DIR) != FR_OK) 
+        return set_game_message_timeout("couldn't open dir!", MESSAGE_TIMEOUT);
+    
+    while (1)
+    {
+        FILINFO fno;
+        if (f_readdir(&dir, &fno) != FR_OK || fno.fname[0] == 0)
+            break;
+        
+        char *fn = fno.fname;
+        /* Ignore dot entry and dirs */
+        if (fn[0] == '.') continue;
+        if (fno.fattrib & AM_DIR) 
+            continue;
+
+        message("got potential file %s\n", fn);
+        // check extension : only keep .G16
+        int i_period=1;
+        while (fn[i_period] != '.')
+        {
+            if (fn[i_period++] == 0)
+                continue;
+        }
+        if (!(fn[i_period+1] == 'G' || fn[i_period+1] == 'g'))
+            continue;
+        if (fn[i_period+2] != '1')
+            continue;
+        if (fn[i_period+3] != '6')
+            continue;
+
+        int i;
+        for (i=0; i<i_period; ++i)
+            filenames[file_count][i] = fn[i];
+        if (i < 8)
+            filenames[file_count][i] = 0;
+        ++file_count;
+    }
+    f_closedir(&dir);
+    if (!file_count)
+        return;
+
+    // sort it
+    qsort(filenames, file_count, 8, cmp);
+    for (int i=0; i<file_count; ++i)
+    {
+        char end = filenames[i+1][0];
+        filenames[i+1][0] = 0;
+        message("got filename %s\n", filenames[i]);
+        filenames[i+1][0] = end;
+    }
+    
+    // find recent file, if possible.
+    char *recent = bsearch(base_filename, filenames, file_count, 8, cmp);
+    if (recent == NULL)
+        file_index = 0;
+    else
+        file_index = (int)(recent - filenames[0])/8;
+    message("got recent file offset %d\n", file_index);
 }
 
 void save_line()
@@ -91,7 +177,6 @@ void save_line()
         case 5:
             font_render_line_doubled((const uint8_t *)"  Y:choose filename", 16, internal_line, 65535, BG_COLOR*257);
             break;
-            //font_render_line_doubled((const uint8_t *)"X:delete  Y:overwrite", 16, internal_line, 65535, BG_COLOR*257);
         case 7:
             switch (save_only)
             {
@@ -120,6 +205,12 @@ void save_line()
                 font_render_line_doubled((const uint8_t *)"start:edit unlocks", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             }
+            break;
+        case 10:
+            font_render_line_doubled((const uint8_t *)"up/dn:choose game", 16, internal_line, 65535, BG_COLOR*257);    
+            break;
+        case 11:
+            font_render_line_doubled((const uint8_t *)"rmbr to load before playing!", 16+2*10, internal_line, 65535, BG_COLOR*257);    
             break;
         case (NUMBER_LINES-2):
             if (game_message[0])
@@ -346,5 +437,11 @@ void save_controls()
         }
         previous_visual_mode = SaveLoadScreen;
         return;
+    }
+    if (GAMEPAD_PRESS(0, down))
+    {
+    }
+    if (GAMEPAD_PRESS(0, up))
+    {
     }
 }

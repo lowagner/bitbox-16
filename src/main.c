@@ -32,7 +32,7 @@ uint8_t U8row[SCREEN_W+32] CCM_MEMORY;
 #define BSOD 140
 
 void game_init()
-{ 
+{
     visual_mode = None;
     old_visual_mode = None;
     previous_visual_mode = None;
@@ -116,6 +116,8 @@ void game_init()
             unlocks_load_default();
         }
     }
+
+    save_list_games();
 
     // init game mode
     game_switch(SaveLoadScreen);
