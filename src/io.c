@@ -80,6 +80,10 @@ char old_base_filename[9] CCM_MEMORY;
 uint8_t old_chip_volume CCM_MEMORY;
 char full_filename[13] CCM_MEMORY;
 
+char available_filenames[MAX_FILES+1][8];
+int available_count;
+int available_index;
+
 void io_message_from_error(uint8_t *msg, FileError error, int save_not_load)
 {
     switch (error)
@@ -121,6 +125,8 @@ void io_message_from_error(uint8_t *msg, FileError error, int save_not_load)
 FileError io_init()
 {
     message("total file size is %d\n", TOTAL_FILE_SIZE);
+    available_count = 0;
+
     old_base_filename[0] = 0;
     fat_result = f_mount(&fat_fs, "", 1); // mount now...
     if (fat_result != FR_OK)
@@ -879,10 +885,6 @@ FileError io_load_unlocks(unsigned int i)
 {
     LOAD_INDEXED(UNLOCKS, sizeof(unlocks[0]), 8);
 }
-
-char available_filenames[MAX_FILES][8];
-int available_count;
-int available_index;
 
 #ifdef EMULATOR
 #define ROOT_DIR "."

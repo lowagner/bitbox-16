@@ -167,7 +167,6 @@ void game_frame()
     
     if (game_message_timeout && --game_message_timeout == 0)
         game_message[0] = 0; 
-
 }
 
 void graph_vsync()
