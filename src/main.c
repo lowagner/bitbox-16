@@ -76,48 +76,30 @@ void game_init()
     else // there was a filename to look into
     {
         if (io_load_palette())
-        {
             // had troubles loading a palette
             palette_load_default();
-        }
         if (io_load_tile(16))
-        {
             // had troubles loading tiles...
             tiles_load_default();
-        }
         if (io_load_map())
-        {
             // etc...
             map_load_default();
-        }
         if (io_load_sprite(128))
-        {
             // and so on...
             sprites_load_default();
-        }
         if (io_load_anthem())
-        {
             anthem_load_default();
-        }
         if (io_load_verse(16))
-        {
             verse_load_default();
-        }
         if (io_load_instrument(16))
-        {
             instrument_load_default();
-        }
         if (io_load_go(16))
-        {
             go_load_default();
-        }
         if (io_load_unlocks(8))
-        {
             unlocks_load_default();
-        }
     }
 
-    save_list_games();
+    io_list_games();
 
     // init game mode
     game_switch(SaveLoadScreen);

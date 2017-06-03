@@ -7,6 +7,7 @@
 #include "unlocks.h"
 
 #include "fatfs/ff.h"
+#include <stdlib.h> // qsort
 
 #define PALETTE_LENGTH (sizeof(palette))
 #define INSTRUMENT_OFFSET (PALETTE_LENGTH)
@@ -877,4 +878,110 @@ FileError io_save_unlocks(unsigned int i)
 FileError io_load_unlocks(unsigned int i)
 {
     LOAD_INDEXED(UNLOCKS, sizeof(unlocks[0]), 8);
+}
+
+char available_filenames[MAX_FILES][8];
+int available_count;
+int available_index;
+
+#ifdef EMULATOR
+#define ROOT_DIR "."
+#else
+#define ROOT_DIR ""
+#endif
+
+static int cmp(const void *p1, const void *p2){
+    return strncmp( (char * const ) p1, (char * const ) p2, 8);
+}
+
+void io_list_games()
+{
+    available_count = 0;
+    message("listing games\n");
+
+    DIR dir;
+    if (f_opendir(&dir, ROOT_DIR) != FR_OK) 
+        return set_game_message_timeout("couldn't open dir!", MESSAGE_TIMEOUT);
+    
+    do
+    {
+        FILINFO fno;
+        if (f_readdir(&dir, &fno) != FR_OK || fno.fname[0] == 0)
+            break;
+        
+        char *fn = fno.fname;
+        /* Ignore dot entry and dirs */
+        if (fn[0] == '.') continue;
+        if (fno.fattrib & AM_DIR) 
+            continue;
+
+        message("got potential file %s\n", fn);
+        // check extension : only keep .G16
+        int i_period=1;
+        while (fn[i_period] != '.')
+        {
+            if (fn[i_period++] == 0)
+                continue;
+        }
+        if (!(fn[i_period+1] == 'G' || fn[i_period+1] == 'g'))
+            continue;
+        if (fn[i_period+2] != '1')
+            continue;
+        if (fn[i_period+3] != '6')
+            continue;
+
+        int i;
+        for (i=0; i<i_period; ++i)
+            available_filenames[available_count][i] = fn[i];
+        if (i < 8)
+            available_filenames[available_count][i] = 0;
+        
+    }
+    while (++available_count < MAX_FILES);
+
+    f_closedir(&dir);
+    if (!available_count)
+        return;
+
+    // sort it
+    qsort(available_filenames, available_count, 8, cmp);
+    for (int i=0; i<available_count; ++i)
+    {
+        char end = available_filenames[i+1][0];
+        available_filenames[i+1][0] = 0;
+        message("got filename %s\n", available_filenames[i]);
+        available_filenames[i+1][0] = end;
+    }
+    
+    // find recent file, if possible.
+    char *recent = bsearch(base_filename, available_filenames, available_count, 8, cmp);
+    if (recent == NULL)
+        available_index = 0;
+    else
+        available_index = (int)(recent - available_filenames[0])/8;
+    message("got recent file offset %d\n", available_index);
+}
+
+void io_next_available_filename()
+{
+    if (!available_count)
+        return;
+    if (available_index + 1 >= available_count)
+        available_index = 0;
+    else
+        ++available_index;
+    strncpy(base_filename, available_filenames[available_index], 8);
+    base_filename[8] = 0;
+}
+
+void io_previous_available_filename()
+{
+    if (!available_count)
+        return;
+    if (available_index)
+        --available_index;
+    else
+        available_index = available_count-1;
+    strncpy(base_filename, available_filenames[available_index], 8);
+    base_filename[8] = 0;
 }
