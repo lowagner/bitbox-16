@@ -440,8 +440,22 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, down))
     {
+        if (file_index + 1 >= file_count)
+            file_index = 0;
+        else
+            ++file_index;
+        strncpy(base_filename, filenames[file_index], 8);
+        base_filename[8] = 0;
+        return;
     }
     if (GAMEPAD_PRESS(0, up))
     {
+        if (file_index)
+            --file_index;
+        else
+            file_index = file_count-1;
+        strncpy(base_filename, filenames[file_index], 8);
+        base_filename[8] = 0;
+        return;
     }
 }
