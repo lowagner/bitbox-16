@@ -440,6 +440,8 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, down))
     {
+        if (!file_count)
+            return;
         if (file_index + 1 >= file_count)
             file_index = 0;
         else
@@ -450,6 +452,8 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, up))
     {
+        if (!file_count)
+            return;
         if (file_index)
             --file_index;
         else
