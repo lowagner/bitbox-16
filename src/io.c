@@ -730,6 +730,11 @@ FileError io_save_verse(unsigned int i)
 
 FileError io_load_anthem()
 {
+    // set some defaults
+    track_length = 16;
+    song_speed = 4;
+    song_length = 16;
+
     FileError ferr = io_set_recent_filename();
     if (ferr)
         return ferr;
@@ -739,10 +744,6 @@ FileError io_load_anthem()
         return OpenError;
     
     f_lseek(&fat_file, ANTHEM_OFFSET);
-
-    // set some defaults
-    track_length = 16;
-    song_speed = 4;
 
     UINT bytes_get; 
     fat_result = f_read(&fat_file, &song_length, 1, &bytes_get);
