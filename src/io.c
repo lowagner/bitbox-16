@@ -905,8 +905,8 @@ void io_list_games()
     DIR dir;
     if (f_opendir(&dir, ROOT_DIR) != FR_OK) 
         return set_game_message_timeout("couldn't open dir!", MESSAGE_TIMEOUT);
-    
-    do
+   
+    while (1)
     {
         FILINFO fno;
         if (f_readdir(&dir, &fno) != FR_OK || fno.fname[0] == 0)
@@ -918,7 +918,6 @@ void io_list_games()
         if (fno.fattrib & AM_DIR) 
             continue;
 
-        message("got potential file %s\n", fn);
         // check extension : only keep .G16
         int i_period=1;
         while (fn[i_period] != '.')
@@ -936,11 +935,10 @@ void io_list_games()
         int i;
         for (i=0; i<i_period; ++i)
             available_filenames[available_count][i] = fn[i];
-        if (i < 8)
-            available_filenames[available_count][i] = 0;
-        
+        available_filenames[available_count][i] = 0; // ok if i == 8, we'll overwrite it on next file.
+        if (++available_count >= MAX_FILES)
+            break;
     }
-    while (++available_count < MAX_FILES);
 
     f_closedir(&dir);
     if (!available_count)
