@@ -1,0 +1,3 @@
+[submodule "bitbox"]
+	path = bitbox
+	url = https://github.com/lowagner/bitbox_sdk

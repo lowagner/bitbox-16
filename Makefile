@@ -15,6 +15,7 @@ GAME_C_FILES=$(C_FILES:%=src/%)
 GAME_H_FILES=$(H_FILES:%=src/%)
 
 # see this file for options
+BITBOX=bitbox
 include $(BITBOX)/kernel/bitbox.mk
 
 src/font.c: src/mk_font.py
