@@ -461,7 +461,6 @@ void map_controls()
             game_message[0] = 0;
             if (map_sprite_under_cursor == 255)
             {
-                previous_visual_mode = EditMap;
                 game_switch(EditTileOrSprite);
                 edit_sprite_not_tile = 1;
                 edit_sprite = map_sprite;
@@ -750,7 +749,6 @@ void map_controls()
             else
             {
                 game_message[0] = 0;
-                previous_visual_mode = None;
                 game_switch(GameOn);
             }
             return;
@@ -783,7 +781,6 @@ void map_controls()
             game_message[0] = 0;
             map_color[map_last_painted] = map_spot_color();
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-            previous_visual_mode = EditMap;
             game_switch(EditTileOrSprite);
             edit_sprite_not_tile = 0;
             edit_tile = map_color[map_last_painted];
@@ -895,7 +892,6 @@ void map_controls()
 
     if (GAMEPAD_PRESS(0, select))
     {
-        previous_visual_mode = None;
         game_switch(SaveLoadScreen);
         edit_sprite_not_tile = 0;
         return;

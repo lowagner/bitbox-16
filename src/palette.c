@@ -310,7 +310,6 @@ void palette_controls()
         {
             // go to filename chooser
             game_message[0] = 0;
-            previous_visual_mode = EditPalette;
             game_switch(ChooseFilename);
         }
         return;
@@ -319,21 +318,12 @@ void palette_controls()
     {
         game_message[0] = 0;
         game_switch(SaveLoadScreen);
-        previous_visual_mode = None;
         return;
     }
     if (GAMEPAD_PRESS(0, start))
     {
         game_message[0] = 0;
-        if (previous_visual_mode)
-        {
-            game_switch(previous_visual_mode);
-            previous_visual_mode = None;
-        }
-        else
-        {
-            game_switch(SaveLoadScreen);
-        }
+        game_switch_previous_or(SaveLoadScreen);
         return;
     }
 }

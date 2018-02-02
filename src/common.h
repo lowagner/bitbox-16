@@ -92,6 +92,7 @@ extern const uint8_t direction[4];
 
 void draw_parade(int line, uint8_t bg_color);
 void game_switch(VisualMode new_visual_mode);
+void game_switch_previous_or(VisualMode new_visual_mode);
 
 extern float gravity;
 

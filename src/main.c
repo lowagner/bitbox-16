@@ -384,6 +384,9 @@ void game_switch(VisualMode new_visual_mode)
         // we are switching away from game mode, reload map data
         io_message_from_error(game_message, io_load_map(), 2);
 
+    previous_visual_mode = visual_mode;
+    visual_mode = new_visual_mode;
+
     switch (new_visual_mode)
     {
     case EditMap:
@@ -398,6 +401,13 @@ void game_switch(VisualMode new_visual_mode)
     default:
         break;
     }
+}
+
+void game_switch_previous_or(VisualMode new_visual_mode)
+{
+    if (!previous_visual_mode)
+        return game_switch(new_visual_mode);
+    game_switch(previous_visual_mode);
+    previous_visual_mode = None;
     
-    visual_mode = new_visual_mode;
 }

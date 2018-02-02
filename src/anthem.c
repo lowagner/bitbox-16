@@ -462,7 +462,6 @@ void anthem_controls()
             // switch to choose name and hope to come back
             game_message[0] = 0;
             game_switch(ChooseFilename);
-            previous_visual_mode = EditAnthem;
             return;
         }
     }
@@ -565,7 +564,6 @@ void anthem_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        previous_visual_mode = None;
         if (anthem_menu_not_edit)
         {
             verse_menu_not_edit = 1;

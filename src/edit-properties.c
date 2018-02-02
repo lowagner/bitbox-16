@@ -894,7 +894,6 @@ void edit2_controls()
         else
         {
             edit2_cursor = 0;
-            previous_visual_mode = EditTileOrSpriteProperties;
             game_switch(ChooseFilename);
         }
         return;
@@ -910,15 +909,7 @@ void edit2_controls()
     {
         edit2_cursor = 0;
         game_message[0] = 0;
-        if (previous_visual_mode)
-        {
-            game_switch(previous_visual_mode);
-            previous_visual_mode = None;
-        }
-        else
-        {
-            game_switch(EditTileOrSprite);
-        }
+        game_switch_previous_or(EditTileOrSprite);
         return;
     }
 }

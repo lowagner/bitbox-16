@@ -753,11 +753,7 @@ void edit_controls()
     {
         game_message[0] = 0;
         fill_stop();
-        if (previous_visual_mode)
-            game_switch(previous_visual_mode);
-        else
-            game_switch(SaveLoadScreen);
-        previous_visual_mode = None;
+        game_switch_previous_or(SaveLoadScreen);
         return;
     }
     if (GAMEPAD_PRESS(0, start))

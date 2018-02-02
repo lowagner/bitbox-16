@@ -164,7 +164,6 @@ void run_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        previous_visual_mode = None;
         game_switch(SaveLoadScreen);
         return;
     }

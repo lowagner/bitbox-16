@@ -298,9 +298,7 @@ void save_controls()
     if (GAMEPAD_PRESS(0, Y))
     {
         game_message[0] = 0;
-        // switch to choose name and hope to come back
         game_switch(ChooseFilename);
-        previous_visual_mode = SaveLoadScreen;
         return;
     }
     if (GAMEPAD_PRESS(0, L) || GAMEPAD_PRESS(0, left))
@@ -349,7 +347,6 @@ void save_controls()
             game_switch(EditUnlocks);
             break;
         }
-        previous_visual_mode = SaveLoadScreen;
         return;
     }
     if (GAMEPAD_PRESS(0, down))

@@ -882,7 +882,6 @@ void unlocks_controls()
                 // switch to choose name and hope to come back
                 game_message[0] = 0;
                 game_switch(ChooseFilename);
-                previous_visual_mode = EditSpritePattern;
             }
             return;
         }
@@ -1024,7 +1023,6 @@ void unlocks_controls()
     {
         unlocks_copying = 8;
         game_message[0] = 0;
-        previous_visual_mode = None;
         game_switch(SaveLoadScreen);
         return;
     } 

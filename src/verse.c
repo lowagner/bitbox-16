@@ -779,7 +779,6 @@ void verse_controls()
                 // switch to choose name and hope to come back
                 game_message[0] = 0;
                 game_switch(ChooseFilename);
-                previous_visual_mode = EditVerse;
             }
             return;
         }
