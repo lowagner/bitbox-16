@@ -98,11 +98,7 @@ extern float gravity;
 
 uint8_t randomize(uint8_t arg);
 
-inline void set_game_message_timeout(const char *msg, int timeout)
-{
-    strcpy((char *)game_message, msg);
-    game_message_timeout = timeout;
-}
+void set_game_message_timeout(const char *msg, int timeout);
 
 #define MESSAGE_TIMEOUT (10*64)
 #endif

@@ -8,6 +8,7 @@
 
 #include "fatfs/ff.h"
 #include <stdlib.h> // qsort
+#include <strings.h> // strcasecmp
 
 #define PALETTE_LENGTH (sizeof(palette))
 #define INSTRUMENT_OFFSET (PALETTE_LENGTH)
@@ -909,6 +910,11 @@ void io_list_games()
     while (1)
     {
         FILINFO fno;
+        #if _USE_LFN
+        char lfname[sizeof(TCHAR) * 100];
+        fno.lfname = lfname;
+        fno.lfsize = 100;
+        #endif
         if (f_readdir(&dir, &fno) != FR_OK || fno.fname[0] == 0)
             break;
         
@@ -919,18 +925,13 @@ void io_list_games()
             continue;
 
         // check extension : only keep .G16
-        int i_period=1;
-        while (fn[i_period] != '.')
+        int i_period=0;
+        while (fn[i_period] != 0 && fn[i_period] != '.')
         {
-            if (fn[i_period++] == 0)
-                continue;
+            ++i_period;
         }
-        if (!(fn[i_period+1] == 'G' || fn[i_period+1] == 'g'))
-            continue;
-        if (fn[i_period+2] != '1')
-            continue;
-        if (fn[i_period+3] != '6')
-            continue;
+        if (fn[i_period] == 0) continue;
+        if (strcasecmp(fn + i_period, ".G16")) continue;
 
         int i;
         for (i=0; i<i_period; ++i)
@@ -950,7 +951,7 @@ void io_list_games()
     {
         char end = available_filenames[i+1][0];
         available_filenames[i+1][0] = 0;
-        message("got filename %s\n", available_filenames[i]);
+        message("got filename %d: %s\n", i, available_filenames[i]);
         available_filenames[i+1][0] = end;
     }
     
